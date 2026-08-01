@@ -306,6 +306,8 @@ Deliverable
 
 Useful dashboard.
 
+Status: [x] Implemented — the dashboard now summarizes today’s meals and macros, calorie budget, weekly average, a seven-day calorie chart, and today’s meal list from persisted Supabase data.
+
 ---
 
 # Phase 7 — Recommendation Engine
