@@ -245,17 +245,19 @@ Save button
 
 Tasks
 
-- API endpoint
-- System prompt
-- JSON schema
-- Zod validation
-- Error handling
-- Loading state
-- Nutrition preview
+- [x] API endpoint
+- [x] System prompt
+- [x] JSON schema
+- [x] Zod validation
+- [x] Error handling
+- [x] Loading state
+- [x] Nutrition preview
 
 Deliverable
 
 Natural language → structured meal.
+
+Status: [x] Implemented. Set `OPENAI_API_KEY` in the server environment to enable live analysis.
 
 ---
 
