@@ -4,16 +4,19 @@ import { useState, type FormEvent } from "react";
 import type { MealAnalysis } from "@/lib/nutrition";
 import { Button, Spinner } from "@/components/ui";
 
-export function MealParser() {
+export function MealParser({ onSaved }: { onSaved?: () => void }) {
   const [description, setDescription] = useState("");
   const [analysis, setAnalysis] = useState<MealAnalysis>();
   const [error, setError] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(undefined);
     setAnalysis(undefined);
+    setSaved(false);
     setIsLoading(true);
     try {
       const response = await fetch("/api/ai/meal", {
@@ -36,6 +39,35 @@ export function MealParser() {
       );
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function saveMeal() {
+    if (!analysis) return;
+    setError(undefined);
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mealName: analysis.mealName,
+          items: analysis.items,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok)
+        throw new Error(payload.error ?? "Could not save meal.");
+      setSaved(true);
+      onSaved?.();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not save meal.",
+      );
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -77,12 +109,29 @@ export function MealParser() {
           )}
         </Button>
       </section>
-      {analysis ? <MealPreview analysis={analysis} /> : null}
+      {analysis ? (
+        <MealPreview
+          analysis={analysis}
+          isSaving={isSaving}
+          onSave={saveMeal}
+          saved={saved}
+        />
+      ) : null}
     </form>
   );
 }
 
-function MealPreview({ analysis }: { analysis: MealAnalysis }) {
+function MealPreview({
+  analysis,
+  isSaving,
+  onSave,
+  saved,
+}: {
+  analysis: MealAnalysis;
+  isSaving: boolean;
+  onSave: () => void;
+  saved: boolean;
+}) {
   return (
     <section
       aria-live="polite"
@@ -123,10 +172,15 @@ function MealPreview({ analysis }: { analysis: MealAnalysis }) {
           </div>
         ))}
       </div>
-      <p className="p-4 text-xs leading-5 text-slate-500">
-        These values are estimates. You’ll be able to save or adjust them in the
-        next phase.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <p className="text-xs leading-5 text-slate-500">
+          These values are estimates. You can edit the saved meal from your
+          history.
+        </p>
+        <Button disabled={isSaving || saved} onClick={onSave} type="button">
+          {saved ? "Saved" : isSaving ? "Saving…" : "Save meal"}
+        </Button>
+      </div>
     </section>
   );
 }

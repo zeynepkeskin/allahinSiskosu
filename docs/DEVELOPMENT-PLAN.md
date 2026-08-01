@@ -265,16 +265,18 @@ Status: [x] Implemented. Set `OPENAI_API_KEY` in the server environment to enabl
 
 Tasks
 
-- Save meal
-- Save meal items
-- Fetch meals
-- Edit meals
-- Delete meals
-- Confirm deletion
+- [x] Save meal
+- [x] Save meal items
+- [x] Fetch meals
+- [x] Edit meals
+- [x] Delete meals
+- [x] Confirm deletion
 
 Deliverable
 
 Persistent meal history.
+
+Status: [x] Implemented — authenticated CRUD endpoints persist meals and items through RLS; the meal log supports saving parsed meals, browsing history, renaming meals, and confirmed deletion.
 
 ---
 

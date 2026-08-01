@@ -47,4 +47,22 @@ export const mealAnalysisRequestSchema = z.object({
   description: z.string().trim().min(3, "Describe the food you ate.").max(2000),
 });
 
+export const saveMealSchema = parsedMealSchema.extend({
+  mealTime: z
+    .string()
+    .refine(
+      (value) => !Number.isNaN(Date.parse(value)),
+      "Meal time must be a valid date.",
+    )
+    .optional(),
+});
+
+export const updateMealSchema = saveMealSchema
+  .partial()
+  .refine((meal) => Object.keys(meal).length > 0, "Provide a meal update.");
+
 export type MealAnalysis = z.infer<typeof mealAnalysisSchema>;
+export type SavedMeal = MealAnalysis & {
+  id: string;
+  mealTime: string;
+};

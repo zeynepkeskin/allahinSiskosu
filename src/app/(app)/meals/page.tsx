@@ -1,4 +1,4 @@
-import { MealParser } from "@/components/meal-parser";
+import { MealsWorkspace } from "@/components/meals-workspace";
 export default function MealsPage() {
   return (
     <>
@@ -9,7 +9,7 @@ export default function MealsPage() {
           Describe what you ate in your own words.
         </p>
       </header>
-      <MealParser />
+      <MealsWorkspace />
     </>
   );
 }
