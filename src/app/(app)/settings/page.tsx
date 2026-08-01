@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui";
+import { ThemeToggle } from "@/components/theme-toggle";
 export default function SettingsPage() {
   return (
     <>
@@ -16,8 +17,9 @@ export default function SettingsPage() {
       <Card className="mt-5">
         <h2 className="font-semibold">Appearance</h2>
         <p className="mt-2 text-sm text-slate-500">
-          Theme preferences are coming with the polish phase.
+          Choose a theme that feels comfortable at any time of day.
         </p>
+        <ThemeToggle />
       </Card>
     </>
   );

@@ -9,7 +9,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md ${className}`}
     >
       {children}
     </section>
@@ -22,7 +22,7 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
-      className={`rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-emerald-700 hover:shadow-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     />
   );
@@ -44,7 +44,7 @@ export function ProgressBar({
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-emerald-500"
+          className="h-full rounded-full bg-emerald-500 transition-all duration-500 motion-reduce:transition-none"
           style={{ width: `${clamped}%` }}
         />
       </div>
@@ -86,4 +86,8 @@ export function Spinner() {
       role="status"
     />
   );
+}
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div aria-hidden="true" className={`animate-pulse rounded-lg bg-slate-200 motion-reduce:animate-none ${className}`} />;
 }

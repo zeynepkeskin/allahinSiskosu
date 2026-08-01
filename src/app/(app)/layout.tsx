@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ThemeInitializer } from "@/components/theme-initializer";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({
@@ -12,6 +13,7 @@ export default async function AppLayout({
   if (!user) redirect("/auth");
   return (
     <div className="min-h-screen bg-slate-50 lg:flex">
+      <ThemeInitializer />
       <AppSidebar email={user.email} />
       <main className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
         {children}
