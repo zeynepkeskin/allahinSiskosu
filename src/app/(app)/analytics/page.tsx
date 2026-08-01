@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Card, EmptyState } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import {
+  calculateWorkoutMetrics,
+  completedWorkoutSessions,
+  countPlannedWorkoutDays,
+  type WorkoutSessionRow,
+} from "@/lib/workout-metrics";
 
 type MealRow = {
   id: string;
@@ -62,7 +68,12 @@ export default async function AnalyticsPage() {
   } = await supabase.auth.getUser();
   const today = startOfDay(new Date());
   const monthStart = addDays(today, -29);
-  const [{ data: profile }, { data: mealData }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: mealData },
+    { data: sessionData },
+    { data: plans },
+  ] = await Promise.all([
     supabase
       .from("profiles")
       .select("daily_calorie_goal")
@@ -74,10 +85,42 @@ export default async function AnalyticsPage() {
       .eq("profile_id", user!.id)
       .gte("meal_time", monthStart.toISOString())
       .order("meal_time", { ascending: true }),
+    supabase
+      .from("workout_sessions")
+      .select(
+        "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
+      )
+      .eq("profile_id", user!.id)
+      .gte("started_at", monthStart.toISOString())
+      .order("started_at", { ascending: true }),
+    supabase
+      .from("exercise_plans")
+      .select("day_of_week, is_rest_day")
+      .eq("profile_id", user!.id),
   ]);
   const meals = (mealData ?? []) as MealRow[];
+  const sessions = (sessionData ?? []) as WorkoutSessionRow[];
+  const completedSessions = completedWorkoutSessions(sessions);
+  const monthlyTraining = calculateWorkoutMetrics(sessions);
+  const weeklyTraining = calculateWorkoutMetrics(
+    sessions.filter(
+      (session) => new Date(session.started_at) >= addDays(today, -6),
+    ),
+  );
+  const plannedDays = countPlannedWorkoutDays(plans ?? [], monthStart, 30);
+  const weeklyPlannedDays = countPlannedWorkoutDays(
+    plans ?? [],
+    addDays(today, -6),
+    7,
+  );
   const daily = buildDailyTotals(meals, monthStart);
   const weekly = daily.slice(-7);
+  const weeklyWorkoutDays = weekly.map((day) => ({
+    ...day,
+    workouts: completedSessions.filter(
+      (session) => dateKey(new Date(session.started_at)) === dateKey(day.date),
+    ).length,
+  }));
   const loggedDays = daily.filter((day) => day.calories > 0);
   const weekLoggedDays = weekly.filter((day) => day.calories > 0);
   const goal = profile?.daily_calorie_goal
@@ -138,10 +181,11 @@ export default async function AnalyticsPage() {
         <div>
           <p className="text-sm font-semibold text-emerald-600">INSIGHTS</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">
-            Nutrition analytics
+            Health analytics
           </h1>
           <p className="mt-2 text-slate-500">
-            A clear view of your last 30 days of meal logging.
+            Your nutrition and completed strength workouts over the last 30
+            days.
           </p>
         </div>
         <Link
@@ -151,11 +195,11 @@ export default async function AnalyticsPage() {
           + Add meal
         </Link>
       </header>
-      {meals.length === 0 ? (
+      {meals.length === 0 && completedSessions.length === 0 ? (
         <div className="mt-8">
           <EmptyState
-            title="No nutrition data yet"
-            description="Log a meal to unlock calorie, macro, and goal insights."
+            title="No health data yet"
+            description="Log a meal or complete a workout to unlock your insights."
             action={
               <Link
                 className="text-sm font-semibold text-emerald-700"
@@ -168,7 +212,7 @@ export default async function AnalyticsPage() {
         </div>
       ) : (
         <>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <Stat
               label="Today"
               value={`${todayTotal.calories} kcal`}
@@ -193,6 +237,15 @@ export default async function AnalyticsPage() {
               value={adherence === null ? "—" : `${adherence}%`}
               hint={
                 goal ? "Logged days at or below goal" : "Set a calorie goal"
+              }
+            />
+            <Stat
+              label="Workouts this week"
+              value={`${weeklyTraining.completedWorkouts}`}
+              hint={
+                weeklyPlannedDays
+                  ? `${weeklyTraining.workoutDays} of ${weeklyPlannedDays} planned days`
+                  : "No training days planned"
               }
             />
           </div>
@@ -287,6 +340,39 @@ export default async function AnalyticsPage() {
               </div>
             </Card>
           </div>
+          <Card className="mt-7">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="font-semibold">Weekly workout completion</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Completed strength workouts over the last seven days.
+                </p>
+              </div>
+              <p className="text-sm font-semibold text-emerald-700">
+                {weeklyTraining.completedWorkouts} completed
+              </p>
+            </div>
+            <div className="mt-5 grid grid-cols-7 gap-2">
+              {weeklyWorkoutDays.map((day) => (
+                <div
+                  className="rounded-xl bg-slate-50 p-3 text-center"
+                  key={day.label}
+                >
+                  <p className="text-xs text-slate-500">{day.label}</p>
+                  <p
+                    className={
+                      day.workouts
+                        ? "mt-2 text-lg font-bold text-emerald-700"
+                        : "mt-2 text-lg font-bold text-slate-400"
+                    }
+                  >
+                    {day.workouts ? "✓" : "—"}
+                  </p>
+                  <p className="text-xs text-slate-500">{day.workouts || 0}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
           <div className="mt-7 grid gap-6 lg:grid-cols-2">
             <Card>
               <h2 className="font-semibold">Macro trends</h2>
@@ -326,6 +412,51 @@ export default async function AnalyticsPage() {
                   <dt className="text-sm text-slate-600">Days logged</dt>
                   <dd className="font-semibold">{loggedDays.length} of 30</dd>
                 </div>
+              </dl>
+            </Card>
+            <Card>
+              <h2 className="font-semibold">Training summary</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Completed strength workouts from the last 30 days.
+              </p>
+              <dl className="mt-6 divide-y divide-slate-100">
+                <TrainingRow
+                  label="Completed workouts"
+                  value={`${monthlyTraining.completedWorkouts}`}
+                />
+                <TrainingRow
+                  label="Training consistency"
+                  value={
+                    plannedDays
+                      ? `${Math.round((monthlyTraining.workoutDays / plannedDays) * 100)}%`
+                      : "—"
+                  }
+                  hint={
+                    plannedDays
+                      ? `${monthlyTraining.workoutDays} of ${plannedDays} planned days`
+                      : "Plan workouts to track consistency"
+                  }
+                />
+                <TrainingRow
+                  label="Completed sets"
+                  value={`${monthlyTraining.completedSets}`}
+                />
+                <TrainingRow
+                  label="Completed reps"
+                  value={`${monthlyTraining.completedReps}`}
+                />
+                <TrainingRow
+                  label="Loaded volume"
+                  value={`${monthlyTraining.loadedVolume.toLocaleString()} lb`}
+                />
+                <TrainingRow
+                  label="Average duration"
+                  value={
+                    monthlyTraining.averageDurationMinutes === null
+                      ? "—"
+                      : `${monthlyTraining.averageDurationMinutes} min`
+                  }
+                />
               </dl>
             </Card>
           </div>
@@ -408,6 +539,28 @@ function Highlight({ label, day }: { label: string; day: DailyTotal | null }) {
           <span className="ml-2 text-xs text-slate-400">{day.label}</span>
         ) : null}
       </dd>
+    </div>
+  );
+}
+
+function TrainingRow({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <dt className="text-sm text-slate-600">
+        {label}
+        {hint ? (
+          <span className="mt-0.5 block text-xs text-slate-400">{hint}</span>
+        ) : null}
+      </dt>
+      <dd className="shrink-0 font-semibold">{value}</dd>
     </div>
   );
 }

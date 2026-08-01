@@ -9,9 +9,19 @@ export default async function ProfilePage() {
   } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("height_cm, weight_kg, target_weight, birthday, gender, activity_level, goal")
+    .select(
+      "height_cm, weight_kg, target_weight, birthday, gender, activity_level, goal",
+    )
     .eq("id", user!.id)
     .maybeSingle();
+  const fourWeeksAgo = new Date();
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 27);
+  const { count: completedWorkouts } = await supabase
+    .from("workout_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", user!.id)
+    .eq("status", "completed")
+    .gte("started_at", fourWeeksAgo.toISOString());
 
   return (
     <>
@@ -23,6 +33,7 @@ export default async function ProfilePage() {
         </p>
       </header>
       <ProfileForm
+        recentCompletedWorkouts={completedWorkouts ?? 0}
         profile={{
           heightIn: profile?.height_cm
             ? centimetersToInches(Number(profile.height_cm))

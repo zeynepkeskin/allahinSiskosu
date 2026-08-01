@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { Card, EmptyState, ProgressBar } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import {
+  calculateWorkoutMetrics,
+  calendarDateKey,
+  completedWorkoutSessions,
+  countPlannedWorkoutDays,
+  type WorkoutSessionRow,
+} from "@/lib/workout-metrics";
 
 type MealRow = {
   id: string;
@@ -33,7 +40,12 @@ export default async function DashboardPage() {
   const weekStart = new Date(today);
   weekStart.setDate(weekStart.getDate() - 6);
 
-  const [{ data: profile }, { data: meals }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: meals },
+    { data: sessions },
+    { data: plans },
+  ] = await Promise.all([
     supabase
       .from("profiles")
       .select("daily_calorie_goal")
@@ -45,9 +57,31 @@ export default async function DashboardPage() {
       .eq("profile_id", user!.id)
       .gte("meal_time", weekStart.toISOString())
       .order("meal_time", { ascending: false }),
+    supabase
+      .from("workout_sessions")
+      .select(
+        "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
+      )
+      .eq("profile_id", user!.id)
+      .gte("started_at", weekStart.toISOString())
+      .order("started_at", { ascending: false }),
+    supabase
+      .from("exercise_plans")
+      .select("id, day_of_week, is_rest_day")
+      .eq("profile_id", user!.id),
   ]);
 
   const recentMeals = (meals ?? []) as MealRow[];
+  const workoutSessions = (sessions ?? []) as WorkoutSessionRow[];
+  const completedWorkouts = completedWorkoutSessions(workoutSessions);
+  const weeklyWorkoutMetrics = calculateWorkoutMetrics(workoutSessions);
+  const todayPlan = (plans ?? []).find(
+    (plan) => plan.day_of_week === today.getDay(),
+  );
+  const todaySession = workoutSessions.find(
+    (session) => calendarDateKey(session.started_at) === calendarDateKey(today),
+  );
+  const plannedDays = countPlannedWorkoutDays(plans ?? [], weekStart, 7);
   const todayMeals = recentMeals.filter((meal) => {
     const mealDate = new Date(meal.meal_time);
     return (
@@ -72,12 +106,17 @@ export default async function DashboardPage() {
     nextDate.setDate(nextDate.getDate() + 1);
     return {
       label: dayLabel(date),
+      date,
       calories: recentMeals
         .filter((meal) => {
           const mealDate = new Date(meal.meal_time);
           return mealDate >= date && mealDate < nextDate;
         })
         .reduce((sum, meal) => sum + number(meal.total_calories), 0),
+      workouts: completedWorkouts.filter(
+        (session) =>
+          calendarDateKey(session.started_at) === calendarDateKey(date),
+      ).length,
     };
   });
   const loggedDays = dailyCalories.filter((day) => day.calories > 0);
@@ -93,6 +132,15 @@ export default async function DashboardPage() {
     1,
   );
 
+  const workoutLabel = todayPlan?.is_rest_day
+    ? "Rest day"
+    : todaySession?.status === "completed"
+      ? "Completed"
+      : todaySession?.status === "in_progress"
+        ? "In progress"
+        : todayPlan
+          ? "Planned"
+          : "No workout planned";
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -111,7 +159,7 @@ export default async function DashboardPage() {
         </Link>
       </header>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Stat
           label="Calories today"
           value={`${totals.calories} kcal`}
@@ -142,6 +190,15 @@ export default async function DashboardPage() {
               : "Across logged days"
           }
         />
+        <Stat
+          label="Training this week"
+          value={`${weeklyWorkoutMetrics.completedWorkouts} workouts`}
+          hint={
+            plannedDays
+              ? `${weeklyWorkoutMetrics.workoutDays} of ${plannedDays} planned days`
+              : "No training days planned"
+          }
+        />
       </div>
 
       <div className="mt-7 grid gap-6 xl:grid-cols-5">
@@ -166,21 +223,41 @@ export default async function DashboardPage() {
           </div>
         </Card>
         <Card className="xl:col-span-2">
-          <h2 className="font-semibold">This week</h2>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">This week</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Calories and completed workouts.
+              </p>
+            </div>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              {weeklyWorkoutMetrics.completedSets} sets
+            </span>
+          </div>
           <div
-            aria-label="Calories logged over the last seven days"
+            aria-label="Calories and completed workouts over the last seven days"
             className="mt-8 flex h-36 items-end gap-2"
           >
             {dailyCalories.map((day) => (
               <div
                 className="flex h-full flex-1 flex-col justify-end gap-2"
                 key={day.label}
-                title={`${day.label}: ${day.calories} kcal`}
+                title={`${day.label}: ${day.calories} kcal, ${day.workouts} workouts`}
               >
-                <div
-                  className="min-h-1 rounded-t-md bg-emerald-500"
-                  style={{ height: `${(day.calories / chartMaximum) * 100}%` }}
-                />
+                <div className="flex h-full items-end gap-0.5">
+                  <div
+                    className="min-h-1 flex-1 rounded-t-md bg-emerald-500"
+                    style={{
+                      height: `${(day.calories / chartMaximum) * 100}%`,
+                    }}
+                  />
+                  <div
+                    className="min-h-1 flex-1 rounded-t-md bg-sky-400"
+                    style={{
+                      height: `${day.workouts ? 30 + day.workouts * 35 : 0}%`,
+                    }}
+                  />
+                </div>
                 <span className="text-center text-xs text-slate-500">
                   {day.label}
                 </span>
@@ -190,10 +267,37 @@ export default async function DashboardPage() {
           <p className="mt-5 text-sm text-slate-500">
             {weeklyAverage === null
               ? "Log meals to see your calorie trend."
-              : `Average: ${weeklyAverage} kcal per logged day.`}
+              : `Average: ${weeklyAverage} kcal per logged day.`}{" "}
+            Blue bars show completed workouts.
           </p>
         </Card>
       </div>
+
+      <section className="mt-7">
+        <Card className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-emerald-600">
+              TODAY&apos;S TRAINING
+            </p>
+            <h2 className="mt-1 text-xl font-bold">{workoutLabel}</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {todayPlan?.is_rest_day
+                ? "Recovery is part of your training plan."
+                : todayPlan
+                  ? "Your planned workout is ready when you are."
+                  : "Plan a strength workout for a future training day."}
+            </p>
+          </div>
+          <Link
+            className="rounded-xl border border-emerald-200 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+            href="/exercises"
+          >
+            {todayPlan && !todayPlan.is_rest_day
+              ? "View workout"
+              : "Plan workout"}
+          </Link>
+        </Card>
+      </section>
 
       <section className="mt-7">
         <div className="mb-4 flex items-end justify-between gap-4">

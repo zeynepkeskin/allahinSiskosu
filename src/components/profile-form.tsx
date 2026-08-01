@@ -53,7 +53,13 @@ const choices = {
   ],
 } as const;
 
-export function ProfileForm({ profile }: { profile: Profile }) {
+export function ProfileForm({
+  profile,
+  recentCompletedWorkouts,
+}: {
+  profile: Profile;
+  recentCompletedWorkouts: number;
+}) {
   const [message, setMessage] = useState<string>();
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -117,6 +123,13 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             label="Activity level"
             options={choices.activityLevel}
           />
+          <p className="-mt-3 text-xs leading-5 text-slate-500 sm:col-span-2">
+            Activity level sets your TDEE estimate. You completed{" "}
+            {recentCompletedWorkouts} strength workouts in the last four weeks;
+            use that as context, then choose the level that reflects your
+            overall routine. Individual workouts do not automatically change
+            your daily calorie target.
+          </p>
           <div className="sm:col-span-2">
             <SelectField
               form={form}

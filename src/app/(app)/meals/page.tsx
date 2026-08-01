@@ -1,5 +1,19 @@
+import Link from "next/link";
 import { MealsWorkspace } from "@/components/meals-workspace";
-export default function MealsPage() {
+import { createClient } from "@/lib/supabase/server";
+
+export default async function MealsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const today = new Date();
+  const { data: plan } = await supabase
+    .from("exercise_plans")
+    .select("is_rest_day")
+    .eq("profile_id", user!.id)
+    .eq("day_of_week", today.getDay())
+    .maybeSingle();
   return (
     <>
       <header>
@@ -9,6 +23,21 @@ export default function MealsPage() {
           Describe what you ate in your own words.
         </p>
       </header>
+      {plan && !plan.is_rest_day ? (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-950">
+          <p>
+            Today has a planned strength workout. Meal logging stays tied to
+            your intake goal.
+          </p>
+          <Link className="font-semibold text-sky-800" href="/exercises">
+            View workout →
+          </Link>
+        </div>
+      ) : plan?.is_rest_day ? (
+        <p className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          Today is a planned rest day.
+        </p>
+      ) : null}
       <MealsWorkspace />
     </>
   );
