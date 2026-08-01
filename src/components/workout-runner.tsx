@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ExerciseDemonstration } from "@/components/exercise-visuals";
 import { Button, Card, ProgressBar } from "@/components/ui";
+import { getExerciseVisual } from "@/lib/exercise-catalog";
 import { exercisePrescription, type ExercisePlan } from "@/lib/exercises";
 
 type Phase = "ready" | "set" | "rest" | "complete" | "ended";
@@ -209,6 +211,12 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             value={(doneSets / totalSets) * 100}
           />
         </div>
+        {phase !== "ready" ? (
+          <ExerciseDemonstration
+            name={current.name}
+            visual={getExerciseVisual(current.name)}
+          />
+        ) : null}
         {phase === "ready" ? (
           <>
             <p className="mt-8 text-sm text-slate-500">

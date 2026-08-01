@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
+import { exerciseGroups, getExerciseVisual } from "@/lib/exercise-catalog";
 import {
   days,
   exercisePrescription,
@@ -10,90 +12,6 @@ import {
   type ExercisePlan,
 } from "@/lib/exercises";
 
-const exerciseGroups = [
-  {
-    label: "Arms",
-    exercises: [
-      "Barbell Curl",
-      "Dumbbell Bicep Curl",
-      "Hammer Curl",
-      "Preacher Curl",
-      "Cable Tricep Pushdown",
-      "Skull Crusher",
-      "Overhead Tricep Extension",
-      "Tricep Dip",
-    ],
-  },
-  {
-    label: "Chest",
-    exercises: [
-      "Barbell Bench Press",
-      "Dumbbell Bench Press",
-      "Incline Dumbbell Press",
-      "Chest Fly",
-      "Cable Crossover",
-      "Push-Up",
-    ],
-  },
-  {
-    label: "Back",
-    exercises: [
-      "Pull-Up",
-      "Lat Pulldown",
-      "Barbell Row",
-      "Dumbbell Row",
-      "Seated Cable Row",
-      "Face Pull",
-      "Back Extension",
-    ],
-  },
-  {
-    label: "Shoulders",
-    exercises: [
-      "Overhead Press",
-      "Dumbbell Shoulder Press",
-      "Lateral Raise",
-      "Front Raise",
-      "Rear Delt Fly",
-      "Upright Row",
-    ],
-  },
-  {
-    label: "Legs",
-    exercises: [
-      "Barbell Back Squat",
-      "Front Squat",
-      "Leg Press",
-      "Romanian Deadlift",
-      "Leg Curl",
-      "Leg Extension",
-      "Walking Lunge",
-      "Calf Raise",
-    ],
-  },
-  {
-    label: "Core",
-    exercises: [
-      "Plank",
-      "Crunch",
-      "Hanging Leg Raise",
-      "Cable Crunch",
-      "Russian Twist",
-      "Ab Wheel Rollout",
-    ],
-  },
-  {
-    label: "Full Body & Conditioning",
-    exercises: [
-      "Deadlift",
-      "Kettlebell Swing",
-      "Clean and Press",
-      "Burpee",
-      "Farmer Carry",
-      "Sled Push",
-    ],
-  },
-];
 const blankExercise = (): Exercise => ({
   name: "",
   sets: 3,
@@ -353,6 +271,11 @@ export function ExercisePlanner({
                       index={index}
                       onChange={(value) => updateExercise(index, "name", value)}
                     />
+                    {exercise.name ? (
+                      <ExerciseMuscleMap
+                        visual={getExerciseVisual(exercise.name)}
+                      />
+                    ) : null}
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       <Field
                         label="Sets"

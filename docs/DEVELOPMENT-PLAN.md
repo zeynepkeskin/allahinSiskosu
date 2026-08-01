@@ -678,6 +678,91 @@ when it affects a displayed net balance or food recommendation.
 
 ---
 
+## Phase 17 — Exercise Visual Guidance
+
+Goal:
+Make exercise selection easier to understand and give users a compact visual
+form reference during a started workout, without adding a runtime third-party
+image dependency.
+
+Visual design and placement
+
+- **Exercise planner:** A selected known exercise shows a compact muscle-map
+  preview immediately below its name selector. The preview includes front,
+  back, or both body views as required; primary muscles use the app's emerald
+  accent and secondary muscles use a clearly distinct lighter treatment. A
+  text list names the muscle groups so the visual is not the only source of
+  information. No map is shown before a selection. Custom/unmapped exercises
+  show a neutral unavailable state and do not receive inferred targeting.
+- **Workout runner:** After **Begin workout** succeeds, render the current
+  exercise's two labelled stills, **Start** and **Finish**, above the active
+  set or rest controls. Keep the pair visible while resting and replace it as
+  the active exercise changes. Do not add autoplaying video, controls, or
+  extra network requests during a workout.
+- **Responsive/accessibility:** On wide screens the frames may sit side by
+  side; on narrow screens they stack or use a two-column layout with legible
+  labels. Every frame has exercise- and position-specific alt text, images
+  have explicit dimensions to prevent layout shift, color is never the sole
+  indication of muscle targeting, and the unavailable state is announced as
+  text.
+
+Catalog and asset strategy
+
+- Create a typed, versioned `exercise-catalog` keyed by the exact current
+  exercise names. Each entry contains display name, category, primary muscles,
+  secondary muscles, applicable body views, and local start/end asset paths.
+- Use a reviewable SVG body-map component/layers for muscle highlighting;
+  map catalog muscle identifiers to those layers rather than maintaining seven
+  unrelated bitmap silhouettes. Category-level targets are a fallback only
+  for category overviews, never a replacement for per-exercise mapping.
+- Source two-frame exercise demonstrations from a dataset with documented
+  reusable rights (the proposed Free Exercise DB is Unlicense/public-domain),
+  download only reviewed frames into `public/exercises/`, and keep a small
+  provenance manifest with original exercise identifier, source URL, license,
+  and import date. Do not hotlink GitHub/CDN files in production.
+- Review aliases and variations manually (for example, the app's "Dumbbell
+  Bicep Curl" vs. a source's "Dumbbell Biceps Curl"). An asset may be used
+  only after its exercise and target muscles are verified. Keep a visible
+  fallback for the rare name with no safe match.
+- This is presentation/catalog data, not user data: do not add muscle maps or
+  asset URLs to `plan_exercises` or workout-session snapshots in the first
+  release. The runner resolves a stored exercise name through the catalog;
+  document a future snapshot strategy if catalog versions ever need historical
+  rendering guarantees.
+
+Tasks
+
+- [x] Audit all current exercise names and create the typed catalog plus alias
+  table; record primary/secondary-muscle decisions for all supported names.
+- [x] Select and document the reusable asset source; download and optimize the
+  reviewed two-frame pairs locally, with a provenance/license manifest.
+- [x] Add the layered SVG body-map component, muscle-to-layer mapping, text
+  legend, and a non-color accessibility treatment.
+- [x] Integrate the selected-exercise muscle-map preview into every planner
+  row, including loading, unselected, custom, and unavailable states.
+- [x] Integrate the two-frame current-exercise demonstration into the workout
+  runner only after a workout has started; maintain it across set/rest and
+  exercise transitions.
+- [x] Add image sizing, responsive styling, reduced-data-friendly static
+  delivery, and graceful missing-asset handling.
+- [ ] Add tests for catalog coverage, aliases, body-view/muscle mappings,
+  unselected and custom exercises, runner transitions, alt text, and mobile
+  layout. Manually review form accuracy before release.
+
+Deliverable
+
+Known exercises show a precise muscle-target SVG while being planned and a
+locally served, labelled two-frame demonstration during a started workout.
+Custom or unmapped exercises remain fully usable with an honest visual-guidance
+fallback.
+
+Status: [ ] Core implementation complete — all supported exercises have a
+reviewed muscle map and 46 have locally served two-frame demonstrations. Burpee
+uses the explicit unavailable state until a matching, reusable pair is sourced;
+automated and manual form-accuracy coverage remains pending.
+
+---
+
 # Coding Standards
 
 - Strict TypeScript

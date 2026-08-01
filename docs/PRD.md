@@ -187,6 +187,29 @@ Workout sessions are first-class data throughout the product. The application
 derives training metrics from completed sessions and their completed-set
 snapshots. It does not infer calories burned from strength-plan data alone.
 
+### Exercise visuals
+
+Exercise guidance has two complementary, static visual treatments:
+
+- **Planner muscle map:** When a user selects a known exercise in the exercise
+  editor, show a compact, accessible human-body SVG directly below that row's
+  selector. Highlight primary muscles in emerald and secondary muscles in a
+  lighter shade, show the relevant front and/or back view, and name the
+  highlighted muscles in text. Before selection, show no anatomy image; for a
+  custom exercise with no catalog match, show an honest unavailable message.
+- **Workout demonstration:** Once the user starts a workout, show the active
+  exercise's two still frames (start and finish) above the active-set/rest
+  controls. The frames must be labelled, have descriptive alt text, preserve
+  aspect ratio, and work on small screens. They remain visible during rest;
+  they are not required on the pre-start screen.
+
+Visuals are educational form references, not a substitute for professional
+coaching or medical advice. The product must use a reviewed exercise catalog
+that maps each supported exercise name to its primary/secondary muscles and
+two demonstration frames. Assets are stored and served by the application,
+not hotlinked at runtime. Each imported asset needs recorded source and usage
+rights; the product must not use arbitrary web-search images.
+
 ## Coach
 
 The coach reviews the last seven days of logged meals and completed workouts.
@@ -448,6 +471,7 @@ Future enhancements:
 - Grocery lists
 - Favorite meals
 - Social features
+- Expanded exercise visual catalog
 
 ---
 
