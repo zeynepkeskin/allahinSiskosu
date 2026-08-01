@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { kilogramsToPounds, poundsToKilograms } from "@/lib/units";
 
 const weightSchema = z.object({
-  weight: z.number().min(25).max(500),
+  weight: z.number().min(55).max(1100),
   date: z.string().date(),
 });
 async function authorizedEntry(id: string) {
@@ -39,7 +40,7 @@ export async function PATCH(
     );
   const { data, error } = await supabase
     .from("daily_weights")
-    .update(result.data)
+    .update({ ...result.data, weight: poundsToKilograms(result.data.weight) })
     .eq("id", id)
     .select("id, weight, date")
     .single();
@@ -48,7 +49,10 @@ export async function PATCH(
       { error: "Could not update weight entry." },
       { status: 500 },
     );
-  return NextResponse.json({ ...data, weight: Number(data.weight) });
+  return NextResponse.json({
+    ...data,
+    weight: kilogramsToPounds(Number(data.weight)),
+  });
 }
 export async function DELETE(
   _: Request,

@@ -8,8 +8,8 @@ export type ActivityLevel =
 export type Goal = "lose" | "maintain" | "gain";
 
 export type ProfileCalculationInput = {
-  heightCm: number;
-  weightKg: number;
+  heightIn: number;
+  weightLb: number;
   birthday: string;
   gender: Gender;
   activityLevel: ActivityLevel;
@@ -47,8 +47,10 @@ export function calculateProfileGoals(
   input: ProfileCalculationInput,
 ): ProfileCalculations {
   const age = ageFromBirthday(input.birthday);
-  const bmi = input.weightKg / (input.heightCm / 100) ** 2;
-  const baseBmr = 10 * input.weightKg + 6.25 * input.heightCm - 5 * age;
+  const bmi = (input.weightLb * 703) / input.heightIn ** 2;
+  const weightKg = input.weightLb * 0.45359237;
+  const heightCm = input.heightIn * 2.54;
+  const baseBmr = 10 * weightKg + 6.25 * heightCm - 5 * age;
   const adjustment =
     input.gender === "male" ? 5 : input.gender === "female" ? -161 : -78;
   const bmr = baseBmr + adjustment;

@@ -6,12 +6,13 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { calculateProfileGoals } from "@/lib/calculations";
 import { createClient } from "@/lib/supabase/client";
+import { inchesToCentimeters, poundsToKilograms } from "@/lib/units";
 import { Button, Card } from "@/components/ui";
 
 const schema = z.object({
-  heightCm: z.number().min(80, "Enter a valid height.").max(280),
-  weightKg: z.number().min(25, "Enter a valid weight.").max(500),
-  targetWeight: z.number().min(25, "Enter a valid target.").max(500),
+  heightIn: z.number().min(32, "Enter a valid height.").max(110),
+  weightLb: z.number().min(55, "Enter a valid weight.").max(1100),
+  targetWeight: z.number().min(55, "Enter a valid target.").max(1100),
   birthday: z
     .string()
     .date("Enter your birthday.")
@@ -75,9 +76,9 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     const { error } = await supabase
       .from("profiles")
       .update({
-        height_cm: data.heightCm,
-        weight_kg: data.weightKg,
-        target_weight: data.targetWeight,
+        height_cm: inchesToCentimeters(data.heightIn),
+        weight_kg: poundsToKilograms(data.weightLb),
+        target_weight: poundsToKilograms(data.targetWeight),
         birthday: data.birthday,
         gender: data.gender,
         activity_level: data.activityLevel,
@@ -96,12 +97,12 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     >
       <Card className="xl:col-span-3">
         <div className="grid gap-5 sm:grid-cols-2">
-          <NumberField form={form} id="heightCm" label="Height (cm)" />
-          <NumberField form={form} id="weightKg" label="Current weight (kg)" />
+          <NumberField form={form} id="heightIn" label="Height (in)" />
+          <NumberField form={form} id="weightLb" label="Current weight (lb)" />
           <NumberField
             form={form}
             id="targetWeight"
-            label="Target weight (kg)"
+            label="Target weight (lb)"
           />
           <DateField form={form} />
           <SelectField
@@ -201,7 +202,7 @@ function NumberField({
   label,
 }: {
   form: ReturnType<typeof useForm<FormValues>>;
-  id: "heightCm" | "weightKg" | "targetWeight";
+  id: "heightIn" | "weightLb" | "targetWeight";
   label: string;
 }) {
   return (

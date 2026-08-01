@@ -1,5 +1,6 @@
 import { ProfileForm } from "@/components/profile-form";
 import { createClient } from "@/lib/supabase/server";
+import { centimetersToInches, kilogramsToPounds } from "@/lib/units";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -23,9 +24,15 @@ export default async function ProfilePage() {
       </header>
       <ProfileForm
         profile={{
-          heightCm: profile?.height_cm ?? undefined,
-          weightKg: profile?.weight_kg ?? undefined,
-          targetWeight: profile?.target_weight ?? undefined,
+          heightIn: profile?.height_cm
+            ? centimetersToInches(Number(profile.height_cm))
+            : undefined,
+          weightLb: profile?.weight_kg
+            ? kilogramsToPounds(Number(profile.weight_kg))
+            : undefined,
+          targetWeight: profile?.target_weight
+            ? kilogramsToPounds(Number(profile.target_weight))
+            : undefined,
           birthday: profile?.birthday ?? undefined,
           gender: profile?.gender ?? undefined,
           activityLevel: profile?.activity_level ?? undefined,

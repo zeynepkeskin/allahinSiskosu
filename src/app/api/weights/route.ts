@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { kilogramsToPounds, poundsToKilograms } from "@/lib/units";
 
 const weightSchema = z.object({
-  weight: z.number().min(25).max(500),
+  weight: z.number().min(55).max(1100),
   date: z.string().date(),
 });
 function unauthorized() {
@@ -30,7 +31,10 @@ export async function GET() {
       { status: 500 },
     );
   return NextResponse.json(
-    (data ?? []).map((entry) => ({ ...entry, weight: Number(entry.weight) })),
+    (data ?? []).map((entry) => ({
+      ...entry,
+      weight: kilogramsToPounds(Number(entry.weight)),
+    })),
   );
 }
 
@@ -51,7 +55,7 @@ export async function POST(request: Request) {
     .upsert(
       {
         profile_id: user.id,
-        weight: result.data.weight,
+        weight: poundsToKilograms(result.data.weight),
         date: result.data.date,
       },
       { onConflict: "profile_id,date" },
@@ -64,7 +68,7 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   return NextResponse.json(
-    { ...data, weight: Number(data.weight) },
+    { ...data, weight: kilogramsToPounds(Number(data.weight)) },
     { status: 201 },
   );
 }

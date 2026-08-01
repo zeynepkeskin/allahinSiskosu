@@ -37,8 +37,8 @@ export function WeightTracker({
     event.preventDefault();
     setMessage(undefined);
     const value = Number(weight);
-    if (!Number.isFinite(value) || value < 25 || value > 500) {
-      setMessage("Enter a weight between 25 and 500 kg.");
+    if (!Number.isFinite(value) || value < 55 || value > 1100) {
+      setMessage("Enter a weight between 55 and 1,100 lb.");
       return;
     }
     setSaving(true);
@@ -98,13 +98,13 @@ export function WeightTracker({
               className="text-sm font-medium text-slate-700"
               htmlFor="weight"
             >
-              Weight (kg)
+              Weight (lb)
             </label>
             <input
               className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-emerald-500"
               id="weight"
-              min="25"
-              max="500"
+              min="55"
+              max="1100"
               step="0.1"
               type="number"
               value={weight}
@@ -156,13 +156,13 @@ export function WeightTracker({
         <div className="mt-7 border-t border-slate-100 pt-5">
           <p className="text-sm text-slate-500">Latest weight</p>
           <p className="mt-1 text-2xl font-bold">
-            {entries[0] ? `${entries[0].weight.toFixed(1)} kg` : "—"}
+            {entries[0] ? `${entries[0].weight.toFixed(1)} lb` : "—"}
           </p>
           {delta !== null ? (
             <p className="mt-1 text-sm text-slate-500">
               {delta === 0
                 ? "No change"
-                : `${delta > 0 ? "+" : ""}${delta.toFixed(1)} kg`}{" "}
+                : `${delta > 0 ? "+" : ""}${delta.toFixed(1)} lb`}{" "}
               since first entry
             </p>
           ) : null}
@@ -212,7 +212,7 @@ export function WeightTracker({
                 >
                   <div>
                     <p className="font-semibold">
-                      {entry.weight.toFixed(1)} kg
+                      {entry.weight.toFixed(1)} lb
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       {displayDate(entry.date)}
@@ -261,7 +261,7 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
           <div
             className="flex h-full min-w-0 flex-1 flex-col justify-end"
             key={entry.id}
-            title={`${displayDate(entry.date)}: ${entry.weight.toFixed(1)} kg`}
+            title={`${displayDate(entry.date)}: ${entry.weight.toFixed(1)} lb`}
           >
             <div
               className="min-h-2 rounded-t bg-emerald-500"
@@ -276,8 +276,8 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
         <span>{displayDate(entries[0].date)}</span>
         <span>
           {entries.length === 1
-            ? `${entries[0].weight.toFixed(1)} kg`
-            : `${min.toFixed(1)}–${max.toFixed(1)} kg`}
+            ? `${entries[0].weight.toFixed(1)} lb`
+            : `${min.toFixed(1)}–${max.toFixed(1)} lb`}
         </span>
         <span>{displayDate(entries[entries.length - 1].date)}</span>
       </div>

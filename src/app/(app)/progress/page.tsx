@@ -1,5 +1,6 @@
 import { WeightTracker, type WeightEntry } from "@/components/weight-tracker";
 import { createClient } from "@/lib/supabase/server";
+import { kilogramsToPounds } from "@/lib/units";
 
 export default async function ProgressPage() {
   const supabase = await createClient();
@@ -13,7 +14,7 @@ export default async function ProgressPage() {
     .order("date", { ascending: false });
   const entries: WeightEntry[] = (data ?? []).map((entry) => ({
     id: entry.id,
-    weight: Number(entry.weight),
+    weight: kilogramsToPounds(Number(entry.weight)),
     date: entry.date,
   }));
   return (
