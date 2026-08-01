@@ -9,7 +9,54 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const systemPrompt = `You estimate nutrition for food descriptions. Return only JSON matching the requested schema. Break the meal into distinct foods. Use realistic estimates for the stated serving sizes. All numeric values must be non-negative. Confidence is 0 to 1 and reflects how certain the estimate is.`;
+const systemPrompt = `You estimate nutrition for food descriptions. Break the meal into distinct foods and use realistic estimates for the stated serving sizes. All numeric values must be non-negative. Confidence is 0 to 1 and reflects how certain the estimate is.`;
+
+const mealResponseFormat = {
+  type: "json_schema",
+  json_schema: {
+    name: "meal_nutrition",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["mealName", "items"],
+      properties: {
+        mealName: { type: "string" },
+        items: {
+          type: "array",
+          minItems: 1,
+          maxItems: 20,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: [
+              "foodName",
+              "serving",
+              "calories",
+              "protein",
+              "carbs",
+              "fat",
+              "fiber",
+              "sugar",
+              "confidence",
+            ],
+            properties: {
+              foodName: { type: "string" },
+              serving: { type: "string" },
+              calories: { type: "integer", minimum: 0 },
+              protein: { type: "number", minimum: 0 },
+              carbs: { type: "number", minimum: 0 },
+              fat: { type: "number", minimum: 0 },
+              fiber: { type: "number", minimum: 0 },
+              sugar: { type: "number", minimum: 0 },
+              confidence: { type: "number", minimum: 0, maximum: 1 },
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -23,9 +70,15 @@ export async function POST(request: Request) {
     );
 
   try {
-    const { description } = mealAnalysisRequestSchema.parse(
+    const requestResult = mealAnalysisRequestSchema.safeParse(
       await request.json(),
     );
+    if (!requestResult.success)
+      return NextResponse.json(
+        { error: "Please enter a valid meal description." },
+        { status: 400 },
+      );
+    const { description } = requestResult.data;
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -46,7 +99,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_MEAL_MODEL ?? "gpt-4.1-mini",
         temperature: 0.2,
-        response_format: { type: "json_object" },
+        response_format: mealResponseFormat,
         messages: [
           { role: "system", content: systemPrompt },
           {
@@ -72,10 +125,11 @@ export async function POST(request: Request) {
     const parsed = parsedMealSchema.parse(JSON.parse(content));
     return NextResponse.json(mealAnalysisSchema.parse(parsed));
   } catch (error) {
-    if (error instanceof ZodError) {
+    if (error instanceof ZodError || error instanceof SyntaxError) {
+      console.error("Meal analysis returned an invalid response", error);
       return NextResponse.json(
-        { error: "Please enter a valid meal description." },
-        { status: 400 },
+        { error: "The nutrition estimate was incomplete. Please try again." },
+        { status: 502 },
       );
     }
     console.error("Meal analysis failed", error);
