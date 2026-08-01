@@ -2,9 +2,9 @@
 
 ## Overview
 
-**AllahinSiskosu.com** is an AI-powered calorie and nutrition tracking web application built with **Next.js**, **Vercel**, **Supabase**, and an LLM API.
+**AllahinSiskosu.com** is an AI-powered nutrition and strength-training tracking web application built with **Next.js**, **Vercel**, **Supabase**, and an LLM API.
 
-Users describe what they ate in natural language. The AI converts that description into structured nutrition data (JSON). The application stores the meal, visualizes progress, tracks calorie goals, and recommends whether a user should eat a particular food based on their remaining calorie budget.
+Users describe what they ate in natural language. The AI converts that description into structured nutrition data (JSON). The application stores meals and guided strength-workout sessions, visualizes nutrition and training progress, tracks calorie goals, and recommends whether a user should eat a particular food based on their remaining calorie budget.
 
 ---
 
@@ -13,8 +13,10 @@ Users describe what they ate in natural language. The AI converts that descripti
 - Make calorie tracking effortless.
 - Use AI to parse messy food descriptions.
 - Track calories and macronutrients over time.
+- Make planned and completed strength training visible alongside nutrition data.
+- Show training consistency, completed sets, reps, loaded volume, and workout duration.
 - Recommend portions based on user goals.
-- Provide charts and actionable nutrition insights.
+- Provide charts and actionable nutrition-and-training insights.
 
 ---
 
@@ -86,10 +88,13 @@ Displays:
 - Today's calories
 - Remaining calories
 - Macro summary
-- Weekly calorie chart
+- Today's planned workout, rest-day state, or workout-completion state
+- Weekly calorie and workout-completion view
+- Training consistency summary
 - Weight trend
 - Today's meals
 - Quick add meal
+- Quick action to start or view today's workout
 
 ## Add Meal
 
@@ -114,9 +119,14 @@ Application displays:
   - Eat it
   - Eat half
   - Skip
+- Today's workout context and a link to start or view the workout when one is planned
 - Buttons:
   - I Ate This
   - Delete
+
+Workout completion does not automatically increase the food budget. The daily
+calorie goal is derived from the user's activity-level TDEE estimate, so adding
+unmeasured exercise calories would risk double counting.
 
 ## Progress
 
@@ -127,6 +137,26 @@ Charts:
 - Protein
 - Fat
 - Carbs
+
+Displays a weekly training summary next to weight trends, including completed
+workouts, training volume where available, and the latest completed workout.
+The product must not imply that a workout caused a weight change.
+
+## Analytics
+
+Analytics covers nutrition and completed strength workouts over 7- and 30-day
+periods. It displays:
+
+- Calorie and macro trends
+- Calorie-goal adherence based on intake only
+- Completed workouts and workout days
+- Training consistency against planned non-rest days
+- Completed sets, reps, loaded volume where weight is logged, and average
+  completed-workout duration
+- A weekly workout-completion visualization alongside the calorie trend
+
+Incomplete and ended-early workouts remain visible in history but are not
+counted as completed-workout metrics.
 
 ## Profile
 
@@ -152,6 +182,18 @@ period (for example, “Completed. Now rest for 45 seconds.”) before the next
 set. Users can pause, resume,
 skip, repeat, or end a workout. Completing or ending a workout records its
 result in the workout history.
+
+Workout sessions are first-class data throughout the product. The application
+derives training metrics from completed sessions and their completed-set
+snapshots. It does not infer calories burned from strength-plan data alone.
+
+## Coach
+
+The coach reviews the last seven days of logged meals and completed workouts.
+It provides a daily and weekly nutrition-and-training summary, observable
+strengths, practical next steps, and macro analysis. It must use only supplied
+data, state when logging is limited, avoid medical claims, and never invent
+activity or calorie-burn estimates.
 
 ---
 
@@ -254,6 +296,12 @@ One plan per user and day of week.
 - rest_seconds
 - sort_order
 
+The existing workout tables support the first exercise-aware analytics phase:
+workout completion comes from `workout_sessions`; completed sets, reps, and
+loaded volume come from `workout_session_exercises`; duration comes from
+`started_at` and `completed_at`. Bodyweight exercises count toward sets and
+reps but not loaded volume.
+
 ---
 
 # AI JSON Contract
@@ -297,6 +345,11 @@ else:
 
 AI may optionally explain *why*.
 
+`dailyGoal` is an intake goal, not a per-session net-calorie budget. A future
+exercise-expenditure feature requires explicit activity logs (type, duration,
+intensity, estimated calories, source/confidence, and date) before it may
+affect food recommendations or show a net balance.
+
 ---
 
 # UI
@@ -314,6 +367,8 @@ Navigation:
 - Dashboard
 - Add Meal
 - Recommendations
+- Coach
+- Analytics
 - Progress
 - Exercises
 - Profile

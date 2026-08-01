@@ -558,6 +558,115 @@ before using the feature in a deployed environment.
 
 ---
 
+## Phase 14 — Exercise-Aware Health Views
+
+Goal:
+Make completed strength-training data a first-class part of the product without
+estimating calories burned from a plan alone or changing the existing intake
+calorie budget.
+
+Scope and calculation rules
+
+- Build a shared server-side workout-metrics utility from `workout_sessions`
+  and `workout_session_exercises`.
+- Count only `completed` sessions in completion, consistency, set, rep, volume,
+  and average-duration metrics. Keep `in_progress` and `ended_early` sessions
+  visible in history where relevant.
+- Calculate duration from `started_at` and `completed_at`.
+- Calculate loaded volume as completed sets × planned reps × logged weight;
+  bodyweight exercises contribute to completed sets and reps but not volume.
+- Group sessions by the user's local calendar day consistently with meal and
+  weight views.
+- Keep the profile-derived `daily_calorie_goal` as an intake target. Do not add
+  estimated exercise calories to remaining calories or food recommendations.
+
+Tasks
+
+- [ ] Add reusable workout types, date helpers, and aggregation tests.
+- [ ] Add dashboard workout context: today's plan/rest state, completion or
+  in-progress status, a start/view action, weekly completed-workout days, and a
+  training-consistency summary.
+- [ ] Expand Analytics from nutrition-only to nutrition-and-training insights:
+  7- and 30-day completed workouts, workout days, planned-day consistency,
+  completed sets, reps, loaded volume, average duration, and a weekly
+  completion visualization alongside calorie trends.
+- [ ] Add a training summary to Progress next to weight trends, including the
+  latest completed workout and current-week metrics without implying causation.
+- [ ] Add today's workout context and an exercise link to Recommendations and
+  the meal-log workspace; preserve intake-only recommendation logic.
+- [ ] Update Profile help text to explain that activity level is a deliberate
+  TDEE estimate and show recent workout frequency only as optional context.
+- [ ] Update empty, loading, and error states for users who have meal data but
+  no workout data, and the reverse.
+- [ ] Verify local-day boundaries, bodyweight exercises, missing completion
+  timestamps, mobile layouts, and RLS-scoped data reads.
+
+Deliverable
+
+Dashboard, analytics, progress, meal-related pages, and profile treat completed
+strength workouts as relevant health context while calorie targets remain
+consistent and auditable.
+
+---
+
+## Phase 15 — Nutrition + Training Coach
+
+Goal:
+Expand the nutrition-only coach into a supportive coach that reflects both
+logged meals and completed workouts from the previous seven days.
+
+Tasks
+
+- [ ] Rename coach page and component copy from nutrition-only language to
+  nutrition-and-training language.
+- [ ] Extend the authenticated coach API to fetch and aggregate completed
+  workout data alongside meals and profile goal data.
+- [ ] Define and validate an expanded strict response schema with a training
+  summary and integrated next steps, while retaining daily summary, weekly
+  summary, strengths, improvements, and macro analysis.
+- [ ] Update the system prompt to use only supplied meal and workout data,
+  identify limited logging, avoid medical advice and shame, and never invent
+  activity, calorie expenditure, or causal weight claims.
+- [ ] Update the coach panel to render the training summary and explain the
+  educational limits of the generated insights.
+- [ ] Test no-meal, no-workout, sparse-data, completed-workout, and
+  ended-early-workout scenarios.
+
+Deliverable
+
+Users receive validated, practical nutrition-and-training insights grounded
+only in their saved meals and completed workout sessions.
+
+---
+
+## Phase 16 — Optional Explicit Activity Expenditure
+
+Goal:
+If product direction requires exercise to affect calorie recommendations, add
+an explicit and auditable activity-expenditure model rather than deriving burn
+from strength-plan prescriptions.
+
+Tasks
+
+- [ ] Decide and document whether the product should show intake-only targets,
+  net balance, or both; define the user-facing terminology.
+- [ ] Create an activity-log migration with activity type, date/time, duration,
+  intensity, estimated calories, source, and confidence/estimation method.
+- [ ] Add RLS policies, validation, CRUD APIs, and a clear manual-entry UI.
+- [ ] Separate intake goal from net balance in dashboard, recommendations, and
+  analytics; make any adjustment optional and clearly labelled.
+- [ ] Add safeguards against double counting activity already represented by
+  the user's profile activity-level TDEE estimate.
+- [ ] Test estimates, manual edits, deleted activities, time zones, and all
+  recommendation boundary cases.
+
+Deliverable
+
+Users can optionally log explicit activity expenditure and understand exactly
+when it affects a displayed net balance or food recommendation.
+
+---
+
 # Coding Standards
 
 - Strict TypeScript
