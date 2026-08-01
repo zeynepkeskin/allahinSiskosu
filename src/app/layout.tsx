@@ -2,18 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Allahın Şişkosu",
+  title: "Allah'ın Şişkosu",
   description: "AI-powered calorie and nutrition tracker.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body className="min-h-screen">{children}</body>
     </html>
   );
 }

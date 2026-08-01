@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-
 import { createClient } from "@/lib/supabase/client";
 
 type AuthMode = "signIn" | "signUp";
@@ -15,10 +14,10 @@ export function AuthForm() {
     event.preventDefault();
     setIsSubmitting(true);
     setMessage(undefined);
-
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "");
+    const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
+    const username = String(formData.get("username") ?? "").trim();
     const supabase = createClient();
     const result =
       mode === "signIn"
@@ -27,55 +26,29 @@ export function AuthForm() {
             email,
             password,
             options: {
+              data: { username: username || undefined },
               emailRedirectTo: `${window.location.origin}/auth/callback`,
             },
           });
-
     setIsSubmitting(false);
-
-    if (result.error) {
-      setMessage(result.error.message);
-      return;
-    }
-
-    if (mode === "signIn") {
-      window.location.assign("/");
-      return;
-    }
-
+    if (result.error) return setMessage(result.error.message);
+    if (mode === "signIn") return window.location.assign("/dashboard");
     setMessage("Check your email to confirm your account, then sign in.");
   }
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <div>
-        <label className="text-sm font-medium text-slate-700" htmlFor="email">
-          Email
-        </label>
-        <input
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-          id="email"
-          name="email"
-          required
-          type="email"
-        />
-      </div>
-      <div>
-        <label
-          className="text-sm font-medium text-slate-700"
-          htmlFor="password"
-        >
-          Password
-        </label>
-        <input
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-          id="password"
-          minLength={6}
-          name="password"
-          required
-          type="password"
-        />
-      </div>
+      {mode === "signUp" ? (
+        <Field id="username" label="Username" required={false} type="text" />
+      ) : null}
+      <Field id="email" label="Email" required type="email" />
+      <Field
+        id="password"
+        label="Password"
+        minLength={6}
+        required
+        type="password"
+      />
       {message ? (
         <p aria-live="polite" className="text-sm text-slate-600">
           {message}
@@ -105,5 +78,35 @@ export function AuthForm() {
           : "Already have an account? Sign in"}
       </button>
     </form>
+  );
+}
+
+function Field({
+  id,
+  label,
+  required,
+  type,
+  minLength,
+}: {
+  id: string;
+  label: string;
+  required: boolean;
+  type: string;
+  minLength?: number;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-medium text-slate-700" htmlFor={id}>
+        {label}
+      </label>
+      <input
+        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        id={id}
+        minLength={minLength}
+        name={id}
+        required={required}
+        type={type}
+      />
+    </div>
   );
 }
