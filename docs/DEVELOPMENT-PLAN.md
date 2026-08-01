@@ -393,6 +393,8 @@ Deliverable
 
 Nutrition insights.
 
+Status: [x] Implemented — the Analytics page provides daily, weekly, and monthly calorie metrics; macro trends and distribution; a seven-day calorie chart; highest/lowest calorie days; and calorie-goal adherence from the last 30 days of saved meals.
+
 ---
 
 # Phase 10 — Polish
