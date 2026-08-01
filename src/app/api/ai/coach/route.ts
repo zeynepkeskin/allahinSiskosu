@@ -144,9 +144,8 @@ export async function POST() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_COACH_MODEL ?? "gpt-5.6",
+        model: process.env.OPENAI_COACH_MODEL ?? "gpt-5.6-sol",
         reasoning_effort: "medium",
-        temperature: 0.3,
         max_completion_tokens: 1800,
         response_format: responseFormat,
         messages: [
@@ -164,7 +163,11 @@ export async function POST() {
       }),
     });
     if (!response.ok) {
-      console.error("Nutrition coach provider error", response.status);
+      console.error(
+        "Nutrition coach provider error",
+        response.status,
+        await response.text(),
+      );
       return NextResponse.json(
         { error: "Your coach is unavailable right now. Please try again." },
         { status: 502 },

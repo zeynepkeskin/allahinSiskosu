@@ -97,9 +97,8 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MEAL_MODEL ?? "gpt-5.6",
+        model: process.env.OPENAI_MEAL_MODEL ?? "gpt-5.6-sol",
         reasoning_effort: "medium",
-        temperature: 0.2,
         max_completion_tokens: 4096,
         response_format: mealResponseFormat,
         messages: [
@@ -112,7 +111,11 @@ export async function POST(request: Request) {
       }),
     });
     if (!response.ok) {
-      console.error("Meal analysis provider error", response.status);
+      console.error(
+        "Meal analysis provider error",
+        response.status,
+        await response.text(),
+      );
       return NextResponse.json(
         { error: "Could not analyze this meal. Please try again." },
         { status: 502 },
