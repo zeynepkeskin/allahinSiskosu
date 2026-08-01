@@ -7,19 +7,287 @@ import { exercisePrescription, type ExercisePlan } from "@/lib/exercises";
 
 type Phase = "ready" | "set" | "rest" | "complete" | "ended";
 export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
-  const router = useRouter(); const [phase, setPhase] = useState<Phase>("ready"), [exerciseIndex, setExerciseIndex] = useState(0), [setNumber, setSetNumber] = useState(1), [seconds, setSeconds] = useState(0), [paused, setPaused] = useState(false), [muted, setMuted] = useState(false), [sessionId, setSessionId] = useState<string>(), [sessionExerciseIds, setSessionExerciseIds] = useState<string[]>([]), [message, setMessage] = useState<string>(); const deadline = useRef<number | undefined>(undefined); const current = plan.exercises[exerciseIndex];
-  function speak(text: string) { if (!muted && "speechSynthesis" in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
-  function beep() { if (muted || !("AudioContext" in window || "webkitAudioContext" in window)) return; const Context = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; const context = new Context(); [0, 180, 360, 540].forEach((offset, index) => { const oscillator = context.createOscillator(); const gain = context.createGain(); oscillator.frequency.value = index === 3 ? 740 : 520; gain.gain.setValueAtTime(0.08, context.currentTime); oscillator.connect(gain).connect(context.destination); oscillator.start(context.currentTime + offset / 1000); oscillator.stop(context.currentTime + (offset + (index === 3 ? 650 : 100)) / 1000); }); }
-  function startSet(number = setNumber) { setPhase("set"); setPaused(false); setSetNumber(number); speak(`${number === 1 ? "First" : number === 2 ? "Second" : number === 3 ? "Third" : `${number}th`} set.`); beep(); }
-  async function begin() { setMessage(undefined); const response = await fetch("/api/workouts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planId: plan.id }) }); const body = await response.json().catch(() => ({})); if (!response.ok) { setMessage(body.error ?? "Could not start workout."); return; } setSessionId(body.id); setSessionExerciseIds(body.exerciseIds); speak(`${current.name}. ${current.weightDisplay || (current.weightLb === null ? "Bodyweight" : `${current.weightLb} pounds`)}. ${current.sets} sets with ${current.reps} reps.`); window.setTimeout(() => startSet(1), 500); }
-  useEffect(() => { if (phase !== "rest" || paused) return; deadline.current = Date.now() + seconds * 1000; const timer = window.setInterval(() => { const remaining = Math.max(0, Math.ceil((deadline.current! - Date.now()) / 1000)); setSeconds(remaining); if (remaining === 0) { window.clearInterval(timer); if (setNumber < current.sets) startSet(setNumber + 1); else if (exerciseIndex + 1 < plan.exercises.length) { setExerciseIndex((value) => value + 1); setSetNumber(1); setPhase("set"); } else finish("completed"); } }, 250); return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
+  const router = useRouter();
+  const [phase, setPhase] = useState<Phase>("ready"),
+    [exerciseIndex, setExerciseIndex] = useState(0),
+    [setNumber, setSetNumber] = useState(1),
+    [seconds, setSeconds] = useState(0),
+    [paused, setPaused] = useState(false),
+    [muted, setMuted] = useState(false),
+    [sessionId, setSessionId] = useState<string>(),
+    [sessionExerciseIds, setSessionExerciseIds] = useState<string[]>([]),
+    [message, setMessage] = useState<string>();
+  const deadline = useRef<number | undefined>(undefined);
+  const current = plan.exercises[exerciseIndex];
+  function speak(text: string) {
+    if (!muted && "speechSynthesis" in window)
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  }
+  function beep() {
+    if (muted || !("AudioContext" in window || "webkitAudioContext" in window))
+      return;
+    const Context =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    const context = new Context();
+    [0, 180, 360, 540].forEach((offset, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = index === 3 ? 740 : 520;
+      gain.gain.setValueAtTime(0.08, context.currentTime);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(context.currentTime + offset / 1000);
+      oscillator.stop(
+        context.currentTime + (offset + (index === 3 ? 650 : 100)) / 1000,
+      );
+    });
+  }
+  function startSet(number = setNumber) {
+    setPhase("set");
+    setPaused(false);
+    setSetNumber(number);
+    speak(
+      `${number === 1 ? "First" : number === 2 ? "Second" : number === 3 ? "Third" : `${number}th`} set.`,
+    );
+    beep();
+  }
+  async function begin() {
+    setMessage(undefined);
+    const response = await fetch("/api/workouts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId: plan.id }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(body.error ?? "Could not start workout.");
+      return;
+    }
+    setSessionId(body.id);
+    setSessionExerciseIds(body.exerciseIds);
+    speak(
+      `${current.name}. ${current.weightLb === null ? "Bodyweight" : `${current.weightLb} pounds`}. ${current.sets} sets with ${current.reps} reps.`,
+    );
+    window.setTimeout(() => startSet(1), 500);
+  }
+  useEffect(() => {
+    if (phase !== "rest" || paused) return;
+    deadline.current = Date.now() + seconds * 1000;
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((deadline.current! - Date.now()) / 1000),
+      );
+      setSeconds(remaining);
+      if (remaining === 0) {
+        window.clearInterval(timer);
+        if (setNumber < current.sets) startSet(setNumber + 1);
+        else if (exerciseIndex + 1 < plan.exercises.length) {
+          setExerciseIndex((value) => value + 1);
+          setSetNumber(1);
+          setPhase("set");
+        } else finish("completed");
+      }
+    }, 250);
+    return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, paused]);
-  useEffect(() => { if (phase === "set" && exerciseIndex > 0 && setNumber === 1) { const next = plan.exercises[exerciseIndex]; speak(`${next.name}. ${next.weightDisplay || (next.weightLb === null ? "Bodyweight" : `${next.weightLb} pounds`)}. ${next.sets} sets with ${next.reps} reps. First set.`); beep(); } // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (phase === "set" && exerciseIndex > 0 && setNumber === 1) {
+      const next = plan.exercises[exerciseIndex];
+      speak(
+        `${next.name}. ${next.weightLb === null ? "Bodyweight" : `${next.weightLb} pounds`}. ${next.sets} sets with ${next.reps} reps. First set.`,
+      );
+      beep();
+    } // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseIndex]);
-  async function completeSet() { const completed = setNumber; const id = sessionExerciseIds[exerciseIndex]; if (sessionId && id) await fetch(`/api/workouts/${sessionId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ completedSets: [{ id, completedSets: completed }] }) }); if (completed >= current.sets && exerciseIndex + 1 >= plan.exercises.length) { await finish("completed"); return; } speak(`Completed. Now rest for ${current.restSeconds} seconds.`); setSeconds(current.restSeconds); setPhase("rest"); setPaused(false); }
-  async function finish(status: "completed" | "ended_early") { if (sessionId) await fetch(`/api/workouts/${sessionId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); setPhase(status === "completed" ? "complete" : "ended"); speak(status === "completed" ? "Workout complete. Great work." : "Workout ended."); }
-  function togglePause() { if (paused) { deadline.current = Date.now() + seconds * 1000; setPaused(false); } else setPaused(true); }
-  const totalSets = plan.exercises.reduce((sum, exercise) => sum + exercise.sets, 0); const doneSets = plan.exercises.slice(0, exerciseIndex).reduce((sum, exercise) => sum + exercise.sets, 0) + (phase === "rest" ? setNumber : Math.max(0, setNumber - 1));
-  if (phase === "complete" || phase === "ended") return <Card className="mx-auto mt-10 max-w-xl text-center"><p className="text-sm font-semibold text-emerald-600">{phase === "complete" ? "WORKOUT COMPLETE" : "WORKOUT ENDED"}</p><h1 className="mt-2 text-3xl font-bold">{phase === "complete" ? "Great work." : "Saved your progress."}</h1><p className="mt-3 text-slate-500">Your session has been saved to your workout history.</p><Button className="mt-6" onClick={() => router.push("/exercises")}>Back to exercises</Button></Card>;
-  return <div className="mx-auto mt-3 max-w-2xl"><button className="text-sm font-semibold text-slate-500" onClick={() => router.push("/exercises")} type="button">← Back to plan</button><Card className="mt-5"><div className="flex justify-between gap-4"><div><p className="text-sm font-semibold text-emerald-600">{phase === "ready" ? "READY" : phase === "rest" ? "REST" : "ACTIVE SET"}</p><h1 className="mt-1 text-3xl font-bold">{current.name}</h1><p className="mt-2 text-slate-500">{exercisePrescription(current)}</p></div><button aria-pressed={muted} className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold" onClick={() => setMuted((value) => !value)} type="button">{muted ? "Sound off" : "Sound on"}</button></div><div className="mt-8"><ProgressBar label={`Set ${setNumber} of ${current.sets} · Exercise ${exerciseIndex + 1} of ${plan.exercises.length}`} value={(doneSets / totalSets) * 100} /></div>{phase === "ready" ? <><p className="mt-8 text-sm text-slate-500">Start to hear the exercise prescription and first-set cue.</p><Button className="mt-4" onClick={begin}>Begin workout</Button></> : phase === "set" ? <div className="mt-9 rounded-2xl bg-emerald-50 p-6 text-center"><p className="text-lg font-semibold">Set {setNumber}: {current.reps} reps</p><Button className="mt-5" onClick={completeSet}>Complete set</Button><button className="ml-4 text-sm font-semibold text-slate-600" onClick={() => startSet(setNumber)} type="button">Repeat cue</button></div> : <div className="mt-9 rounded-2xl bg-slate-900 p-6 text-center text-white"><p className="text-sm font-semibold uppercase tracking-wider text-emerald-300">Rest</p><p className="mt-2 text-6xl font-bold tabular-nums">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</p><div className="mt-6 flex justify-center gap-3"><button className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold" onClick={togglePause} type="button">{paused ? "Resume" : "Pause"}</button><button className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900" onClick={() => { setSeconds(0); if (setNumber < current.sets) startSet(setNumber + 1); else if (exerciseIndex + 1 < plan.exercises.length) { setExerciseIndex((value) => value + 1); setSetNumber(1); setPhase("set"); } }} type="button">Skip rest</button></div></div>}{message ? <p aria-live="polite" className="mt-4 text-sm text-red-600">{message}</p> : null}<button className="mt-8 text-sm font-semibold text-red-600" onClick={() => { if (window.confirm("End this workout? Your completed sets will be saved.")) finish("ended_early"); }} type="button">End workout</button></Card></div>;
+  async function completeSet() {
+    const completed = setNumber;
+    const id = sessionExerciseIds[exerciseIndex];
+    if (sessionId && id)
+      await fetch(`/api/workouts/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          completedSets: [{ id, completedSets: completed }],
+        }),
+      });
+    if (
+      completed >= current.sets &&
+      exerciseIndex + 1 >= plan.exercises.length
+    ) {
+      await finish("completed");
+      return;
+    }
+    speak(`Completed. Now rest for ${current.restSeconds} seconds.`);
+    setSeconds(current.restSeconds);
+    setPhase("rest");
+    setPaused(false);
+  }
+  async function finish(status: "completed" | "ended_early") {
+    if (sessionId)
+      await fetch(`/api/workouts/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+    setPhase(status === "completed" ? "complete" : "ended");
+    speak(
+      status === "completed"
+        ? "Workout complete. Great work."
+        : "Workout ended.",
+    );
+  }
+  function togglePause() {
+    if (paused) {
+      deadline.current = Date.now() + seconds * 1000;
+      setPaused(false);
+    } else setPaused(true);
+  }
+  const totalSets = plan.exercises.reduce(
+    (sum, exercise) => sum + exercise.sets,
+    0,
+  );
+  const doneSets =
+    plan.exercises
+      .slice(0, exerciseIndex)
+      .reduce((sum, exercise) => sum + exercise.sets, 0) +
+    (phase === "rest" ? setNumber : Math.max(0, setNumber - 1));
+  if (phase === "complete" || phase === "ended")
+    return (
+      <Card className="mx-auto mt-10 max-w-xl text-center">
+        <p className="text-sm font-semibold text-emerald-600">
+          {phase === "complete" ? "WORKOUT COMPLETE" : "WORKOUT ENDED"}
+        </p>
+        <h1 className="mt-2 text-3xl font-bold">
+          {phase === "complete" ? "Great work." : "Saved your progress."}
+        </h1>
+        <p className="mt-3 text-slate-500">
+          Your session has been saved to your workout history.
+        </p>
+        <Button className="mt-6" onClick={() => router.push("/exercises")}>
+          Back to exercises
+        </Button>
+      </Card>
+    );
+  return (
+    <div className="mx-auto mt-3 max-w-2xl">
+      <button
+        className="text-sm font-semibold text-slate-500"
+        onClick={() => router.push("/exercises")}
+        type="button"
+      >
+        ← Back to plan
+      </button>
+      <Card className="mt-5">
+        <div className="flex justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-emerald-600">
+              {phase === "ready"
+                ? "READY"
+                : phase === "rest"
+                  ? "REST"
+                  : "ACTIVE SET"}
+            </p>
+            <h1 className="mt-1 text-3xl font-bold">{current.name}</h1>
+            <p className="mt-2 text-slate-500">
+              {exercisePrescription(current)}
+            </p>
+          </div>
+          <button
+            aria-pressed={muted}
+            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
+            onClick={() => setMuted((value) => !value)}
+            type="button"
+          >
+            {muted ? "Sound off" : "Sound on"}
+          </button>
+        </div>
+        <div className="mt-8">
+          <ProgressBar
+            label={`Set ${setNumber} of ${current.sets} · Exercise ${exerciseIndex + 1} of ${plan.exercises.length}`}
+            value={(doneSets / totalSets) * 100}
+          />
+        </div>
+        {phase === "ready" ? (
+          <>
+            <p className="mt-8 text-sm text-slate-500">
+              Start to hear the exercise prescription and first-set cue.
+            </p>
+            <Button className="mt-4" onClick={begin}>
+              Begin workout
+            </Button>
+          </>
+        ) : phase === "set" ? (
+          <div className="mt-9 rounded-2xl bg-emerald-50 p-6 text-center">
+            <p className="text-lg font-semibold">
+              Set {setNumber}: {current.reps} reps
+            </p>
+            <Button className="mt-5" onClick={completeSet}>
+              Complete set
+            </Button>
+            <button
+              className="ml-4 text-sm font-semibold text-slate-600"
+              onClick={() => startSet(setNumber)}
+              type="button"
+            >
+              Repeat cue
+            </button>
+          </div>
+        ) : (
+          <div className="mt-9 rounded-2xl bg-slate-900 p-6 text-center text-white">
+            <p className="text-sm font-semibold uppercase tracking-wider text-emerald-300">
+              Rest
+            </p>
+            <p className="mt-2 text-6xl font-bold tabular-nums">
+              {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <button
+                className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold"
+                onClick={togglePause}
+                type="button"
+              >
+                {paused ? "Resume" : "Pause"}
+              </button>
+              <button
+                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900"
+                onClick={() => {
+                  setSeconds(0);
+                  if (setNumber < current.sets) startSet(setNumber + 1);
+                  else if (exerciseIndex + 1 < plan.exercises.length) {
+                    setExerciseIndex((value) => value + 1);
+                    setSetNumber(1);
+                    setPhase("set");
+                  }
+                }}
+                type="button"
+              >
+                Skip rest
+              </button>
+            </div>
+          </div>
+        )}
+        {message ? (
+          <p aria-live="polite" className="mt-4 text-sm text-red-600">
+            {message}
+          </p>
+        ) : null}
+        <button
+          className="mt-8 text-sm font-semibold text-red-600"
+          onClick={() => {
+            if (
+              window.confirm(
+                "End this workout? Your completed sets will be saved.",
+              )
+            )
+              finish("ended_early");
+          }}
+          type="button"
+        >
+          End workout
+        </button>
+      </Card>
+    </div>
+  );
 }

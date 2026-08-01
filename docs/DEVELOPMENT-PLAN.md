@@ -160,7 +160,6 @@ Tables
 - sets
 - reps
 - weight_lb
-- weight_display
 - rest_seconds
 - sort_order
 - created_at
@@ -185,7 +184,7 @@ Tables
 - planned_sets
 - planned_reps
 - completed_sets
-- weight_display
+- weight_lb
 - rest_seconds
 - sort_order
 
@@ -503,8 +502,7 @@ Pages
 - Exercises: seven-day weekly plan, with each day displayed as REST or an
   ordered exercise list.
 - Exercise editor: add, edit, delete, and reorder exercises for a day; each
-  exercise captures name, sets, reps, weight, optional display context (such
-  as “25 lb per hand”), and rest duration.
+  exercise captures name, sets, reps, weight, and rest duration.
 - Workout runner (`/exercises/[day]`): a distraction-free, mobile-friendly
   flow for the selected day’s workout.
 

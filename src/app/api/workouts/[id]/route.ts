@@ -2,13 +2,56 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
-const updateSchema = z.object({ completedSets: z.array(z.object({ id: z.string().uuid(), completedSets: z.number().int().min(0).max(30) })).optional(), status: z.enum(["completed", "ended_early"]).optional() });
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const parsed = updateSchema.safeParse(await request.json().catch(() => null)); const { id } = await params;
-  if (!z.string().uuid().safeParse(id).success || !parsed.success) return NextResponse.json({ error: "Invalid workout update." }, { status: 400 });
-  const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to update a workout." }, { status: 401 });
-  for (const exercise of parsed.data.completedSets ?? []) await supabase.from("workout_session_exercises").update({ completed_sets: exercise.completedSets }).eq("id", exercise.id);
-  if (parsed.data.status) { const { error } = await supabase.from("workout_sessions").update({ status: parsed.data.status, completed_at: new Date().toISOString() }).eq("id", id).eq("profile_id", user.id); if (error) return NextResponse.json({ error: "Could not finish workout." }, { status: 500 }); }
+const updateSchema = z.object({
+  completedSets: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        completedSets: z.number().int().min(0).max(30),
+      }),
+    )
+    .optional(),
+  status: z.enum(["completed", "ended_early"]).optional(),
+});
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const parsed = updateSchema.safeParse(await request.json().catch(() => null));
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success || !parsed.success)
+    return NextResponse.json(
+      { error: "Invalid workout update." },
+      { status: 400 },
+    );
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json(
+      { error: "Sign in to update a workout." },
+      { status: 401 },
+    );
+  for (const exercise of parsed.data.completedSets ?? [])
+    await supabase
+      .from("workout_session_exercises")
+      .update({ completed_sets: exercise.completedSets })
+      .eq("id", exercise.id);
+  if (parsed.data.status) {
+    const { error } = await supabase
+      .from("workout_sessions")
+      .update({
+        status: parsed.data.status,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("profile_id", user.id);
+    if (error)
+      return NextResponse.json(
+        { error: "Could not finish workout." },
+        { status: 500 },
+      );
+  }
   return NextResponse.json({ ok: true });
 }

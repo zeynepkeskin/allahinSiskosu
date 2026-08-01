@@ -5,11 +5,34 @@ export const exerciseSchema = z.object({
   sets: z.number().int().min(1).max(30),
   reps: z.number().int().min(1).max(500),
   weightLb: z.number().min(0).max(5000).nullable(),
-  weightDisplay: z.string().trim().max(80).optional().default(""),
   restSeconds: z.number().int().min(0).max(1800),
 });
-export const planSchema = z.object({ isRestDay: z.boolean(), exercises: z.array(exerciseSchema).max(30) }).refine((value) => value.isRestDay || value.exercises.length > 0, { message: "Add an exercise or mark the day as rest." });
+export const planSchema = z
+  .object({
+    isRestDay: z.boolean(),
+    exercises: z.array(exerciseSchema).max(30),
+  })
+  .refine((value) => value.isRestDay || value.exercises.length > 0, {
+    message: "Add an exercise or mark the day as rest.",
+  });
 export type Exercise = z.infer<typeof exerciseSchema> & { id?: string };
-export type ExercisePlan = { id: string; dayOfWeek: number; isRestDay: boolean; exercises: Exercise[] };
-export const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-export function exercisePrescription(exercise: Exercise) { const weight = exercise.weightDisplay || (exercise.weightLb === null ? "bodyweight" : `${exercise.weightLb} lb`); return `${exercise.name} · ${exercise.sets} sets × ${exercise.reps} reps · ${weight}`; }
+export type ExercisePlan = {
+  id: string;
+  dayOfWeek: number;
+  isRestDay: boolean;
+  exercises: Exercise[];
+};
+export const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+export function exercisePrescription(exercise: Exercise) {
+  const weight =
+    exercise.weightLb === null ? "bodyweight" : `${exercise.weightLb} lb`;
+  return `${exercise.name} · ${exercise.sets} sets × ${exercise.reps} reps · ${weight}`;
+}

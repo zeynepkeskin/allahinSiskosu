@@ -99,7 +99,6 @@ const blankExercise = (): Exercise => ({
   sets: 3,
   reps: 10,
   weightLb: null,
-  weightDisplay: "",
   restSeconds: 45,
 });
 type Session = {
@@ -144,7 +143,7 @@ export function ExercisePlanner({
           ? {
               ...exercise,
               [field]:
-                field === "name" || field === "weightDisplay"
+                field === "name"
                   ? value
                   : value === ""
                     ? field === "weightLb"
@@ -388,19 +387,6 @@ export function ExercisePlanner({
                         min="0"
                       />
                     </div>
-                    <input
-                      aria-label="Weight display"
-                      className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                      placeholder="Optional: 25 lb per hand"
-                      value={exercise.weightDisplay}
-                      onChange={(event) =>
-                        updateExercise(
-                          index,
-                          "weightDisplay",
-                          event.target.value,
-                        )
-                      }
-                    />
                   </fieldset>
                 ))}
                 <button

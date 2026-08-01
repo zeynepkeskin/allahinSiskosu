@@ -137,8 +137,7 @@ User information and calculated goals.
 Users create a reusable weekly strength-training plan, organized by day of the
 week. Each day is either marked **REST** or contains an ordered list of
 exercises. An exercise includes its name, set count, reps per set, weight, and
-rest duration. For example: `Bicep Curls — 5 sets × 10 reps at 50 lb total
-(25 lb per hand)`.
+rest duration. For example: `Bicep Curls — 5 sets × 10 reps at 50 lb`.
 
 The weekly view shows every day and its planned workout at a glance. Users can
 add, edit, reorder, or remove exercises and can mark any day as REST.
@@ -225,14 +224,12 @@ One plan per user and day of week.
 - sets
 - reps
 - weight_lb
-- weight_display
 - rest_seconds
 - sort_order
 - created_at
 - updated_at
 
-`weight_lb` stores the total loaded weight when applicable; `weight_display`
-preserves user-facing context such as “25 lb per hand.”
+`weight_lb` stores the total loaded weight when applicable.
 
 ## workout_sessions
 
@@ -253,7 +250,7 @@ preserves user-facing context such as “25 lb per hand.”
 - planned_sets
 - planned_reps
 - completed_sets
-- weight_display
+- weight_lb
 - rest_seconds
 - sort_order
 
