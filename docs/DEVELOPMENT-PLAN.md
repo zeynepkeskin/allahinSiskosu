@@ -8,11 +8,11 @@
 **Done:** User can sign in.
 
 ## Phase 1 – Database
-- [ ] profiles
-- [ ] meals
-- [ ] meal_items
-- [ ] daily_weights
-**Done:** Schema migrated.
+- [x] profiles
+- [x] meals
+- [x] meal_items
+- [x] daily_weights
+**Done:** Schema migration is ready at `supabase/migrations/20260731000000_create_nutrition_schema.sql`.
 
 ## Phase 2 – UI
 - [ ] Dashboard
