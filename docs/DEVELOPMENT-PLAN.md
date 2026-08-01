@@ -694,6 +694,12 @@ Visual design and placement
   text list names the muscle groups so the visual is not the only source of
   information. No map is shown before a selection. Custom/unmapped exercises
   show a neutral unavailable state and do not receive inferred targeting.
+- **Exercise selection:** Replace the native exercise dropdown with a reusable
+  read-only input and browse button. Its modal flow selects a group first,
+  then an exercise, then previews the candidate before the user explicitly
+  confirms selection. The movement start/finish frame alternates every second;
+  when both anatomy views apply, the muscle map alternates view every four
+  seconds.
 - **Workout runner:** After **Begin workout** succeeds, render the current
   exercise's two labelled stills, **Start** and **Finish**, above the active
   set or rest controls. Keep the pair visible while resting and replace it as

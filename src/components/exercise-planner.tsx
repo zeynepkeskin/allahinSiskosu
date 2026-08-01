@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
-import { exerciseGroups, getExerciseVisual } from "@/lib/exercise-catalog";
+import { getExerciseVisual } from "@/lib/exercise-catalog";
 import {
   days,
   exercisePrescription,
@@ -266,9 +267,9 @@ export function ExercisePlanner({
                         </button>
                       ) : null}
                     </div>
-                    <ExerciseNameSelect
-                      exercise={exercise}
-                      index={index}
+                    <ExerciseSelector
+                      label={`Exercise ${index + 1}`}
+                      value={exercise.name}
                       onChange={(value) => updateExercise(index, "name", value)}
                     />
                     {exercise.name ? (
@@ -347,44 +348,6 @@ export function ExercisePlanner({
         )}
       </aside>
     </div>
-  );
-}
-function ExerciseNameSelect({
-  exercise,
-  index,
-  onChange,
-}: {
-  exercise: Exercise;
-  index: number;
-  onChange: (value: string) => void;
-}) {
-  const isKnown = exerciseGroups.some((group) =>
-    group.exercises.includes(exercise.name),
-  );
-  return (
-    <label className="mt-3 block text-xs font-medium text-slate-600">
-      Exercise
-      <select
-        aria-label={`Exercise ${index + 1} name`}
-        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-        value={exercise.name}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">Select an exercise</option>
-        {exercise.name && !isKnown ? (
-          <option value={exercise.name}>{exercise.name}</option>
-        ) : null}
-        {exerciseGroups.map((group) => (
-          <optgroup key={group.label} label={group.label}>
-            {group.exercises.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-    </label>
   );
 }
 function Field({

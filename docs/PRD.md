@@ -192,7 +192,10 @@ snapshots. It does not infer calories burned from strength-plan data alone.
 Exercise guidance has two complementary, static visual treatments:
 
 - **Planner muscle map:** When a user selects a known exercise in the exercise
-  editor, show a compact, accessible human-body SVG directly below that row's
+  editor, they browse an exercise library by group and preview a candidate
+  before confirming it. The preview alternates its two movement frames every
+  second and alternates applicable body views every four seconds. On confirm,
+  show a compact, accessible human-body SVG directly below that row's
   selector. Highlight primary muscles in emerald and secondary muscles in a
   lighter shade, show the relevant front and/or back view, and name the
   highlighted muscles in text. Before selection, show no anatomy image; for a

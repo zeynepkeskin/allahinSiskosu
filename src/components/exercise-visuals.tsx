@@ -98,7 +98,13 @@ function MuscleBody({
   );
 }
 
-export function ExerciseMuscleMap({ visual }: { visual?: ExerciseVisual }) {
+export function ExerciseMuscleMap({
+  visual,
+  views,
+}: {
+  visual?: ExerciseVisual;
+  views?: BodyView[];
+}) {
   if (!visual)
     return (
       <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
@@ -113,7 +119,7 @@ export function ExerciseMuscleMap({ visual }: { visual?: ExerciseVisual }) {
       className="mt-3 rounded-xl bg-emerald-50/70 p-3"
     >
       <div className="flex justify-center gap-2">
-        {visual.views.map((view) => (
+        {(views ?? visual.views).map((view) => (
           <MuscleBody key={view} view={view} visual={visual} />
         ))}
       </div>
