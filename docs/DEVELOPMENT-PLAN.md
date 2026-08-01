@@ -343,6 +343,8 @@ Deliverable
 
 Nutrition assistant.
 
+Status: [x] Implemented — food descriptions use the validated meal estimator, while deterministic calorie-budget rules recommend the full serving, a reduced portion, or a lighter alternative. Users can save a checked food to today’s meal log or discard it.
+
 ---
 
 # Phase 8 — Weight Tracking
