@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const systemPrompt = `You estimate nutrition for food descriptions. Break the meal into distinct foods and use realistic estimates for the stated serving sizes. All numeric values must be non-negative. Confidence is 0 to 1 and reflects how certain the estimate is.`;
+const systemPrompt = `You estimate nutrition for food descriptions. Break every food the user lists into a distinct item; do not omit foods, combine unrelated foods, or stop partway through a list. Use realistic estimates for the stated serving sizes. Return the complete JSON object required by the schema, including every numeric field for every item. All numeric values must be non-negative. Confidence is 0 to 1 and reflects how certain the estimate is.`;
 
 const mealResponseFormat = {
   type: "json_schema",
@@ -99,6 +99,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: process.env.OPENAI_MEAL_MODEL ?? "gpt-4.1-mini",
         temperature: 0.2,
+        max_completion_tokens: 4096,
         response_format: mealResponseFormat,
         messages: [
           { role: "system", content: systemPrompt },
@@ -118,17 +119,25 @@ export async function POST(request: Request) {
     }
 
     const completion = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{
+        finish_reason?: string;
+        message?: { content?: string; refusal?: string };
+      }>;
     };
-    const content = completion.choices?.[0]?.message?.content;
-    if (!content) throw new Error("AI response had no content");
+    const choice = completion.choices?.[0];
+    const content = choice?.message?.content;
+    if (!content || choice.finish_reason === "length")
+      throw new Error("AI response was cut off before the estimate finished");
     const parsed = parsedMealSchema.parse(JSON.parse(content));
     return NextResponse.json(mealAnalysisSchema.parse(parsed));
   } catch (error) {
     if (error instanceof ZodError || error instanceof SyntaxError) {
       console.error("Meal analysis returned an invalid response", error);
       return NextResponse.json(
-        { error: "The nutrition estimate was incomplete. Please try again." },
+        {
+          error:
+            "The nutrition provider returned an invalid estimate. Please try again, or split a very long food list into two meals.",
+        },
         { status: 502 },
       );
     }
