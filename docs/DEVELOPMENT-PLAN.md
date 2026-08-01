@@ -363,6 +363,12 @@ Weight history.
 
 ---
 
+# Phase 8 status
+
+Status: [x] Implemented — authenticated weight entries can be logged, updated, and deleted; the Progress page includes weekly and monthly trend views plus complete history.
+
+---
+
 # Phase 9 — Analytics
 
 Metrics
