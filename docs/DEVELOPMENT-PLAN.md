@@ -213,6 +213,8 @@ Deliverable
 
 Personalized calorie target.
 
+Status: [x] Implemented — profile details are validated, saved through RLS, and used to calculate BMI, BMR, TDEE, and a daily calorie target.
+
 ---
 
 # Phase 4 — AI Meal Parser
