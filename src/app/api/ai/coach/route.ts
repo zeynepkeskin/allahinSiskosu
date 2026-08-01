@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { nutritionCoachSchema } from "@/lib/coach";
 import { createClient } from "@/lib/supabase/server";
+import {
+  calculateWorkoutMetrics,
+  completedWorkoutSessions,
+  type WorkoutSessionRow,
+} from "@/lib/workout-metrics";
 
 export const runtime = "nodejs";
 
@@ -21,6 +26,14 @@ type DailyNutrition = {
   fat: number;
   fiber: number;
 };
+type DailyTraining = {
+  date: string;
+  completedWorkouts: number;
+  completedSets: number;
+  completedReps: number;
+  loadedVolumeLb: number;
+  averageDurationMinutes: number | null;
+};
 
 const responseFormat = {
   type: "json_schema",
@@ -33,6 +46,7 @@ const responseFormat = {
       required: [
         "dailySummary",
         "weeklySummary",
+        "trainingSummary",
         "strengths",
         "improvements",
         "macroAnalysis",
@@ -40,6 +54,7 @@ const responseFormat = {
       properties: {
         dailySummary: { type: "string" },
         weeklySummary: { type: "string" },
+        trainingSummary: { type: "string" },
         strengths: {
           type: "array",
           minItems: 1,
@@ -58,7 +73,7 @@ const responseFormat = {
   },
 } as const;
 const systemPrompt =
-  "You are a supportive nutrition coach. Use only the provided logged nutrition data; do not invent foods, activity, medical conditions, or diagnoses. Give practical, non-judgmental coaching in plain language. Identify observable strengths and small, specific improvements. Do not prescribe treatment, guarantee outcomes, shame the user, or give advice for an eating disorder. State when the logging data is limited. Keep every field concise.";
+  "You are a supportive nutrition and strength-training coach. Use only the provided logged nutrition and completed-workout data; do not invent foods, activity, calorie expenditure, medical conditions, diagnoses, or causal weight claims. Give practical, non-judgmental coaching in plain language. Identify observable strengths and small, specific improvements. Do not prescribe treatment, guarantee outcomes, shame the user, or give advice for an eating disorder. State when meal or workout logging is limited. Do not suggest that a completed workout changes the user's calorie budget. Keep every field concise.";
 const number = (value: number | string) => Number(value) || 0;
 const dayKey = (value: Date) => value.toISOString().slice(0, 10);
 
@@ -92,6 +107,30 @@ function buildDailyData(meals: MealRow[]): DailyNutrition[] {
   });
 }
 
+function buildDailyTraining(sessions: WorkoutSessionRow[]): DailyTraining[] {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const completed = completedWorkoutSessions(sessions);
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setUTCDate(today.getUTCDate() - (6 - index));
+    const key = dayKey(date);
+    const metrics = calculateWorkoutMetrics(
+      completed.filter(
+        (session) => dayKey(new Date(session.started_at)) === key,
+      ),
+    );
+    return {
+      date: key,
+      completedWorkouts: metrics.completedWorkouts,
+      completedSets: metrics.completedSets,
+      completedReps: metrics.completedReps,
+      loadedVolumeLb: metrics.loadedVolume,
+      averageDurationMinutes: metrics.averageDurationMinutes,
+    };
+  });
+}
+
 export async function POST() {
   const supabase = await createClient();
   const {
@@ -99,7 +138,7 @@ export async function POST() {
   } = await supabase.auth.getUser();
   if (!user)
     return NextResponse.json(
-      { error: "Sign in to use your nutrition coach." },
+      { error: "Sign in to use your coach." },
       { status: 401 },
     );
   const apiKey = process.env.OPENAI_API_KEY;
@@ -107,7 +146,7 @@ export async function POST() {
     return NextResponse.json(
       {
         error:
-          "Nutrition coaching is not configured. Add OPENAI_API_KEY to the server environment.",
+          "Coaching is not configured. Add OPENAI_API_KEY to the server environment.",
       },
       { status: 503 },
     );
@@ -115,25 +154,41 @@ export async function POST() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
     sevenDaysAgo.setUTCHours(0, 0, 0, 0);
-    const [{ data: profile }, { data: mealData }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("daily_calorie_goal, goal")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("meals")
-        .select("meal_time, total_calories, protein, carbs, fat, fiber")
-        .eq("profile_id", user.id)
-        .gte("meal_time", sevenDaysAgo.toISOString())
-        .order("meal_time", { ascending: true }),
-    ]);
+    const [{ data: profile }, { data: mealData }, { data: sessionData }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("daily_calorie_goal, goal")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("meals")
+          .select("meal_time, total_calories, protein, carbs, fat, fiber")
+          .eq("profile_id", user.id)
+          .gte("meal_time", sevenDaysAgo.toISOString())
+          .order("meal_time", { ascending: true }),
+        supabase
+          .from("workout_sessions")
+          .select(
+            "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
+          )
+          .eq("profile_id", user.id)
+          .gte("started_at", sevenDaysAgo.toISOString())
+          .order("started_at", { ascending: true }),
+      ]);
     const daily = buildDailyData((mealData ?? []) as MealRow[]);
+    const training = buildDailyTraining(
+      (sessionData ?? []) as WorkoutSessionRow[],
+    );
     const loggedDays = daily.filter((day) => day.calories > 0).length;
-    if (!loggedDays)
+    const workoutDays = training.filter(
+      (day) => day.completedWorkouts > 0,
+    ).length;
+    if (!loggedDays && !workoutDays)
       return NextResponse.json(
         {
-          error: "Log at least one meal before asking your coach for insights.",
+          error:
+            "Log at least one meal or complete a workout before asking your coach for insights.",
         },
         { status: 400 },
       );
@@ -155,8 +210,8 @@ export async function POST() {
             content: JSON.stringify({
               dailyCalorieGoal: profile?.daily_calorie_goal ?? null,
               goal: profile?.goal ?? null,
-              loggedDays,
-              daily,
+              nutrition: { loggedDays, daily },
+              training: { workoutDays, daily: training },
             }),
           },
         ],

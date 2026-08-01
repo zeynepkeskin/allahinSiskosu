@@ -624,25 +624,29 @@ logged meals and completed workouts from the previous seven days.
 
 Tasks
 
-- [ ] Rename coach page and component copy from nutrition-only language to
+- [x] Rename coach page and component copy from nutrition-only language to
   nutrition-and-training language.
-- [ ] Extend the authenticated coach API to fetch and aggregate completed
+- [x] Extend the authenticated coach API to fetch and aggregate completed
   workout data alongside meals and profile goal data.
-- [ ] Define and validate an expanded strict response schema with a training
+- [x] Define and validate an expanded strict response schema with a training
   summary and integrated next steps, while retaining daily summary, weekly
   summary, strengths, improvements, and macro analysis.
-- [ ] Update the system prompt to use only supplied meal and workout data,
+- [x] Update the system prompt to use only supplied meal and workout data,
   identify limited logging, avoid medical advice and shame, and never invent
   activity, calorie expenditure, or causal weight claims.
-- [ ] Update the coach panel to render the training summary and explain the
+- [x] Update the coach panel to render the training summary and explain the
   educational limits of the generated insights.
-- [ ] Test no-meal, no-workout, sparse-data, completed-workout, and
+- [ ] Add automated coverage for no-meal, no-workout, sparse-data,
+  completed-workout, and
   ended-early-workout scenarios.
 
 Deliverable
 
 Users receive validated, practical nutrition-and-training insights grounded
 only in their saved meals and completed workout sessions.
+
+Status: [ ] Core implementation complete — the coach now supports meal-only,
+workout-only, and mixed logged data. Automated scenario coverage is pending.
 
 ---
 

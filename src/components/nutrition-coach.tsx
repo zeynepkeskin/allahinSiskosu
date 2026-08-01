@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { NutritionCoach } from "@/lib/coach";
+import type { CoachInsights } from "@/lib/coach";
 import { Button, Card, Spinner } from "@/components/ui";
 
-export function NutritionCoachPanel() {
-  const [insights, setInsights] = useState<NutritionCoach | null>(null);
+export function WellnessCoachPanel() {
+  const [insights, setInsights] = useState<CoachInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   async function getInsights() {
@@ -14,7 +14,7 @@ export function NutritionCoachPanel() {
     try {
       const response = await fetch("/api/ai/coach", { method: "POST" });
       const payload = (await response.json()) as
-        NutritionCoach | { error?: string };
+        CoachInsights | { error?: string };
       if (!response.ok || !("dailySummary" in payload))
         throw new Error(
           "error" in payload
@@ -39,8 +39,8 @@ export function NutritionCoachPanel() {
           <div>
             <h2 className="text-xl font-bold">Your coaching check-in</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-              Get practical insights from your last seven days of logged meals.
-              Your coach works from your meal log only.
+              Get practical insights from your last seven days of logged meals
+              and completed strength workouts. Your coach uses saved data only.
             </p>
           </div>
           <Button disabled={loading} onClick={getInsights} type="button">
@@ -65,6 +65,7 @@ export function NutritionCoachPanel() {
         <div className="grid gap-6 lg:grid-cols-2">
           <InsightCard title="Today" body={insights.dailySummary} />
           <InsightCard title="This week" body={insights.weeklySummary} />
+          <InsightCard title="Training" body={insights.trainingSummary} />
           <ListCard
             title="What’s going well"
             items={insights.strengths}
