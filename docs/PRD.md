@@ -132,6 +132,28 @@ Charts:
 
 User information and calculated goals.
 
+## Exercises
+
+Users create a reusable weekly strength-training plan, organized by day of the
+week. Each day is either marked **REST** or contains an ordered list of
+exercises. An exercise includes its name, set count, reps per set, weight, and
+rest duration. For example: `Bicep Curls — 5 sets × 10 reps at 50 lb total
+(25 lb per hand)`.
+
+The weekly view shows every day and its planned workout at a glance. Users can
+add, edit, reorder, or remove exercises and can mark any day as REST.
+
+Selecting **Start** opens a focused workout-runner page for that day's plan.
+The runner guides the user through every set and rest interval with a visible
+timer, progress indicator, audio beeps, and optional spoken prompts. Before an
+exercise it announces, for example: “Bicep Curls with 25 pounds. Five sets of
+ten reps.” It then announces each set, plays a three-short-beep and one-long-
+beep start cue, announces completion, and counts down the configured rest
+period (for example, “Completed. Now rest for 45 seconds.”) before the next
+set. Users can pause, resume,
+skip, repeat, or end a workout. Completing or ending a workout records its
+result in the workout history.
+
 ---
 
 # Database
@@ -183,6 +205,57 @@ User information and calculated goals.
 - profile_id
 - weight
 - date
+
+## exercise_plans
+
+- id
+- profile_id
+- day_of_week
+- is_rest_day
+- created_at
+- updated_at
+
+One plan per user and day of week.
+
+## plan_exercises
+
+- id
+- exercise_plan_id
+- name
+- sets
+- reps
+- weight_lb
+- weight_display
+- rest_seconds
+- sort_order
+- created_at
+- updated_at
+
+`weight_lb` stores the total loaded weight when applicable; `weight_display`
+preserves user-facing context such as “25 lb per hand.”
+
+## workout_sessions
+
+- id
+- profile_id
+- exercise_plan_id
+- started_at
+- completed_at
+- status (completed / ended_early)
+- created_at
+
+## workout_session_exercises
+
+- id
+- workout_session_id
+- plan_exercise_id
+- exercise_name
+- planned_sets
+- planned_reps
+- completed_sets
+- weight_display
+- rest_seconds
+- sort_order
 
 ---
 
@@ -245,6 +318,7 @@ Navigation:
 - Add Meal
 - Recommendations
 - Progress
+- Exercises
 - Profile
 - Settings
 
@@ -318,7 +392,6 @@ Future enhancements:
 - Barcode scanning
 - Meal photo recognition
 - Water tracker
-- Exercise tracker
 - Meal planner
 - Grocery lists
 - Favorite meals

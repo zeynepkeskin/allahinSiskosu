@@ -143,6 +143,52 @@ Tables
 - weight
 - date
 
+## exercise_plans
+
+- id
+- profile_id
+- day_of_week
+- is_rest_day
+- created_at
+- updated_at
+
+## plan_exercises
+
+- id
+- exercise_plan_id
+- name
+- sets
+- reps
+- weight_lb
+- weight_display
+- rest_seconds
+- sort_order
+- created_at
+- updated_at
+
+## workout_sessions
+
+- id
+- profile_id
+- exercise_plan_id
+- started_at
+- completed_at
+- status
+- created_at
+
+## workout_session_exercises
+
+- id
+- workout_session_id
+- plan_exercise_id
+- exercise_name
+- planned_sets
+- planned_reps
+- completed_sets
+- weight_display
+- rest_seconds
+- sort_order
+
 Tasks
 
 - [x] Create migrations
@@ -438,12 +484,79 @@ Status: [x] Implemented — an authenticated AI Coach page generates validated, 
 - Barcode scanner
 - Meal photo recognition
 - Water tracker
-- Exercise tracking
 - Meal planner
 - Grocery lists
 - Favorite meals
 - Saved templates
 - Social sharing
+
+---
+
+# Phase 13 — Exercises
+
+Goal:
+Let users build a weekly strength-training plan and complete a guided workout
+with set, rest, audio, and speech cues.
+
+Pages
+
+- Exercises: seven-day weekly plan, with each day displayed as REST or an
+  ordered exercise list.
+- Exercise editor: add, edit, delete, and reorder exercises for a day; each
+  exercise captures name, sets, reps, weight, optional display context (such
+  as “25 lb per hand”), and rest duration.
+- Workout runner (`/exercises/[day]`): a distraction-free, mobile-friendly
+  flow for the selected day’s workout.
+
+Workout runner flow
+
+1. User selects **Start** from a non-REST day.
+2. Create a workout session snapshot so later plan edits do not alter history.
+3. Announce the exercise and prescription, e.g. “Bicep Curls with 25 pounds.
+   Five sets of ten reps.”
+4. Announce “First set” (then ordinal set names), play three short beeps and
+   one long beep, and show the active-set controls.
+5. When the user marks the set complete, announce completion and start the
+   configured rest timer, e.g. “Completed. Now rest for 45 seconds.”
+6. At rest completion, begin the next set with the same announcement and cue.
+7. Continue through every exercise; save completed-set progress throughout and
+   mark the session completed at the end.
+
+Controls and behavior
+
+- Start, pause, resume, skip rest, repeat set, end workout, and complete set.
+- Audio cues use the Web Audio API; spoken prompts use the Web Speech API.
+- Provide a mute control and visual/text alternatives for every sound or voice
+  cue. Audio must start only after a user interaction.
+- Timers remain accurate after browser throttling by calculating remaining time
+  from timestamps rather than decrementing state alone.
+- Support REST days with a clear rest-state UI and no Start action.
+- Confirm ending an in-progress workout and record it as `ended_early`.
+
+Tasks
+
+- [x] Create the exercise-plan and workout-session migration.
+- [x] Enable RLS and create profile-owned CRUD policies for all exercise tables.
+- [x] Add strict Zod schemas, TypeScript types, and validation for plans,
+  exercises, and session progress.
+- [x] Implement authenticated plan CRUD API routes/server actions.
+- [x] Build the seven-day weekly plan and exercise editor, including REST days
+  and exercise ordering.
+- [x] Build the workout-session creation and progress persistence flow.
+- [x] Build the workout runner timer, set/rest state machine, and controls.
+- [x] Add accessible beep and speech-cue utilities with mute support.
+- [x] Add completed/ended-early session states.
+- [x] Add navigation entry, empty states, loading states, and error handling.
+- [ ] Apply the migration to Supabase, then test RLS isolation and session
+  persistence against the linked project.
+
+Deliverable
+
+Users can plan their week as REST days or strength workouts and complete a
+guided, saved workout with timed rests, cues, and history.
+
+Status: [x] Implemented in the application. Apply the new Supabase migration
+before using the feature in a deployed environment.
 
 ---
 

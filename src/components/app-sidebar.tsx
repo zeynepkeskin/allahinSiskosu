@@ -13,6 +13,7 @@ const links = [
   { href: "/progress", label: "Progress", icon: "↗" },
   { href: "/profile", label: "Profile", icon: "◎" },
   { href: "/settings", label: "Settings", icon: "⚙" },
+  { href: "/exercises", label: "Exercises", icon: "🏋" },
 ];
 
 export function AppSidebar({ email }: { email?: string }) {
