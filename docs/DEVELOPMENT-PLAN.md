@@ -582,30 +582,37 @@ Scope and calculation rules
 
 Tasks
 
-- [ ] Add reusable workout types, date helpers, and aggregation tests.
-- [ ] Add dashboard workout context: today's plan/rest state, completion or
+- [x] Add reusable workout types and date helpers.
+- [ ] Add aggregation tests.
+- [x] Add dashboard workout context: today's plan/rest state, completion or
   in-progress status, a start/view action, weekly completed-workout days, and a
   training-consistency summary.
-- [ ] Expand Analytics from nutrition-only to nutrition-and-training insights:
+- [x] Expand Analytics from nutrition-only to nutrition-and-training insights:
   7- and 30-day completed workouts, workout days, planned-day consistency,
   completed sets, reps, loaded volume, average duration, and a weekly
   completion visualization alongside calorie trends.
-- [ ] Add a training summary to Progress next to weight trends, including the
+- [x] Add a training summary to Progress next to weight trends, including the
   latest completed workout and current-week metrics without implying causation.
-- [ ] Add today's workout context and an exercise link to Recommendations and
+- [x] Add today's workout context and an exercise link to Recommendations and
   the meal-log workspace; preserve intake-only recommendation logic.
-- [ ] Update Profile help text to explain that activity level is a deliberate
+- [x] Update Profile help text to explain that activity level is a deliberate
   TDEE estimate and show recent workout frequency only as optional context.
-- [ ] Update empty, loading, and error states for users who have meal data but
-  no workout data, and the reverse.
-- [ ] Verify local-day boundaries, bodyweight exercises, missing completion
-  timestamps, mobile layouts, and RLS-scoped data reads.
+- [x] Update the Analytics empty state for users who have meal data but no
+  workout data, and the reverse.
+- [ ] Add remaining loading and error states for mixed meal/workout data.
+- [ ] Add automated coverage for local-day boundaries, bodyweight exercises,
+  missing completion timestamps, mobile layouts, and RLS-scoped data reads.
 
 Deliverable
 
 Dashboard, analytics, progress, meal-related pages, and profile treat completed
 strength workouts as relevant health context while calorie targets remain
 consistent and auditable.
+
+Status: [ ] Core implementation complete — completed strength-workout metrics
+now appear across the health views and meal-related context while calorie
+budgets stay intake-only. Automated coverage and remaining mixed-data UI states
+are still pending.
 
 ---
 
