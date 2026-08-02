@@ -1,17 +1,21 @@
 import { FoodRecommendation } from "@/components/food-recommendation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
+import {
+  dayOfWeek,
+  startOfDayInTimeZone,
+  todayInTimeZone,
+} from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
 
 export default async function RecommendationsPage() {
   const supabase = await createClient();
+  const timeZone = await userTimeZone();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const today = startOfDay(new Date());
+  const today = todayInTimeZone(timeZone);
+  const todayStart = startOfDayInTimeZone(today, timeZone);
   const [
     { data: profile },
     { data: meals },
@@ -27,18 +31,18 @@ export default async function RecommendationsPage() {
       .from("meals")
       .select("total_calories")
       .eq("profile_id", user!.id)
-      .gte("meal_time", today.toISOString()),
+      .gte("meal_time", todayStart.toISOString()),
     supabase
       .from("exercise_plans")
       .select("id, is_rest_day")
       .eq("profile_id", user!.id)
-      .eq("day_of_week", today.getDay())
+      .eq("day_of_week", dayOfWeek(today))
       .maybeSingle(),
     supabase
       .from("workout_sessions")
       .select("status")
       .eq("profile_id", user!.id)
-      .gte("started_at", today.toISOString())
+      .gte("started_at", todayStart.toISOString())
       .order("started_at", { ascending: false })
       .limit(1),
   ]);

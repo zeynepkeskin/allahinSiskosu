@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Button, Card, EmptyState } from "@/components/ui";
+import { addCalendarDays, todayInTimeZone } from "@/lib/timezone";
 export type WeightEntry = { id: string; weight: number; date: string };
 type Range = "week" | "month";
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayInTimeZone;
 const displayDate = (date: string) =>
   new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
     new Date(`${date}T12:00:00`),
@@ -23,10 +24,9 @@ export function WeightTracker({
     [message, setMessage] = useState<string>(),
     [saving, setSaving] = useState(false);
   const chartEntries = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - (range === "week" ? 6 : 29));
+    const cutoff = addCalendarDays(today(), range === "week" ? -6 : -29);
     return entries
-      .filter((entry) => new Date(`${entry.date}T12:00:00`) >= cutoff)
+      .filter((entry) => entry.date >= cutoff)
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [entries, range]);
   const delta =

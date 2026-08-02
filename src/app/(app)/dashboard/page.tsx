@@ -2,6 +2,15 @@ import Link from "next/link";
 import { Card, EmptyState, ProgressBar } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import {
+  addCalendarDays,
+  formatInTimeZone,
+  dateKeyInTimeZone,
+  dayOfWeek,
+  startOfDayInTimeZone,
+  todayInTimeZone,
+} from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
+import {
   calculateWorkoutMetrics,
   calendarDateKey,
   completedWorkoutSessions,
@@ -21,24 +30,21 @@ type MealRow = {
 
 const number = (value: number | string) => Number(value) || 0;
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function dayLabel(date: Date) {
-  return new Intl.DateTimeFormat("en", { weekday: "short" }).format(date);
+function dayLabel(dateKey: string, timeZone: string) {
+  return formatInTimeZone(startOfDayInTimeZone(dateKey, timeZone), {
+    weekday: "short",
+  }, timeZone);
 }
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const timeZone = await userTimeZone();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const now = new Date();
-  const today = startOfDay(now);
-  const weekStart = new Date(today);
-  weekStart.setDate(weekStart.getDate() - 6);
+  const today = todayInTimeZone(timeZone);
+  const weekStart = addCalendarDays(today, -6);
 
   const [
     { data: profile },
@@ -55,7 +61,7 @@ export default async function DashboardPage() {
       .from("meals")
       .select("id, meal_name, meal_time, total_calories, protein, carbs, fat")
       .eq("profile_id", user!.id)
-      .gte("meal_time", weekStart.toISOString())
+      .gte("meal_time", startOfDayInTimeZone(weekStart, timeZone).toISOString())
       .order("meal_time", { ascending: false }),
     supabase
       .from("workout_sessions")
@@ -63,7 +69,7 @@ export default async function DashboardPage() {
         "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
       )
       .eq("profile_id", user!.id)
-      .gte("started_at", weekStart.toISOString())
+      .gte("started_at", startOfDayInTimeZone(weekStart, timeZone).toISOString())
       .order("started_at", { ascending: false }),
     supabase
       .from("exercise_plans")
@@ -74,20 +80,22 @@ export default async function DashboardPage() {
   const recentMeals = (meals ?? []) as MealRow[];
   const workoutSessions = (sessions ?? []) as WorkoutSessionRow[];
   const completedWorkouts = completedWorkoutSessions(workoutSessions);
-  const weeklyWorkoutMetrics = calculateWorkoutMetrics(workoutSessions);
+  const weeklyWorkoutMetrics = calculateWorkoutMetrics(workoutSessions, timeZone);
   const todayPlan = (plans ?? []).find(
-    (plan) => plan.day_of_week === today.getDay(),
+    (plan) => plan.day_of_week === dayOfWeek(today),
   );
   const todaySession = workoutSessions.find(
-    (session) => calendarDateKey(session.started_at) === calendarDateKey(today),
+    (session) => calendarDateKey(session.started_at, timeZone) === today,
   );
-  const plannedDays = countPlannedWorkoutDays(plans ?? [], weekStart, 7);
-  const todayMeals = recentMeals.filter((meal) => {
-    const mealDate = new Date(meal.meal_time);
-    return (
-      mealDate >= today && mealDate < new Date(today.getTime() + 86_400_000)
-    );
-  });
+  const plannedDays = countPlannedWorkoutDays(
+    plans ?? [],
+    startOfDayInTimeZone(weekStart, timeZone),
+    7,
+    timeZone,
+  );
+  const todayMeals = recentMeals.filter(
+    (meal) => dateKeyInTimeZone(meal.meal_time, timeZone) === today,
+  );
   const totals = todayMeals.reduce(
     (sum, meal) => ({
       calories: sum.calories + number(meal.total_calories),
@@ -100,22 +108,18 @@ export default async function DashboardPage() {
   const goal = profile?.daily_calorie_goal ?? null;
   const remaining = goal === null ? null : Math.max(goal - totals.calories, 0);
   const dailyCalories = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(weekStart);
-    date.setDate(date.getDate() + index);
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
+    const date = addCalendarDays(weekStart, index);
     return {
-      label: dayLabel(date),
+      label: dayLabel(date, timeZone),
       date,
       calories: recentMeals
         .filter((meal) => {
-          const mealDate = new Date(meal.meal_time);
-          return mealDate >= date && mealDate < nextDate;
+          return dateKeyInTimeZone(meal.meal_time, timeZone) === date;
         })
         .reduce((sum, meal) => sum + number(meal.total_calories), 0),
       workouts: completedWorkouts.filter(
         (session) =>
-          calendarDateKey(session.started_at) === calendarDateKey(date),
+          calendarDateKey(session.started_at, timeZone) === date,
       ).length,
     };
   });
@@ -340,10 +344,10 @@ export default async function DashboardPage() {
                   <div>
                     <h3 className="font-medium">{meal.meal_name}</h3>
                     <p className="mt-1 text-sm text-slate-500">
-                      {new Date(meal.meal_time).toLocaleTimeString([], {
+                      {formatInTimeZone(meal.meal_time, {
                         hour: "numeric",
                         minute: "2-digit",
-                      })}
+                      }, timeZone)}
                     </p>
                   </div>
                   <div className="flex gap-4 text-sm text-slate-600">

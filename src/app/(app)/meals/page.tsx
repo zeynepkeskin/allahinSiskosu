@@ -1,18 +1,21 @@
 import Link from "next/link";
 import { MealsWorkspace } from "@/components/meals-workspace";
 import { createClient } from "@/lib/supabase/server";
+import { dayOfWeek, todayInTimeZone } from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
 
 export default async function MealsPage() {
   const supabase = await createClient();
+  const timeZone = await userTimeZone();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const today = new Date();
+  const today = todayInTimeZone(timeZone);
   const { data: plan } = await supabase
     .from("exercise_plans")
     .select("is_rest_day")
     .eq("profile_id", user!.id)
-    .eq("day_of_week", today.getDay())
+    .eq("day_of_week", dayOfWeek(today))
     .maybeSingle();
   return (
     <>

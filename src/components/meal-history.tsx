@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { SavedMeal } from "@/lib/nutrition";
 import { Button, EmptyState, Spinner } from "@/components/ui";
+import { formatInTimeZone } from "@/lib/timezone";
 
 export function MealHistory({ refreshKey }: { refreshKey: number }) {
   const [meals, setMeals] = useState<SavedMeal[]>([]);
@@ -124,7 +125,10 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
                   {meal.mealName}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {new Date(meal.mealTime).toLocaleString()}
+                  {formatInTimeZone(meal.mealTime, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </p>
               </div>
               <div className="flex gap-2">

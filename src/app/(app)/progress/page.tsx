@@ -3,6 +3,13 @@ import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { kilogramsToPounds } from "@/lib/units";
 import {
+  addCalendarDays,
+  formatInTimeZone,
+  startOfDayInTimeZone,
+  todayInTimeZone,
+} from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
+import {
   calculateWorkoutMetrics,
   completedWorkoutSessions,
   type WorkoutSessionRow,
@@ -10,11 +17,11 @@ import {
 
 export default async function ProgressPage() {
   const supabase = await createClient();
+  const timeZone = await userTimeZone();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 6);
+  const weekAgo = startOfDayInTimeZone(addCalendarDays(todayInTimeZone(timeZone), -6), timeZone);
   const [{ data }, { data: sessionData }] = await Promise.all([
     supabase
       .from("daily_weights")
@@ -36,7 +43,7 @@ export default async function ProgressPage() {
     date: entry.date,
   }));
   const sessions = (sessionData ?? []) as WorkoutSessionRow[];
-  const metrics = calculateWorkoutMetrics(sessions);
+  const metrics = calculateWorkoutMetrics(sessions, timeZone);
   const latest = completedWorkoutSessions(sessions)[0];
   return (
     <>
@@ -72,10 +79,10 @@ export default async function ProgressPage() {
             label="Latest workout"
             value={
               latest
-                ? new Intl.DateTimeFormat("en", {
+                ? formatInTimeZone(latest.started_at, {
                     month: "short",
                     day: "numeric",
-                  }).format(new Date(latest.started_at))
+                  }, timeZone)
                 : "None yet"
             }
           />

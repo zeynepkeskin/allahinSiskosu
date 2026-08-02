@@ -25,10 +25,8 @@ export type WorkoutMetrics = {
 const number = (value: number | string | null | undefined) =>
   Number(value) || 0;
 
-/** Uses the same server-local calendar convention as the existing meal views. */
-export function calendarDateKey(value: Date | string) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return [date.getFullYear(), date.getMonth(), date.getDate()].join("-");
+export function calendarDateKey(value: Date | string, timeZone?: string) {
+  return dateKeyInTimeZone(value, timeZone);
 }
 
 export function completedWorkoutSessions(sessions: WorkoutSessionRow[]) {
@@ -39,6 +37,7 @@ export function completedWorkoutSessions(sessions: WorkoutSessionRow[]) {
 
 export function calculateWorkoutMetrics(
   sessions: WorkoutSessionRow[],
+  timeZone?: string,
 ): WorkoutMetrics {
   const completed = completedWorkoutSessions(sessions);
   const durations = completed
@@ -73,7 +72,7 @@ export function calculateWorkoutMetrics(
   return {
     completedWorkouts: completed.length,
     workoutDays: new Set(
-      completed.map((session) => calendarDateKey(session.started_at)),
+      completed.map((session) => calendarDateKey(session.started_at, timeZone)),
     ).size,
     ...totals,
     loadedVolume: Math.round(totals.loadedVolume),
@@ -90,13 +89,18 @@ export function countPlannedWorkoutDays(
   plans: Array<{ day_of_week: number; is_rest_day: boolean }>,
   start: Date,
   length: number,
+  timeZone?: string,
 ) {
   const trainingDays = new Set(
     plans.filter((plan) => !plan.is_rest_day).map((plan) => plan.day_of_week),
   );
   return Array.from({ length }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(date.getDate() + index);
-    return trainingDays.has(date.getDay());
+    const dateKey = addCalendarDays(calendarDateKey(start, timeZone), index);
+    return trainingDays.has(dayOfWeek(dateKey));
   }).filter(Boolean).length;
 }
+import {
+  addCalendarDays,
+  dateKeyInTimeZone,
+  dayOfWeek,
+} from "@/lib/timezone";

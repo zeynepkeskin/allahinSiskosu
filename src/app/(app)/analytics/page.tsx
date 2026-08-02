@@ -2,6 +2,14 @@ import Link from "next/link";
 import { Card, EmptyState } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import {
+  addCalendarDays,
+  formatInTimeZone,
+  dateKeyInTimeZone,
+  startOfDayInTimeZone,
+  todayInTimeZone,
+} from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
+import {
   calculateWorkoutMetrics,
   completedWorkoutSessions,
   countPlannedWorkoutDays,
@@ -17,7 +25,7 @@ type MealRow = {
   fat: number | string;
 };
 type DailyTotal = {
-  date: Date;
+  date: string;
   label: string;
   calories: number;
   protein: number;
@@ -25,29 +33,21 @@ type DailyTotal = {
   fat: number;
 };
 const number = (value: number | string) => Number(value) || 0;
-const addDays = (date: Date, days: number) => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-};
-const startOfDay = (date: Date) =>
-  new Date(date.getFullYear(), date.getMonth(), date.getDate());
-const dateKey = (date: Date) =>
-  [date.getFullYear(), date.getMonth(), date.getDate()].join("-");
-const shortDate = (date: Date) =>
-  new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
-    date,
-  );
+const shortDate = (date: string, timeZone: string) =>
+  formatInTimeZone(startOfDayInTimeZone(date, timeZone), {
+    month: "short",
+    day: "numeric",
+  }, timeZone);
 const average = (values: number[]) =>
   values.length
     ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
     : null;
 
-function buildDailyTotals(meals: MealRow[], start: Date): DailyTotal[] {
+function buildDailyTotals(meals: MealRow[], start: string, timeZone: string): DailyTotal[] {
   return Array.from({ length: 30 }, (_, index) => {
-    const date = addDays(start, index);
+    const date = addCalendarDays(start, index);
     const total = meals
-      .filter((meal) => dateKey(new Date(meal.meal_time)) === dateKey(date))
+      .filter((meal) => dateKeyInTimeZone(meal.meal_time, timeZone) === date)
       .reduce(
         (sum, meal) => ({
           calories: sum.calories + number(meal.total_calories),
@@ -57,17 +57,18 @@ function buildDailyTotals(meals: MealRow[], start: Date): DailyTotal[] {
         }),
         { calories: 0, protein: 0, carbs: 0, fat: 0 },
       );
-    return { date, label: shortDate(date), ...total };
+    return { date, label: shortDate(date, timeZone), ...total };
   });
 }
 
 export default async function AnalyticsPage() {
   const supabase = await createClient();
+  const timeZone = await userTimeZone();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const today = startOfDay(new Date());
-  const monthStart = addDays(today, -29);
+  const today = todayInTimeZone(timeZone);
+  const monthStart = addCalendarDays(today, -29);
   const [
     { data: profile },
     { data: mealData },
@@ -83,7 +84,7 @@ export default async function AnalyticsPage() {
       .from("meals")
       .select("id, meal_time, total_calories, protein, carbs, fat")
       .eq("profile_id", user!.id)
-      .gte("meal_time", monthStart.toISOString())
+      .gte("meal_time", startOfDayInTimeZone(monthStart, timeZone).toISOString())
       .order("meal_time", { ascending: true }),
     supabase
       .from("workout_sessions")
@@ -91,7 +92,7 @@ export default async function AnalyticsPage() {
         "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
       )
       .eq("profile_id", user!.id)
-      .gte("started_at", monthStart.toISOString())
+      .gte("started_at", startOfDayInTimeZone(monthStart, timeZone).toISOString())
       .order("started_at", { ascending: true }),
     supabase
       .from("exercise_plans")
@@ -101,24 +102,31 @@ export default async function AnalyticsPage() {
   const meals = (mealData ?? []) as MealRow[];
   const sessions = (sessionData ?? []) as WorkoutSessionRow[];
   const completedSessions = completedWorkoutSessions(sessions);
-  const monthlyTraining = calculateWorkoutMetrics(sessions);
+  const monthlyTraining = calculateWorkoutMetrics(sessions, timeZone);
   const weeklyTraining = calculateWorkoutMetrics(
     sessions.filter(
-      (session) => new Date(session.started_at) >= addDays(today, -6),
+      (session) => dateKeyInTimeZone(session.started_at, timeZone) >= addCalendarDays(today, -6),
     ),
+    timeZone,
   );
-  const plannedDays = countPlannedWorkoutDays(plans ?? [], monthStart, 30);
+  const plannedDays = countPlannedWorkoutDays(
+    plans ?? [],
+    startOfDayInTimeZone(monthStart, timeZone),
+    30,
+    timeZone,
+  );
   const weeklyPlannedDays = countPlannedWorkoutDays(
     plans ?? [],
-    addDays(today, -6),
+    startOfDayInTimeZone(addCalendarDays(today, -6), timeZone),
     7,
+    timeZone,
   );
-  const daily = buildDailyTotals(meals, monthStart);
+  const daily = buildDailyTotals(meals, monthStart, timeZone);
   const weekly = daily.slice(-7);
   const weeklyWorkoutDays = weekly.map((day) => ({
     ...day,
     workouts: completedSessions.filter(
-      (session) => dateKey(new Date(session.started_at)) === dateKey(day.date),
+      (session) => dateKeyInTimeZone(session.started_at, timeZone) === day.date,
     ).length,
   }));
   const loggedDays = daily.filter((day) => day.calories > 0);

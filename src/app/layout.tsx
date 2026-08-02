@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { TimezoneSync } from "@/components/timezone-sync";
 
 export const metadata: Metadata = {
   title: "Allah'ın Şişkosu",
@@ -11,7 +12,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        <TimezoneSync />
+        {children}
+      </body>
     </html>
   );
 }

@@ -6,6 +6,7 @@ import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
 import { getExerciseVisual } from "@/lib/exercise-catalog";
+import { formatInTimeZone } from "@/lib/timezone";
 import {
   days,
   exercisePrescription,
@@ -168,12 +169,12 @@ export function ExercisePlanner({
                   key={session.id}
                 >
                   <span>
-                    {new Intl.DateTimeFormat("en", {
+                    {formatInTimeZone(session.startedAt, {
                       month: "short",
                       day: "numeric",
                       hour: "numeric",
                       minute: "2-digit",
-                    }).format(new Date(session.startedAt))}
+                    })}
                   </span>
                   <span
                     className={

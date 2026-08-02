@@ -3,6 +3,13 @@ import { ZodError } from "zod";
 import { nutritionCoachSchema } from "@/lib/coach";
 import { createClient } from "@/lib/supabase/server";
 import {
+  addCalendarDays,
+  dateKeyInTimeZone,
+  startOfDayInTimeZone,
+  todayInTimeZone,
+} from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
+import {
   calculateWorkoutMetrics,
   completedWorkoutSessions,
   type WorkoutSessionRow,
@@ -75,17 +82,12 @@ const responseFormat = {
 const systemPrompt =
   "You are a supportive nutrition and strength-training coach. Use only the provided logged nutrition and completed-workout data; do not invent foods, activity, calorie expenditure, medical conditions, diagnoses, or causal weight claims. Give practical, non-judgmental coaching in plain language. Identify observable strengths and small, specific improvements. Do not prescribe treatment, guarantee outcomes, shame the user, or give advice for an eating disorder. State when meal or workout logging is limited. Do not suggest that a completed workout changes the user's calorie budget. Keep every field concise.";
 const number = (value: number | string) => Number(value) || 0;
-const dayKey = (value: Date) => value.toISOString().slice(0, 10);
-
-function buildDailyData(meals: MealRow[]): DailyNutrition[] {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+function buildDailyData(meals: MealRow[], timeZone: string): DailyNutrition[] {
+  const today = todayInTimeZone(timeZone);
   return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today);
-    date.setUTCDate(today.getUTCDate() - (6 - index));
-    const key = dayKey(date);
+    const key = addCalendarDays(today, index - 6);
     const totals = meals
-      .filter((meal) => dayKey(new Date(meal.meal_time)) === key)
+      .filter((meal) => dateKeyInTimeZone(meal.meal_time, timeZone) === key)
       .reduce(
         (total, meal) => ({
           calories: total.calories + number(meal.total_calories),
@@ -107,18 +109,16 @@ function buildDailyData(meals: MealRow[]): DailyNutrition[] {
   });
 }
 
-function buildDailyTraining(sessions: WorkoutSessionRow[]): DailyTraining[] {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+function buildDailyTraining(sessions: WorkoutSessionRow[], timeZone: string): DailyTraining[] {
+  const today = todayInTimeZone(timeZone);
   const completed = completedWorkoutSessions(sessions);
   return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today);
-    date.setUTCDate(today.getUTCDate() - (6 - index));
-    const key = dayKey(date);
+    const key = addCalendarDays(today, index - 6);
     const metrics = calculateWorkoutMetrics(
       completed.filter(
-        (session) => dayKey(new Date(session.started_at)) === key,
+        (session) => dateKeyInTimeZone(session.started_at, timeZone) === key,
       ),
+      timeZone,
     );
     return {
       date: key,
@@ -132,6 +132,7 @@ function buildDailyTraining(sessions: WorkoutSessionRow[]): DailyTraining[] {
 }
 
 export async function POST() {
+  const timeZone = await userTimeZone();
   const supabase = await createClient();
   const {
     data: { user },
@@ -151,9 +152,10 @@ export async function POST() {
       { status: 503 },
     );
   try {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
-    sevenDaysAgo.setUTCHours(0, 0, 0, 0);
+    const sevenDaysAgo = startOfDayInTimeZone(
+      addCalendarDays(todayInTimeZone(timeZone), -6),
+      timeZone,
+    );
     const [{ data: profile }, { data: mealData }, { data: sessionData }] =
       await Promise.all([
         supabase
@@ -176,9 +178,9 @@ export async function POST() {
           .gte("started_at", sevenDaysAgo.toISOString())
           .order("started_at", { ascending: true }),
       ]);
-    const daily = buildDailyData((mealData ?? []) as MealRow[]);
+    const daily = buildDailyData((mealData ?? []) as MealRow[], timeZone);
     const training = buildDailyTraining(
-      (sessionData ?? []) as WorkoutSessionRow[],
+      (sessionData ?? []) as WorkoutSessionRow[], timeZone,
     );
     const loggedDays = daily.filter((day) => day.calories > 0).length;
     const workoutDays = training.filter(

@@ -1,9 +1,12 @@
 import { ProfileForm } from "@/components/profile-form";
 import { createClient } from "@/lib/supabase/server";
 import { centimetersToInches, kilogramsToPounds } from "@/lib/units";
+import { addCalendarDays, startOfDayInTimeZone, todayInTimeZone } from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
+  const timeZone = await userTimeZone();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -14,8 +17,10 @@ export default async function ProfilePage() {
     )
     .eq("id", user!.id)
     .maybeSingle();
-  const fourWeeksAgo = new Date();
-  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 27);
+  const fourWeeksAgo = startOfDayInTimeZone(
+    addCalendarDays(todayInTimeZone(timeZone), -27),
+    timeZone,
+  );
   const { count: completedWorkouts } = await supabase
     .from("workout_sessions")
     .select("id", { count: "exact", head: true })
