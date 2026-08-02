@@ -9,6 +9,10 @@
 
 ## Push reminders
 
-Generate a VAPID key pair with `npx web-push generate-vapid-keys`, then configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (for example, `mailto:you@example.com`) in Vercel. Also set `SUPABASE_SERVICE_ROLE_KEY` and a random `CRON_SECRET`. Vercel invokes the reminder route at the top of every hour via `vercel.json`; its `CRON_SECRET` is passed as the authorization bearer token. Reminder times are therefore whole hours. Apply both `202608020...` Supabase migrations before enabling reminders.
+Generate a VAPID key pair with `npx web-push generate-vapid-keys`. In Vercel, set only `NEXT_PUBLIC_VAPID_PUBLIC_KEY` so browsers can subscribe. In Supabase Edge Function secrets, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (for example, `mailto:you@example.com`), and a random `REMINDER_CRON_SECRET`.
+
+Before applying `20260802030000_schedule_push_reminders.sql`, add two Supabase Vault secrets named `project_url` (your `https://<project-ref>.supabase.co` URL) and `reminder_cron_secret` (the same value as `REMINDER_CRON_SECRET`). Deploy the `send-reminders` Edge Function, then apply all `202608020...` migrations. Supabase Cron invokes the function at the top of every hour, so reminder times are whole hours.
+
+For a linked Supabase project, deploy with `supabase functions deploy send-reminders` and apply the migrations with `supabase db push`. The Edge Function's `REMINDER_CRON_SECRET` must exactly match the Vault `reminder_cron_secret`; it protects the function from public invocation.
 
 The `/dashboard` route is protected and email confirmations return through `/auth/callback`.
