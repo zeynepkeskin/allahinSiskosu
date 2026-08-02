@@ -202,7 +202,11 @@ ten reps.” It then announces each set, plays a three-short-beep and one-long-
 beep start cue, announces completion, and counts down the configured rest
 period (for example, “Completed. Now rest for 45 seconds.”) before the next
 set. Users can pause, resume,
-skip, repeat, or end a workout. Completing or ending a workout records its
+The start cue plays sequentially as three short beeps followed by a one-second
+long beep. The final three seconds of rest each play one short beep. Starting
+a new cue, muting, or ending a workout cancels pending speech and sounds.
+
+Users can skip, repeat, or end a workout. Completing or ending a workout records its
 result in the workout history.
 
 Workout sessions are first-class data throughout the product. The application
