@@ -1,9 +1,4 @@
 # AI Rules
 
-When user requests the implementation of the next phase: 
-* Always read PRD.md and DEVELOPMENT-PLAN.md
-* find the next phase that has not been implemented 
-* implement the phase 
-* add checkmarks to the phase implemented 
-* commit the code 
-
+* Always read PRD.md and DEVELOPMENT-PLAN.md before implementing users' request
+* After implementing the request update these documents accrdingly by changing old decisions or adding if it is a new one.
