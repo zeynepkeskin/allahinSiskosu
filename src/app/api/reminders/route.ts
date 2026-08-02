@@ -6,7 +6,7 @@ import { userTimeZone } from "@/lib/timezone-server";
 
 const settingsSchema = z.object({
   enabled: z.boolean(),
-  time: z.string().regex(/^([01]\d|2[0-3]):(00|15|30|45)$/, "Choose a time in 15-minute increments."),
+  time: z.string().regex(/^([01]\d|2[0-3]):00$/, "Choose a whole-hour time."),
 });
 
 function unauthorized() {

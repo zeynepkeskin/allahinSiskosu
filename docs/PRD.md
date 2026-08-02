@@ -83,7 +83,8 @@ user's IANA timezone.
 
 ## Notifications
 
-Users can opt into an editable evening reminder (default: 8:00 PM local time).
+Users can opt into an editable, whole-hour evening reminder (default: 8:00 PM
+local time).
 At the selected time, the app sends one Web Push notification when the user has
 not logged a meal that day and/or has not completed a workout scheduled for a
 non-REST day. A planned REST day never triggers a workout reminder.

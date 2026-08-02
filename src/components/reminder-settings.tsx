@@ -42,7 +42,7 @@ export function ReminderSettings({ initialEnabled, initialTime }: { initialEnabl
       </label>
       <div className="max-w-xs">
         <label className="text-sm font-medium text-slate-700" htmlFor="reminder-time">Reminder time</label>
-        <input className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 disabled:bg-slate-100" disabled={!enabled} id="reminder-time" onChange={(event) => setTime(event.target.value)} step="900" type="time" value={time} />
+        <input className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 disabled:bg-slate-100" disabled={!enabled} id="reminder-time" onChange={(event) => setTime(event.target.value)} step="3600" type="time" value={time} />
       </div>
       <Button disabled={saving} onClick={save} type="button">{saving ? "Saving…" : "Save reminders"}</Button>
       {message ? <p aria-live="polite" className="text-sm text-slate-600">{message}</p> : null}
