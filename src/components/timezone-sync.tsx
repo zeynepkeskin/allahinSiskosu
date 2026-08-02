@@ -9,13 +9,13 @@ export function TimezoneSync() {
 
   useEffect(() => {
     const timeZone = browserTimeZone();
-    if (document.cookie.split("; ").includes(`time_zone=${encodeURIComponent(timeZone)}`)) return;
+    const alreadySynced = document.cookie.split("; ").includes(`time_zone=${encodeURIComponent(timeZone)}`);
     void fetch("/api/timezone", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ timeZone }),
     }).then((response) => {
-      if (response.ok) router.refresh();
+      if (response.ok && !alreadySynced) router.refresh();
     });
   }, [router]);
 

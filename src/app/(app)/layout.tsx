@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeInitializer } from "@/components/theme-initializer";
+import { TimezoneSync } from "@/components/timezone-sync";
+import { PushSubscription } from "@/components/push-subscription";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({
@@ -14,6 +16,8 @@ export default async function AppLayout({
   return (
     <div className="min-h-screen bg-slate-50 lg:flex">
       <ThemeInitializer />
+      <TimezoneSync />
+      <PushSubscription />
       <AppSidebar email={user.email} />
       <main className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
         {children}

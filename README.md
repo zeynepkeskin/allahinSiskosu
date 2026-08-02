@@ -7,4 +7,8 @@
 3. In Supabase Auth URL Configuration, add `http://localhost:3000/auth/callback` and your Vercel production URL followed by `/auth/callback` as redirect URLs.
 4. Run `npm install`, then `npm run dev`.
 
+## Push reminders
+
+Generate a VAPID key pair with `npx web-push generate-vapid-keys`, then configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (for example, `mailto:you@example.com`) in Vercel. Also set `SUPABASE_SERVICE_ROLE_KEY` and a random `CRON_SECRET`. Vercel invokes the reminder route every 15 minutes via `vercel.json`; its `CRON_SECRET` is passed as the authorization bearer token. Apply both `202608020...` Supabase migrations before enabling reminders.
+
 The `/dashboard` route is protected and email confirmations return through `/auth/callback`.

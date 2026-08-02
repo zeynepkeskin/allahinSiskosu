@@ -3,10 +3,11 @@
 Mark the to-do items here after implementing them. Always read PRD.md and DEVELOPMENT-PLAN.md files to better understand the context.
 
 * [x] let's make the navigation like a drawer on the left for mobile devices.
-* If no meal or no exercise logged until 8pm, send notification (editable)
-* Fix 3 short, 1 long beep sound. When exercise is started, it should start with 3-2-1 countdown with beep sounds. After each set is completed before the next set, the last 3 seconds of countdown should have beep sound. 
+* [x] If no meal or no exercise logged until 8pm (editable), send notification. Add notification settings for this.
+* Fix 3 short, 1 long beep sound. When user starts exercise, it should start with 3-2-1 countdown with beep sounds. 1 beep for each second. First 3 are short, last one is long (1 second) After each set is completed, before the next set, the last 3 seconds of resting countdown should have beep sounds too. 
 * When exercise is completed, stop any sound related.
 * remove recommendations page
+* add "Can I eat..." button to the coach page.
 * add "What should I eat now" button to the coach page.
 * add connections to settings for apple health, google health, fitbit, etc
 * update profile for logged weight

@@ -77,6 +77,27 @@ Automatically calculate:
 - TDEE
 - Daily Calorie Goal
 
+Stores notification preferences used for evening logging reminders, including
+whether reminders are enabled, the user-selected local reminder time, and the
+user's IANA timezone.
+
+## Notifications
+
+Users can opt into an editable evening reminder (default: 8:00 PM local time).
+At the selected time, the app sends one Web Push notification when the user has
+not logged a meal that day and/or has not completed a workout scheduled for a
+non-REST day. A planned REST day never triggers a workout reminder.
+
+Notifications use the browser Push API and a service worker, so they can be
+delivered when the app tab is inactive or closed, subject to device and browser
+push support. Notification permission is requested only after the user enables
+the setting. Each browser/device keeps its own push subscription; a user may
+have more than one active subscription.
+
+A scheduled server-side job evaluates reminders using the stored timezone and
+records the daily delivery event before sending. This prevents duplicate
+reminders during overlapping scheduled runs. Expired subscriptions are removed.
+
 ---
 
 # Main Pages
@@ -238,6 +259,9 @@ activity or calorie-burn estimates.
 - activity_level
 - goal
 - daily_calorie_goal
+- reminder_enabled
+- reminder_time
+- reminder_time_zone
 
 ## meals
 
@@ -327,6 +351,37 @@ workout completion comes from `workout_sessions`; completed sets, reps, and
 loaded volume come from `workout_session_exercises`; duration comes from
 `started_at` and `completed_at`. Bodyweight exercises count toward sets and
 reps but not loaded volume.
+
+## push_subscriptions
+
+- id
+- profile_id
+- endpoint (unique)
+- p256dh
+- auth
+- created_at
+- updated_at
+
+Stores encrypted Web Push subscription credentials per browser/device. It is a
+separate table rather than profile columns because subscriptions are not
+one-to-one with users and can rotate or expire independently.
+
+## event_log
+
+- id
+- profile_id
+- event_type
+- entity_type
+- entity_id
+- event_date
+- metadata (JSON)
+- created_at
+
+Reusable, profile-owned audit log for application events. A `reminder_sent`
+event uses `entity_type: profile`, the profile ID as `entity_id`, the user's
+local date as `event_date`, and metadata describing the missing meal/workout,
+scheduled reminder time, and timezone. A partial unique index permits only one
+`reminder_sent` event per profile per local date.
 
 ---
 

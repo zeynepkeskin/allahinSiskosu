@@ -1,6 +1,11 @@
 import { Card } from "@/components/ui";
+import { ReminderSettings } from "@/components/reminder-settings";
 import { ThemeToggle } from "@/components/theme-toggle";
-export default function SettingsPage() {
+import { createClient } from "@/lib/supabase/server";
+export default async function SettingsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: settings } = await supabase.from("profiles").select("reminder_enabled, reminder_time").eq("id", user!.id).maybeSingle();
   return (
     <>
       <header>
@@ -10,9 +15,8 @@ export default function SettingsPage() {
       </header>
       <Card className="mt-8">
         <h2 className="font-semibold">Notifications</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Reminder and notification controls will be available here.
-        </p>
+        <p className="mt-2 text-sm text-slate-500">Use your browser’s notifications to get a nudge at the time you choose.</p>
+        <ReminderSettings initialEnabled={settings?.reminder_enabled ?? false} initialTime={(settings?.reminder_time ?? "20:00").slice(0, 5)} />
       </Card>
       <Card className="mt-5">
         <h2 className="font-semibold">Appearance</h2>
