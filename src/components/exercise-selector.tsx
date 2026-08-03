@@ -23,9 +23,7 @@ export function ExerciseSelector({
   const [group, setGroup] = useState<string>();
   const [candidate, setCandidate] = useState<string>();
   const [frame, setFrame] = useState<"start" | "finish">("start");
-  const [muscleView, setMuscleView] = useState(0);
   const visual = candidate ? getExerciseVisual(candidate) : undefined;
-  const views = visual?.views ?? [];
 
   useEffect(() => {
     if (!open || !visual?.demoId) return;
@@ -36,32 +34,20 @@ export function ExerciseSelector({
     return () => window.clearInterval(timer);
   }, [open, visual?.demoId]);
 
-  useEffect(() => {
-    if (!open || views.length < 2) return;
-    const timer = window.setInterval(
-      () => setMuscleView((current) => (current + 1) % views.length),
-      4000,
-    );
-    return () => window.clearInterval(timer);
-  }, [open, views.length]);
-
   function show() {
     setGroup(undefined);
     setCandidate(undefined);
     setFrame("start");
-    setMuscleView(0);
     setOpen(true);
   }
   function chooseGroup(nextGroup: string) {
     setGroup(nextGroup);
     setCandidate(undefined);
     setFrame("start");
-    setMuscleView(0);
   }
   function chooseExercise(name: string) {
     setCandidate(name);
     setFrame("start");
-    setMuscleView(0);
   }
   function select() {
     if (!candidate) return;
@@ -201,12 +187,11 @@ export function ExerciseSelector({
                         </p>
                       )}
                     </section>
-                    <section>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                      <p className="border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         Target muscles
                       </p>
                       <ExerciseMuscleMap
-                        views={views.length ? [views[muscleView]] : undefined}
                         visual={visual}
                       />
                     </section>

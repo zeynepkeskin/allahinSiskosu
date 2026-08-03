@@ -10,6 +10,7 @@ Mark the to-do items here after implementing them. Always read PRD.md and DEVELO
 - [x] update profile for logged weight in Progress page calculating the new daily calorie value.
 - [x] under progress page, convert weight trend chart to line chart with the goal weight displayed as a dashed line
 - [x] Exercises page should display 7 days as horizontally stacked buttons at the top. Today's day should be active. Below them, the active day's summary should be displayed with 3 buttons: Start, Mark as Done, Edit. When edit is clicked, we should display edit view by hiding summary view.
+- [x] The way we are displaying exercises in the exercise selection popup is a little weird. Pictures alternate every 1 second, muscle SVGs alternate every 4 seconds. SVGs (back and front muscles) should be displayed side by side. Also "Target Muscles" P element classes are different than "Movement Preview" one. Let's make them look consistent.
 - The word Meals is not good. We save snacks too. Using the word "Eats" instead can make more sense.
 - Editing eats edits only names. We should be able to edit nutritions as well.
 - User can favorite some eats and they can add them quicly instead of using AI.

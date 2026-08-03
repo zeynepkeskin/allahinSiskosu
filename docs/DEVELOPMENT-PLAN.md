@@ -700,8 +700,7 @@ Visual design and placement
   read-only input and browse button. Its modal flow selects a group first,
   then an exercise, then previews the candidate before the user explicitly
   confirms selection. The movement start/finish frame alternates every second;
-  when both anatomy views apply, the muscle map alternates view every four
-  seconds.
+  when both anatomy views apply, the muscle map shows them side by side.
 - **Workout runner:** After **Begin workout** succeeds, render the current
   exercise's two labelled stills, **Start** and **Finish**, above the active
   set or rest controls. Keep the pair visible while resting and replace it as
