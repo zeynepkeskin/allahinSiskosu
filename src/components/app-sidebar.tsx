@@ -16,6 +16,17 @@ const links = [
   { href: "/settings", label: "Settings", icon: "⚙" },
 ];
 
+const colorfulIcons: Record<string, string> = {
+  "/dashboard": "\\u{1F5A5}\\uFE0F",
+  "/meals": "\\u{1F969}",
+  "/exercises": "🏋️",
+  "/coach": "✨",
+  "/analytics": "📊",
+  "/progress": "🎯",
+  "/profile": "👤",
+  "/settings": "🛠️",
+};
+
 type NavigationProps = {
   close?: () => void;
   pathname: string;
@@ -39,8 +50,8 @@ function Navigation({ close, pathname }: NavigationProps) {
             key={link.href}
             onClick={close}
           >
-            <span aria-hidden="true" className="grid h-5 w-5 place-items-center text-base">
-              {link.icon}
+            <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center text-xl leading-none">
+              {colorfulIcons[link.href]}
             </span>
             {link.label}
           </Link>
