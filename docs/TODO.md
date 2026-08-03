@@ -9,7 +9,7 @@ Mark the to-do items here after implementing them. Always read PRD.md and DEVELO
 - [x] add "What should I eat now" button to the coach page that will check what user ate today and what they need in terms of nutritions and recommend something to eat.
 - [x] update profile for logged weight in Progress page calculating the new daily calorie value.
 - [x] under progress page, convert weight trend chart to line chart with the goal weight displayed as a dashed line
-- Exercises page should display 7 days as buttons at the top. Today's day should be active. Below them, the active day's summary should be displayed with 3 buttons: Start, Mark as Done, Edit. When edit is clicked, we should display edit view by hiding summary view.
+- [x] Exercises page should display 7 days as horizontally stacked buttons at the top. Today's day should be active. Below them, the active day's summary should be displayed with 3 buttons: Start, Mark as Done, Edit. When edit is clicked, we should display edit view by hiding summary view.
 - The word Meals is not good. We save snacks too. Using the word "Eats" instead can make more sense.
 - Editing eats edits only names. We should be able to edit nutritions as well.
 - User can favorite some eats and they can add them quicly instead of using AI.

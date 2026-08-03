@@ -1,9 +1,12 @@
 import { ExercisePlanner } from "@/components/exercise-planner";
 import type { ExercisePlan } from "@/lib/exercises";
 import { createClient } from "@/lib/supabase/server";
+import { dayOfWeek, todayInTimeZone } from "@/lib/timezone";
+import { userTimeZone } from "@/lib/timezone-server";
 
 export default async function ExercisesPage() {
   const supabase = await createClient();
+  const timeZone = await userTimeZone();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -45,6 +48,7 @@ export default async function ExercisesPage() {
         </p>
       </header>
       <ExercisePlanner
+        initialActiveDay={dayOfWeek(todayInTimeZone(timeZone))}
         initialPlans={plans}
         sessions={(sessionData ?? []).map((session) => ({
           id: session.id,
