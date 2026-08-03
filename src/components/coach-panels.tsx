@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CanIEatThisPanel } from "@/components/can-i-eat-this-panel";
 import { WellnessCoachPanel } from "@/components/nutrition-coach";
+import { WhatShouldIEatNowPanel } from "@/components/what-should-i-eat-now-panel";
 import type { DailyNutrition } from "@/lib/recommendations";
 
 export function CoachPanels({
@@ -14,7 +15,9 @@ export function CoachPanels({
   caloriesLogged: number;
   nutritionLogged: DailyNutrition;
 }) {
-  const [openPanel, setOpenPanel] = useState<"coach" | "food" | null>(null);
+  const [openPanel, setOpenPanel] = useState<
+    "coach" | "food" | "mealIdea" | null
+  >(null);
 
   return (
     <>
@@ -28,6 +31,13 @@ export function CoachPanels({
         isOpen={openPanel === "food"}
         nutritionLogged={nutritionLogged}
         onOpen={() => setOpenPanel("food")}
+      />
+      <WhatShouldIEatNowPanel
+        caloriesLogged={caloriesLogged}
+        dailyGoal={dailyGoal}
+        isOpen={openPanel === "mealIdea"}
+        nutritionLogged={nutritionLogged}
+        onOpen={() => setOpenPanel("mealIdea")}
       />
     </>
   );

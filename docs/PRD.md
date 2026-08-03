@@ -233,6 +233,10 @@ already high, the panel guides the user toward protein-rich choices. Workout
 completion never increases the food budget. The user can save the full
 estimated serving or discard it.
 
+Coach also offers a **What should I eat now?** panel. It evaluates today's
+logged calories and macros, then suggests a satisfying meal idea with estimated
+nutrition and an explanation of how it supports the day's remaining balance.
+
 ---
 
 # Database
