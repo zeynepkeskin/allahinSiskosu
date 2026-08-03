@@ -21,22 +21,31 @@ export default async function ProgressPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const weekAgo = startOfDayInTimeZone(addCalendarDays(todayInTimeZone(timeZone), -6), timeZone);
-  const [{ data }, { data: sessionData }] = await Promise.all([
-    supabase
-      .from("daily_weights")
-      .select("id, weight, date")
-      .eq("profile_id", user!.id)
-      .order("date", { ascending: false }),
-    supabase
-      .from("workout_sessions")
-      .select(
-        "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
-      )
-      .eq("profile_id", user!.id)
-      .gte("started_at", weekAgo.toISOString())
-      .order("started_at", { ascending: false }),
-  ]);
+  const weekAgo = startOfDayInTimeZone(
+    addCalendarDays(todayInTimeZone(timeZone), -6),
+    timeZone,
+  );
+  const [{ data }, { data: sessionData }, { data: profile }] =
+    await Promise.all([
+      supabase
+        .from("daily_weights")
+        .select("id, weight, date")
+        .eq("profile_id", user!.id)
+        .order("date", { ascending: false }),
+      supabase
+        .from("workout_sessions")
+        .select(
+          "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
+        )
+        .eq("profile_id", user!.id)
+        .gte("started_at", weekAgo.toISOString())
+        .order("started_at", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("target_weight")
+        .eq("id", user!.id)
+        .maybeSingle(),
+    ]);
   const entries: WeightEntry[] = (data ?? []).map((entry) => ({
     id: entry.id,
     weight: kilogramsToPounds(Number(entry.weight)),
@@ -79,16 +88,27 @@ export default async function ProgressPage() {
             label="Latest workout"
             value={
               latest
-                ? formatInTimeZone(latest.started_at, {
-                    month: "short",
-                    day: "numeric",
-                  }, timeZone)
+                ? formatInTimeZone(
+                    latest.started_at,
+                    {
+                      month: "short",
+                      day: "numeric",
+                    },
+                    timeZone,
+                  )
                 : "None yet"
             }
           />
         </div>
       </Card>
-      <WeightTracker initialEntries={entries} />
+      <WeightTracker
+        initialEntries={entries}
+        targetWeight={
+          profile?.target_weight
+            ? kilogramsToPounds(Number(profile.target_weight))
+            : undefined
+        }
+      />
     </>
   );
 }

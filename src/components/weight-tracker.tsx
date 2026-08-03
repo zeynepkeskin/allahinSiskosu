@@ -13,8 +13,10 @@ const displayDate = (date: string) =>
 
 export function WeightTracker({
   initialEntries,
+  targetWeight,
 }: {
   initialEntries: WeightEntry[];
+  targetWeight?: number;
 }) {
   const [entries, setEntries] = useState(initialEntries),
     [weight, setWeight] = useState(initialEntries[0]?.weight.toString() ?? ""),
@@ -199,7 +201,7 @@ export function WeightTracker({
             </button>
           </div>
         </div>
-        <WeightChart entries={chartEntries} />
+        <WeightChart entries={chartEntries} targetWeight={targetWeight} />
       </Card>
       <section className="xl:col-span-5">
         <h2 className="mb-4 font-semibold">Weight history</h2>
@@ -249,35 +251,127 @@ export function WeightTracker({
     </div>
   );
 }
-function WeightChart({ entries }: { entries: WeightEntry[] }) {
+function WeightChart({
+  entries,
+  targetWeight,
+}: {
+  entries: WeightEntry[];
+  targetWeight?: number;
+}) {
   if (!entries.length)
     return (
       <div className="grid h-64 place-items-center text-center text-sm text-slate-500">
         Log a weight entry in this period to see your trend.
       </div>
     );
-  const values = entries.map((entry) => entry.weight),
-    min = Math.min(...values),
-    max = Math.max(...values),
-    spread = Math.max(max - min, 1);
+  const values = [
+      ...entries.map((entry) => entry.weight),
+      ...(typeof targetWeight === "number" ? [targetWeight] : []),
+    ],
+    rawMin = Math.min(...values),
+    rawMax = Math.max(...values),
+    padding = Math.max((rawMax - rawMin) * 0.15, 1),
+    min = rawMin - padding,
+    max = rawMax + padding,
+    spread = max - min,
+    width = 640,
+    height = 220,
+    left = 42,
+    right = 12,
+    top = 14,
+    bottom = 28,
+    plotWidth = width - left - right,
+    plotHeight = height - top - bottom,
+    x = (index: number) =>
+      left +
+      (entries.length === 1
+        ? plotWidth / 2
+        : (index / (entries.length - 1)) * plotWidth),
+    y = (value: number) => top + ((max - value) / spread) * plotHeight,
+    line = entries
+      .map((entry, index) => `${x(index)},${y(entry.weight)}`)
+      .join(" ");
   return (
     <div className="mt-7">
-      <div className="flex h-48 items-end gap-2 border-b border-slate-200 pb-1">
-        {entries.map((entry) => (
-          <div
-            className="flex h-full min-w-0 flex-1 flex-col justify-end"
-            key={entry.id}
-            title={`${displayDate(entry.date)}: ${entry.weight.toFixed(1)} lb`}
-          >
-            <div
-              className="min-h-2 rounded-t bg-emerald-500"
-              style={{
-                height: `${18 + ((entry.weight - min) / spread) * 82}%`,
-              }}
+      <svg
+        aria-label={`Weight line chart${typeof targetWeight === "number" ? ` with a ${targetWeight.toFixed(1)} pound goal line` : ""}`}
+        className="h-auto w-full"
+        role="img"
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        <line
+          className="stroke-slate-200"
+          x1={left}
+          x2={width - right}
+          y1={y(min)}
+          y2={y(min)}
+        />
+        <text
+          className="fill-slate-500 text-[11px]"
+          textAnchor="end"
+          x={left - 7}
+          y={top + 4}
+        >
+          {max.toFixed(1)}
+        </text>
+        <text
+          className="fill-slate-500 text-[11px]"
+          textAnchor="end"
+          x={left - 7}
+          y={y(min) + 4}
+        >
+          {min.toFixed(1)}
+        </text>
+        {typeof targetWeight === "number" ? (
+          <>
+            <line
+              className="stroke-orange-500"
+              strokeDasharray="6 5"
+              x1={left}
+              x2={width - right}
+              y1={y(targetWeight)}
+              y2={y(targetWeight)}
             />
-          </div>
+            <text
+              className="fill-orange-600 text-[11px]"
+              textAnchor="end"
+              x={width - right}
+              y={y(targetWeight) - 6}
+            >
+              Goal {targetWeight.toFixed(1)} lb
+            </text>
+          </>
+        ) : null}
+        <polyline
+          fill="none"
+          points={line}
+          stroke="#10b981"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="3"
+        />
+        {entries.map((entry, index) => (
+          <g key={entry.id}>
+            <circle
+              className="fill-white stroke-emerald-600"
+              cx={x(index)}
+              cy={y(entry.weight)}
+              r="4.5"
+              strokeWidth="3"
+            >
+              <title>{`${displayDate(entry.date)}: ${entry.weight.toFixed(1)} lb`}</title>
+            </circle>
+            <text
+              className="fill-slate-500 text-[11px]"
+              textAnchor="middle"
+              x={x(index)}
+              y={height - 7}
+            >
+              {displayDate(entry.date)}
+            </text>
+          </g>
         ))}
-      </div>
+      </svg>
       <div className="mt-3 flex justify-between text-xs text-slate-500">
         <span>{displayDate(entries[0].date)}</span>
         <span>
