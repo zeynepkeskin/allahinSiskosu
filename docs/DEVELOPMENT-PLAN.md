@@ -624,6 +624,8 @@ logged meals and completed workouts from the previous seven days.
 
 Tasks
 
+- [x] Move the deterministic food-recommendation workflow into a separate
+  "Can I eat this?" panel on Coach and retire the standalone navigation item.
 - [x] Rename coach page and component copy from nutrition-only language to
   nutrition-and-training language.
 - [x] Extend the authenticated coach API to fetch and aggregate completed

@@ -4,7 +4,7 @@
 
 **AllahinSiskosu.com** is an AI-powered nutrition and strength-training tracking web application built with **Next.js**, **Vercel**, **Supabase**, and an LLM API.
 
-Users describe what they ate in natural language. The AI converts that description into structured nutrition data (JSON). The application stores meals and guided strength-workout sessions, visualizes nutrition and training progress, tracks calorie goals, and recommends whether a user should eat a particular food based on their remaining calorie budget.
+Users describe what they ate in natural language. The AI converts that description into structured nutrition data (JSON). The application stores meals and guided strength-workout sessions, visualizes nutrition and training progress, tracks calorie goals, and lets users check whether a particular food fits their remaining calorie budget from Coach.
 
 ---
 
@@ -128,28 +128,6 @@ Workflow:
 4. User confirms.
 5. Meal is saved.
 
-## Recommendations
-
-User enters food they want to eat.
-
-Application displays:
-
-- Calories
-- Macros
-- Remaining calories
-- Recommendation:
-  - Eat it
-  - Eat half
-  - Skip
-- Today's workout context and a link to start or view the workout when one is planned
-- Buttons:
-  - I Ate This
-  - Delete
-
-Workout completion does not automatically increase the food budget. The daily
-calorie goal is derived from the user's activity-level TDEE estimate, so adding
-unmeasured exercise calories would risk double counting.
-
 ## Progress
 
 Charts:
@@ -246,6 +224,13 @@ It provides a daily and weekly nutrition-and-training summary, observable
 strengths, practical next steps, and macro analysis. It must use only supplied
 data, state when logging is limited, avoid medical claims, and never invent
 activity or calorie-burn estimates.
+
+Coach also contains a separate **Can I eat this?** panel. The user enters a
+food, sees its estimated calories and macros, and receives a deterministic
+full-serving, reduced-serving, or skip recommendation based on today's
+remaining intake-calorie budget. The panel shows today's workout context, but
+workout completion never increases the food budget. The user can save the full
+estimated serving or discard it.
 
 ---
 
@@ -452,7 +437,6 @@ Navigation:
 
 - Dashboard
 - Add Meal
-- Recommendations
 - Coach
 - Analytics
 - Progress
@@ -545,7 +529,6 @@ app/
 ├── (auth)
 ├── dashboard
 ├── meals
-├── recommendations
 ├── progress
 ├── profile
 ├── settings

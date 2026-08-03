@@ -9,7 +9,6 @@ const links = [
   { href: "/dashboard", label: "Dashboard", icon: "⌂" },
   { href: "/meals", label: "Meals", icon: "☷" },
   { href: "/exercises", label: "Exercises", icon: "🏋" },
-  { href: "/recommendations", label: "Recommendations", icon: "✦" },
   { href: "/coach", label: "Coach", icon: "✨" },
   { href: "/analytics", label: "Analytics", icon: "≋" },
   { href: "/progress", label: "Progress", icon: "↗" },
