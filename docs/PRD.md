@@ -191,9 +191,12 @@ After the opening countdown, the runner starts one randomly selected looping
 soundtrack from the bundled tracks. Music has its own on/off control and stops
 when the workout ends, a set is completed, or a spoken or beep cue begins.
 
-Users can skip rests or end a workout. Completing or ending a workout records its
-result in the workout history. Users can permanently delete a workout session
-from that history; its associated exercise snapshots are deleted with it.
+Users can skip rests or end a workout. They can also edit the active set or
+rest countdown in seconds when their actual timing differs from the plan; this
+updates the reusable plan and immediately applies the new duration in the
+active workout. Completing or ending a workout records its result in the
+workout history. Users can permanently delete a workout session from that
+history; its associated exercise snapshots are deleted with it.
 
 Workout sessions are first-class data throughout the product. The application
 derives training metrics from completed sessions and their completed-set
@@ -430,7 +433,7 @@ else:
     Recommend a reduced serving or suggest skipping
 ```
 
-AI may optionally explain *why*.
+AI may optionally explain _why_.
 
 `dailyGoal` is an intake goal, not a per-session net-calorie budget. A future
 exercise-expenditure feature requires explicit activity logs (type, duration,

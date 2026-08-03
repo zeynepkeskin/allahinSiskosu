@@ -9,17 +9,114 @@ import { exercisePrescription, type ExercisePlan } from "@/lib/exercises";
 
 type Phase = "ready" | "cue" | "set" | "rest" | "complete" | "ended";
 type AudioContextConstructor = typeof AudioContext;
+type EditableTimer = "set" | "rest";
 
 const ordinal = (number: number) =>
   number === 1
     ? "First"
     : number === 2
       ? "Second"
-    : number === 3
-      ? "Third"
+      : number === 3
+        ? "Third"
         : `${number}th`;
 
 const soundtrackCount = 6;
+
+function TimerEditButton({
+  label,
+  onClick,
+  dark = false,
+}: {
+  label: string;
+  onClick: () => void;
+  dark?: boolean;
+}) {
+  return (
+    <button
+      aria-label={label}
+      className={`rounded-lg p-2 transition hover:bg-black/10 ${dark ? "text-white hover:bg-white/15" : "text-slate-600"}`}
+      onClick={onClick}
+      title={label}
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        className="size-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+        <path
+          d="m13.5 6.5 4 4"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="2"
+        />
+      </svg>
+    </button>
+  );
+}
+
+function TimerEditor({
+  label,
+  value,
+  onChange,
+  onSave,
+  onCancel,
+  dark = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  dark?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="sr-only" htmlFor="workout-timer-seconds">
+        {label}
+      </label>
+      <input
+        autoFocus
+        className={`w-24 rounded-lg border px-3 py-2 text-center text-xl font-bold tabular-nums ${dark ? "border-white/40 bg-white/10 text-white" : "border-slate-300 bg-white text-slate-900"}`}
+        id="workout-timer-seconds"
+        inputMode="numeric"
+        min="0"
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") onSave();
+          if (event.key === "Escape") onCancel();
+        }}
+        type="number"
+        value={value}
+      />
+      <span className={`text-sm ${dark ? "text-slate-300" : "text-slate-500"}`}>
+        sec
+      </span>
+      <button
+        className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white"
+        onClick={onSave}
+        type="button"
+      >
+        Save
+      </button>
+      <button
+        className={`px-2 py-2 text-sm font-semibold ${dark ? "text-white" : "text-slate-600"}`}
+        onClick={onCancel}
+        type="button"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
 
 export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   const router = useRouter();
@@ -30,6 +127,17 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     [paused, setPaused] = useState(false),
     [muted, setMuted] = useState(false),
     [musicEnabled, setMusicEnabled] = useState(true),
+    [editingTimer, setEditingTimer] = useState<EditableTimer>(),
+    [timerValue, setTimerValue] = useState(""),
+    [timingOverrides, setTimingOverrides] = useState<
+      Record<
+        string,
+        Pick<
+          ExercisePlan["exercises"][number],
+          "restSeconds" | "setDurationSeconds"
+        >
+      >
+    >({}),
     [sessionId, setSessionId] = useState<string>(),
     [sessionExerciseIds, setSessionExerciseIds] = useState<string[]>([]),
     [message, setMessage] = useState<string>();
@@ -44,7 +152,12 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   const restCuedSeconds = useRef<Set<number>>(new Set());
   const advancingRest = useRef(false);
   const completingSet = useRef(false);
-  const current = plan.exercises[exerciseIndex];
+  function exerciseAt(index: number) {
+    const exercise = plan.exercises[index];
+    const override = exercise.id ? timingOverrides[exercise.id] : undefined;
+    return override ? { ...exercise, ...override } : exercise;
+  }
+  const current = exerciseAt(exerciseIndex);
 
   function ensureAudioContext() {
     if (muted || !("AudioContext" in window || "webkitAudioContext" in window))
@@ -92,7 +205,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     try {
       await music.current.play();
     } catch {
-      setMessage("Music could not start. Use the Music on button to try again.");
+      setMessage(
+        "Music could not start. Use the Music on button to try again.",
+      );
     }
   }
 
@@ -209,7 +324,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       void startSet(setNumber + 1);
     } else if (exerciseIndex + 1 < plan.exercises.length) {
       const nextIndex = exerciseIndex + 1;
-      const next = plan.exercises[nextIndex];
+      const next = exerciseAt(nextIndex);
       setExerciseIndex(nextIndex);
       void startSet(1, next, true);
     } else {
@@ -218,7 +333,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   }
 
   useEffect(() => {
-    if (phase !== "rest" || paused) return;
+    if (phase !== "rest" || paused || editingTimer) return;
     deadline.current = Date.now() + seconds * 1000;
     restCuedSeconds.current.clear();
     advancingRest.current = false;
@@ -242,10 +357,15 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       }
     }, 250);
     return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, paused]);
+  }, [phase, paused, editingTimer]);
 
   useEffect(() => {
-    if (phase !== "set" || current.setDurationSeconds === null || paused)
+    if (
+      phase !== "set" ||
+      current.setDurationSeconds === null ||
+      paused ||
+      editingTimer
+    )
       return;
     deadline.current = Date.now() + seconds * 1000;
     const timer = window.setInterval(() => {
@@ -260,7 +380,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       }
     }, 250);
     return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, exerciseIndex, setNumber, paused]);
+  }, [phase, exerciseIndex, setNumber, paused, editingTimer]);
 
   useEffect(
     () => () => {
@@ -324,6 +444,59 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       pauseMusic();
       setPaused(true);
     }
+  }
+
+  function beginTimerEdit(timer: EditableTimer) {
+    setTimerValue(String(seconds));
+    setEditingTimer(timer);
+  }
+
+  async function saveTimerEdit() {
+    const value = Number(timerValue);
+    const maximum = editingTimer === "set" ? 7200 : 1800;
+    const minimum = editingTimer === "set" ? 1 : 0;
+    if (!Number.isInteger(value) || value < minimum || value > maximum) {
+      setMessage(
+        `Enter a whole number between ${minimum} and ${maximum} seconds.`,
+      );
+      return;
+    }
+    if (!editingTimer || !current.id) {
+      setMessage("Could not identify this plan exercise.");
+      return;
+    }
+    const response = await fetch(`/api/exercises/${plan.dayOfWeek}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        planId: plan.id,
+        exerciseId: current.id,
+        timer: editingTimer,
+        seconds: value,
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(body.error ?? "Could not update the exercise plan.");
+      return;
+    }
+    setTimingOverrides((overrides) => ({
+      ...overrides,
+      [current.id!]: {
+        restSeconds: editingTimer === "rest" ? value : current.restSeconds,
+        setDurationSeconds:
+          editingTimer === "set" ? value : current.setDurationSeconds,
+      },
+    }));
+    setSeconds(value);
+    deadline.current = Date.now() + value * 1000;
+    setEditingTimer(undefined);
+    setMessage(undefined);
+  }
+
+  function cancelTimerEdit() {
+    setEditingTimer(undefined);
+    setTimerValue("");
   }
 
   const totalSets = plan.exercises.reduce(
@@ -449,10 +622,28 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
               </p>
             ) : null}
             {current.setDurationSeconds !== null ? (
-              <p className="mt-2 text-4xl font-bold tabular-nums text-slate-900">
-                {Math.floor(seconds / 60)}:
-                {String(seconds % 60).padStart(2, "0")}
-              </p>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                {editingTimer === "set" ? (
+                  <TimerEditor
+                    label="Set duration in seconds"
+                    onCancel={cancelTimerEdit}
+                    onChange={setTimerValue}
+                    onSave={() => void saveTimerEdit()}
+                    value={timerValue}
+                  />
+                ) : (
+                  <>
+                    <p className="text-4xl font-bold tabular-nums text-slate-900">
+                      {Math.floor(seconds / 60)}:
+                      {String(seconds % 60).padStart(2, "0")}
+                    </p>
+                    <TimerEditButton
+                      label="Edit set duration"
+                      onClick={() => beginTimerEdit("set")}
+                    />
+                  </>
+                )}
+              </div>
             ) : null}
             <div className="mt-5 flex justify-center gap-3">
               <button
@@ -472,9 +663,30 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             <p className="text-sm font-semibold uppercase tracking-wider text-emerald-300">
               Rest
             </p>
-            <p className="mt-2 text-6xl font-bold tabular-nums">
-              {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
-            </p>
+            <div className="mt-2 flex items-center justify-center gap-2">
+              {editingTimer === "rest" ? (
+                <TimerEditor
+                  dark
+                  label="Rest duration in seconds"
+                  onCancel={cancelTimerEdit}
+                  onChange={setTimerValue}
+                  onSave={() => void saveTimerEdit()}
+                  value={timerValue}
+                />
+              ) : (
+                <>
+                  <p className="text-6xl font-bold tabular-nums">
+                    {Math.floor(seconds / 60)}:
+                    {String(seconds % 60).padStart(2, "0")}
+                  </p>
+                  <TimerEditButton
+                    dark
+                    label="Edit rest duration"
+                    onClick={() => beginTimerEdit("rest")}
+                  />
+                </>
+              )}
+            </div>
             <div className="mt-6 flex justify-center gap-3">
               <button
                 className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold"
