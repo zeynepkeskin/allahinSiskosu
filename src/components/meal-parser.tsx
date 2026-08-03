@@ -28,14 +28,14 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
         MealAnalysis | { error?: string };
       if (!response.ok || !("items" in payload))
         throw new Error(
-          "error" in payload ? payload.error : "Could not analyze this meal.",
+          "error" in payload ? payload.error : "Could not analyze this eat.",
         );
       setAnalysis(payload);
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
-          : "Could not analyze this meal.",
+          : "Could not analyze this eat.",
       );
     } finally {
       setIsLoading(false);
@@ -59,12 +59,12 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
         error?: string;
       };
       if (!response.ok)
-        throw new Error(payload.error ?? "Could not save meal.");
+        throw new Error(payload.error ?? "Could not save eat.");
       setSaved(true);
       onSaved?.();
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Could not save meal.",
+        caught instanceof Error ? caught.message : "Could not save eat.",
       );
     } finally {
       setIsSaving(false);
@@ -105,7 +105,7 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
               <Spinner /> Analyzing…
             </>
           ) : (
-            "Analyze meal"
+            "Analyze eat"
           )}
         </Button>
       </section>
@@ -174,11 +174,11 @@ function MealPreview({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <p className="text-xs leading-5 text-slate-500">
-          These values are estimates. You can edit the saved meal from your
+          These values are estimates. You can edit the saved eat from your
           history.
         </p>
         <Button disabled={isSaving || saved} onClick={onSave} type="button">
-          {saved ? "Saved" : isSaving ? "Saving…" : "Save meal"}
+          {saved ? "Saved" : isSaving ? "Saving…" : "Save eat"}
         </Button>
       </div>
     </section>

@@ -76,12 +76,12 @@ export function CanIEatThisPanel({
         error?: string;
       };
       if (!response.ok) {
-        throw new Error(payload.error ?? "Could not save this meal.");
+        throw new Error(payload.error ?? "Could not save this eat.");
       }
       setSaved(true);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Could not save this meal.",
+        caught instanceof Error ? caught.message : "Could not save this eat.",
       );
     } finally {
       setIsSaving(false);
@@ -216,7 +216,7 @@ function RecommendationPreview({
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <p className="text-xs leading-5 text-slate-500">
           Nutrition values are estimates. Saving adds the full estimated serving
-          to today&apos;s meals.
+          to today&apos;s eats.
         </p>
         <div className="flex gap-3">
           <button

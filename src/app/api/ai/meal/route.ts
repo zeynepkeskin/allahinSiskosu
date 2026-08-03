@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user)
     return NextResponse.json(
-      { error: "Sign in to analyze meals." },
+      { error: "Sign in to analyze eats." },
       { status: 401 },
     );
 
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     );
     if (!requestResult.success)
       return NextResponse.json(
-        { error: "Please enter a valid meal description." },
+        { error: "Please enter a valid eat description." },
         { status: 400 },
       );
     const { description } = requestResult.data;
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Meal analysis is not configured. Add OPENAI_API_KEY to the server environment.",
+            "Eat analysis is not configured. Add OPENAI_API_KEY to the server environment.",
         },
         { status: 503 },
       );
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         await response.text(),
       );
       return NextResponse.json(
-        { error: "Could not analyze this meal. Please try again." },
+        { error: "Could not analyze this eat. Please try again." },
         { status: 502 },
       );
     }
@@ -140,14 +140,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "The nutrition provider returned an invalid estimate. Please try again, or split a very long food list into two meals.",
+            "The nutrition provider returned an invalid estimate. Please try again, or split a very long food list into two eats.",
         },
         { status: 502 },
       );
     }
     console.error("Meal analysis failed", error);
     return NextResponse.json(
-      { error: "Could not analyze this meal. Please try again." },
+      { error: "Could not analyze this eat. Please try again." },
       { status: 500 },
     );
   }

@@ -97,7 +97,7 @@ export function recommendMealIdeas({
         carbs: 22,
         fat: 20,
         reason:
-          "It gives you a fun sushi flavor while shifting the next meal toward protein instead of more starch.",
+          "It gives you a fun sushi flavor while shifting your next eat toward protein instead of more starch.",
       },
     ];
   }
@@ -113,7 +113,7 @@ export function recommendMealIdeas({
         carbs: 30,
         fat: 8,
         reason:
-          "Fat is already well covered today, so this keeps the next meal lean and fresh.",
+          "Fat is already well covered today, so this keeps your next eat lean and fresh.",
       },
       {
         title: "Turkey taco salad",
@@ -139,7 +139,7 @@ export function recommendMealIdeas({
       carbs: 55,
       fat: 16,
       reason:
-        "Your intake looks balanced enough for a satisfying, all-round meal with protein, fiber, and flavor.",
+        "Your intake looks balanced enough for a satisfying, all-round eat with protein, fiber, and flavor.",
     },
     {
       title: "Mediterranean pita pocket",

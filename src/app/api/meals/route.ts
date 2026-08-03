@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 function unauthorized() {
   return NextResponse.json(
-    { error: "Sign in to manage meals." },
+    { error: "Sign in to manage eats." },
     { status: 401 },
   );
 }
@@ -26,7 +26,7 @@ export async function GET() {
   if (error) {
     console.error("Could not fetch meals", error);
     return NextResponse.json(
-      { error: "Could not load meals." },
+      { error: "Could not load eats." },
       { status: 500 },
     );
   }
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   );
   if (!result.success)
     return NextResponse.json(
-      { error: "Please provide a valid meal." },
+      { error: "Please provide a valid eat." },
       { status: 400 },
     );
   const analysis = mealAnalysisSchema.parse(result.data);
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   if (mealError || !meal) {
     console.error("Could not save meal", mealError);
     return NextResponse.json(
-      { error: "Could not save meal." },
+      { error: "Could not save eat." },
       { status: 500 },
     );
   }
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     console.error("Could not save meal items", itemsError);
     await supabase.from("meals").delete().eq("id", meal.id);
     return NextResponse.json(
-      { error: "Could not save meal." },
+      { error: "Could not save eat." },
       { status: 500 },
     );
   }

@@ -45,7 +45,7 @@ export default async function CoachPage() {
           Make your nutrition and training work together
         </h1>
         <p className="mt-2 text-slate-500">
-          A supportive look at your meals and completed strength workouts.
+          A supportive look at your eats and completed strength workouts.
         </p>
       </header>
       <CoachPanels

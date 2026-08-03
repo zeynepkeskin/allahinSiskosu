@@ -80,7 +80,7 @@ const responseFormat = {
   },
 } as const;
 const systemPrompt =
-  "You are a supportive nutrition and strength-training coach. Use only the provided logged nutrition and completed-workout data; do not invent foods, activity, calorie expenditure, medical conditions, diagnoses, or causal weight claims. Give practical, non-judgmental coaching in plain language. Identify observable strengths and small, specific improvements. Do not prescribe treatment, guarantee outcomes, shame the user, or give advice for an eating disorder. State when meal or workout logging is limited. Do not suggest that a completed workout changes the user's calorie budget. Keep every field concise.";
+  "You are a supportive nutrition and strength-training coach. Use only the provided logged nutrition and completed-workout data; do not invent foods, activity, calorie expenditure, medical conditions, diagnoses, or causal weight claims. Give practical, non-judgmental coaching in plain language. Identify observable strengths and small, specific improvements. Do not prescribe treatment, guarantee outcomes, shame the user, or give advice for an eating disorder. State when eat or workout logging is limited. Do not suggest that a completed workout changes the user's calorie budget. Keep every field concise.";
 const number = (value: number | string) => Number(value) || 0;
 function buildDailyData(meals: MealRow[], timeZone: string): DailyNutrition[] {
   const today = todayInTimeZone(timeZone);
@@ -190,7 +190,7 @@ export async function POST() {
       return NextResponse.json(
         {
           error:
-            "Log at least one meal or complete a workout before asking your coach for insights.",
+            "Log at least one eat or complete a workout before asking your coach for insights.",
         },
         { status: 400 },
       );

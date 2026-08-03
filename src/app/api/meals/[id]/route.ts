@@ -24,18 +24,18 @@ export async function PATCH(
   const { id } = await params;
   const { supabase, user } = await authorizedMeal(id);
   if (!user)
-    return NextResponse.json({ error: "Meal not found." }, { status: 404 });
+    return NextResponse.json({ error: "Eat not found." }, { status: 404 });
   const result = updateMealSchema.safeParse(
     await request.json().catch(() => null),
   );
   if (!result.success)
     return NextResponse.json(
-      { error: "Please provide a valid meal." },
+      { error: "Please provide a valid eat." },
       { status: 400 },
     );
   if (!result.data.mealName || !result.data.items)
     return NextResponse.json(
-      { error: "A meal name and its items are required." },
+      { error: "An eat name and its items are required." },
       { status: 400 },
     );
   const analysis = mealAnalysisSchema.parse(result.data);
@@ -53,7 +53,7 @@ export async function PATCH(
     .eq("id", id);
   if (error)
     return NextResponse.json(
-      { error: "Could not update meal." },
+      { error: "Could not update eat." },
       { status: 500 },
     );
   const { error: deleteError } = await supabase
@@ -78,7 +78,7 @@ export async function PATCH(
     );
   if (deleteError || insertError)
     return NextResponse.json(
-      { error: "Could not update meal items." },
+      { error: "Could not update eat items." },
       { status: 500 },
     );
   return NextResponse.json({
@@ -95,11 +95,11 @@ export async function DELETE(
   const { id } = await params;
   const { supabase, user } = await authorizedMeal(id);
   if (!user)
-    return NextResponse.json({ error: "Meal not found." }, { status: 404 });
+    return NextResponse.json({ error: "Eat not found." }, { status: 404 });
   const { error } = await supabase.from("meals").delete().eq("id", id);
   if (error)
     return NextResponse.json(
-      { error: "Could not delete meal." },
+      { error: "Could not delete eat." },
       { status: 500 },
     );
   return new NextResponse(null, { status: 204 });

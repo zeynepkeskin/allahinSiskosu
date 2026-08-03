@@ -11,7 +11,7 @@ export default function Home() {
           Nutrition tracking, made simpler.
         </h1>
         <p className="mt-4 text-lg leading-8 text-slate-600">
-          Sign in to start tracking meals, calories, and progress.
+          Sign in to start tracking eats, calories, and progress.
         </p>
         <Link
           className="mt-8 inline-flex rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700"

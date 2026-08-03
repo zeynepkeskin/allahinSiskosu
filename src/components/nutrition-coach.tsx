@@ -46,14 +46,14 @@ export function WellnessCoachPanel({
           <div>
             <h2 className="text-xl font-bold">Your coaching check-in</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-              Get practical insights from your last seven days of logged meals
+              Get practical insights from your last seven days of logged eats
               and completed strength workouts. Your coach uses saved data only.
             </p>
           </div>
           <Button disabled={loading} onClick={getInsights} type="button">
             {loading ? (
               <span className="flex items-center gap-2">
-                <Spinner /> Reviewing meals…
+                <Spinner /> Reviewing eats…
               </span>
             ) : insights ? (
               "Refresh insights"
@@ -90,7 +90,7 @@ export function WellnessCoachPanel({
               {insights.macroAnalysis}
             </p>
             <p className="mt-5 text-xs leading-5 text-slate-400">
-              Coaching is educational and based on your logged meals, not
+              Coaching is educational and based on your logged eats, not
               medical advice.
             </p>
           </Card>

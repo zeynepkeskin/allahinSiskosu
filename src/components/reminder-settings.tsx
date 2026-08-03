@@ -38,7 +38,7 @@ export function ReminderSettings({ initialEnabled, initialTime }: { initialEnabl
     <div className="mt-5 space-y-4">
       <label className="flex cursor-pointer items-start gap-3">
         <input checked={enabled} className="mt-1 h-4 w-4 accent-emerald-600" onChange={(event) => setEnabled(event.target.checked)} type="checkbox" />
-        <span><span className="block text-sm font-medium text-slate-800">Evening logging reminder</span><span className="mt-1 block text-sm text-slate-500">Remind me when today has no meals logged, or when a planned workout is still incomplete.</span></span>
+        <span><span className="block text-sm font-medium text-slate-800">Evening logging reminder</span><span className="mt-1 block text-sm text-slate-500">Remind me when today has no eats logged, or when a planned workout is still incomplete.</span></span>
       </label>
       <div className="max-w-xs">
         <label className="text-sm font-medium text-slate-700" htmlFor="reminder-time">Reminder time</label>

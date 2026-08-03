@@ -23,13 +23,13 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
           SavedMeal[] | { error?: string };
         if (!response.ok || !Array.isArray(payload))
           throw new Error(
-            "error" in payload ? payload.error : "Could not load meals.",
+            "error" in payload ? payload.error : "Could not load eats.",
           );
         if (active) setMeals(payload);
       } catch (caught) {
         if (active)
           setError(
-            caught instanceof Error ? caught.message : "Could not load meals.",
+            caught instanceof Error ? caught.message : "Could not load eats.",
           );
       } finally {
         if (active) setLoading(false);
@@ -49,11 +49,11 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
       const response = await fetch(`/api/meals/${meal.id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Could not delete meal.");
+      if (!response.ok) throw new Error("Could not delete eat.");
       setMeals((current) => current.filter((item) => item.id !== meal.id));
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Could not delete meal.",
+        caught instanceof Error ? caught.message : "Could not delete eat.",
       );
     } finally {
       setDeleting(undefined);
@@ -79,7 +79,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
       const payload = (await response.json()) as SavedMeal | { error?: string };
       if (!response.ok || !("id" in payload))
         throw new Error(
-          "error" in payload ? payload.error : "Could not update meal.",
+          "error" in payload ? payload.error : "Could not update eat.",
         );
       setMeals((current) =>
         current.map((meal) => (meal.id === editing.id ? payload : meal)),
@@ -87,7 +87,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
       setEditing(undefined);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Could not update meal.",
+        caught instanceof Error ? caught.message : "Could not update eat.",
       );
     }
   }
@@ -96,7 +96,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-emerald-600">HISTORY</p>
-          <h2 className="mt-1 text-2xl font-bold">Saved meals</h2>
+          <h2 className="mt-1 text-2xl font-bold">Saved eats</h2>
         </div>
         {loading ? <Spinner /> : null}
       </div>
@@ -108,8 +108,8 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
       {!loading && meals.length === 0 ? (
         <div className="mt-5">
           <EmptyState
-            title="No saved meals yet"
-            description="Analyze a meal above, then save it to build your history."
+            title="No saved eats yet"
+            description="Analyze an eat above, then save it to build your history."
           />
         </div>
       ) : null}
@@ -169,13 +169,13 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
         >
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h2 id="edit-meal-title" className="text-xl font-bold">
-              Edit meal name
+              Edit eat name
             </h2>
             <label
               className="mt-5 block text-sm font-medium"
               htmlFor="meal-name"
             >
-              Meal name
+              Eat name
             </label>
             <input
               className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-emerald-500"

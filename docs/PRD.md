@@ -4,7 +4,7 @@
 
 **AllahinSiskosu.com** is an AI-powered nutrition and strength-training tracking web application built with **Next.js**, **Vercel**, **Supabase**, and an LLM API.
 
-Users describe what they ate in natural language. The AI converts that description into structured nutrition data (JSON). The application stores meals and guided strength-workout sessions, visualizes nutrition and training progress, tracks calorie goals, and lets users check whether a particular food fits their remaining calorie budget from Coach.
+Users describe what they ate in natural language. The AI converts that description into structured nutrition data (JSON). The application stores eats and guided strength-workout sessions, visualizes nutrition and training progress, tracks calorie goals, and lets users check whether a particular food fits their remaining calorie budget from Coach.
 
 ---
 
@@ -86,7 +86,7 @@ user's IANA timezone.
 Users can opt into an editable, whole-hour evening reminder (default: 8:00 PM
 local time).
 At the selected time, the app sends one Web Push notification when the user has
-not logged a meal that day and/or has not completed a workout scheduled for a
+not logged an eat that day and/or has not completed a workout scheduled for a
 non-REST day. A planned REST day never triggers a workout reminder.
 
 Notifications use the browser Push API and a service worker, so they can be
@@ -114,19 +114,19 @@ Displays:
 - Weekly calorie and workout-completion view
 - Training consistency summary
 - Weight trend
-- Today's meals
-- Quick add meal
+- Today's eats
+- Quick add eat
 - Quick action to start or view today's workout
 
-## Add Meal
+## Add Eat
 
 Workflow:
 
-1. User enters free-form meal text.
+1. User enters free-form eat text.
 2. AI returns structured nutrition JSON.
 3. Preview appears.
 4. User confirms.
-5. Meal is saved.
+5. Eat is saved.
 
 ## Progress
 
@@ -223,7 +223,7 @@ rights; the product must not use arbitrary web-search images.
 
 ## Coach
 
-The coach reviews the last seven days of logged meals and completed workouts.
+The coach reviews the last seven days of logged eats and completed workouts.
 It provides a daily and weekly nutrition-and-training summary, observable
 strengths, practical next steps, and macro analysis. It must use only supplied
 data, state when logging is limited, avoid medical claims, and never invent
@@ -238,7 +238,7 @@ completion never increases the food budget. The user can save the full
 estimated serving or discard it.
 
 Coach also offers a **What should I eat now?** panel. It evaluates today's
-logged calories and macros, then suggests a satisfying meal idea with estimated
+logged calories and macros, then suggests a satisfying eat idea with estimated
 nutrition and an explanation of how it supports the day's remaining balance.
 
 ---
@@ -378,7 +378,7 @@ one-to-one with users and can rotate or expire independently.
 
 Reusable, profile-owned audit log for application events. A `reminder_sent`
 event uses `entity_type: profile`, the profile ID as `entity_id`, the user's
-local date as `event_date`, and metadata describing the missing meal/workout,
+local date as `event_date`, and metadata describing the missing eat/workout,
 scheduled reminder time, and timezone. A partial unique index permits only one
 `reminder_sent` event per profile per local date.
 
@@ -445,7 +445,7 @@ Design principles:
 Navigation:
 
 - Dashboard
-- Add Meal
+- Add Eat
 - Coach
 - Analytics
 - Progress
@@ -486,11 +486,11 @@ Colors:
 
 ## Phase 4
 
-- AI meal parser
+- AI eat parser
 
 ## Phase 5
 
-- Save/edit/delete meals
+- Save/edit/delete eats
 
 ## Phase 6
 
@@ -521,11 +521,11 @@ Colors:
 Future enhancements:
 
 - Barcode scanning
-- Meal photo recognition
+- Eat photo recognition
 - Water tracker
-- Meal planner
+- Eat planner
 - Grocery lists
-- Favorite meals
+- Favorite eats
 - Social features
 - Expanded exercise visual catalog
 
@@ -554,7 +554,7 @@ app/
 
 # Success Metrics
 
-- Fast meal logging (<30 seconds)
+- Fast eat logging (<30 seconds)
 - Accurate AI parsing
 - Clear progress visualization
 - Helpful recommendations

@@ -200,20 +200,20 @@ export default async function AnalyticsPage() {
           className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
           href="/meals"
         >
-          + Add meal
+          + Add eat
         </Link>
       </header>
       {meals.length === 0 && completedSessions.length === 0 ? (
         <div className="mt-8">
           <EmptyState
             title="No health data yet"
-            description="Log a meal or complete a workout to unlock your insights."
+            description="Log an eat or complete a workout to unlock your insights."
             action={
               <Link
                 className="text-sm font-semibold text-emerald-700"
                 href="/meals"
               >
-                Log a meal →
+                Log an eat →
               </Link>
             }
           />

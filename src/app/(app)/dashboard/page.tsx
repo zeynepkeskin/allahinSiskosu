@@ -159,7 +159,7 @@ export default async function DashboardPage() {
           className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
           href="/meals"
         >
-          + Add meal
+          + Add eat
         </Link>
       </header>
 
@@ -190,7 +190,7 @@ export default async function DashboardPage() {
           value={weeklyAverage === null ? "—" : `${weeklyAverage} kcal`}
           hint={
             weeklyAverage === null
-              ? "No meals logged this week"
+              ? "No eats logged this week"
               : "Across logged days"
           }
         />
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
         <Card className="xl:col-span-3">
           <h2 className="font-semibold">Daily progress</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Macros logged with today&apos;s meals.
+            Macros logged with today&apos;s eats.
           </p>
           <div className="mt-6 space-y-5">
             <ProgressBar
@@ -270,7 +270,7 @@ export default async function DashboardPage() {
           </div>
           <p className="mt-5 text-sm text-slate-500">
             {weeklyAverage === null
-              ? "Log meals to see your calorie trend."
+              ? "Log eats to see your calorie trend."
               : `Average: ${weeklyAverage} kcal per logged day.`}{" "}
             Blue bars show completed workouts.
           </p>
@@ -306,9 +306,9 @@ export default async function DashboardPage() {
       <section className="mt-7">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 className="font-semibold">Today&apos;s meals</h2>
+            <h2 className="font-semibold">Today&apos;s eats</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Your most recently logged meals appear first.
+              Your most recently logged eats appear first.
             </p>
           </div>
           {todayMeals.length ? (
@@ -316,20 +316,20 @@ export default async function DashboardPage() {
               className="text-sm font-semibold text-emerald-700"
               href="/meals"
             >
-              View all meals →
+              View all eats →
             </Link>
           ) : null}
         </div>
         {todayMeals.length === 0 ? (
           <EmptyState
-            title="No meals logged today"
+            title="No eats logged today"
             description="Tell us what you ate and review the nutrition estimate before saving it."
             action={
               <Link
                 className="text-sm font-semibold text-emerald-700"
                 href="/meals"
               >
-                Log your first meal →
+                Log your first eat →
               </Link>
             }
           />
