@@ -63,6 +63,7 @@ export async function PUT(
           reps: exercise.reps,
           weight_lb: exercise.weightLb,
           rest_seconds: exercise.restSeconds,
+          set_duration_seconds: exercise.setDurationSeconds,
           sort_order: sortOrder,
         })),
       );

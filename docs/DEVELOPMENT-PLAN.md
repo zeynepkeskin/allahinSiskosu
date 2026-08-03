@@ -161,6 +161,7 @@ Tables
 - reps
 - weight_lb
 - rest_seconds
+- set_duration_seconds (optional)
 - sort_order
 - created_at
 - updated_at
@@ -522,7 +523,7 @@ Workout runner flow
 
 Controls and behavior
 
-- Start, pause, resume, skip rest, repeat set, end workout, and complete set.
+- Start, pause, resume, skip rest, end workout, and complete set.
 - Audio cues use the Web Audio API; spoken prompts use the Web Speech API.
 - Provide a mute control and visual/text alternatives for every sound or voice
   cue. Audio must start only after a user interaction.

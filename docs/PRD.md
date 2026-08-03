@@ -189,9 +189,9 @@ long beep. The final three seconds of rest each play one short beep. Starting
 a new cue, muting, or ending a workout cancels pending speech and sounds.
 After the opening countdown, the runner starts one randomly selected looping
 soundtrack from the bundled tracks. Music has its own on/off control and stops
-when the workout ends.
+when the workout ends, a set is completed, or a spoken or beep cue begins.
 
-Users can skip, repeat, or end a workout. Completing or ending a workout records its
+Users can skip rests or end a workout. Completing or ending a workout records its
 result in the workout history.
 
 Workout sessions are first-class data throughout the product. The application
@@ -319,11 +319,14 @@ One plan per user and day of week.
 - reps
 - weight_lb
 - rest_seconds
+- set_duration_seconds (optional)
 - sort_order
 - created_at
 - updated_at
 
 `weight_lb` stores the total loaded weight when applicable.
+When set, `set_duration_seconds` makes each set timed; the workout runner
+automatically begins rest when its countdown ends.
 
 ## workout_sessions
 

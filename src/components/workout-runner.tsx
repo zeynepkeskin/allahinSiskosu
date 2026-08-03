@@ -43,6 +43,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   const speechDone = useRef<(() => void) | undefined>(undefined);
   const restCuedSeconds = useRef<Set<number>>(new Set());
   const advancingRest = useRef(false);
+  const completingSet = useRef(false);
   const current = plan.exercises[exerciseIndex];
 
   function ensureAudioContext() {
@@ -106,6 +107,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   }
 
   function speak(text: string, version = cueVersion.current) {
+    stopMusic();
     if (muted || !("speechSynthesis" in window))
       return Promise.resolve(cueVersion.current === version);
     return new Promise<boolean>((resolve) => {
@@ -122,6 +124,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   }
 
   function beep(long = false) {
+    stopMusic();
     if (muted) return;
     ensureAudioContext();
     const context = audioContext.current;
@@ -152,6 +155,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     introduceExercise = false,
   ) {
     stopCues();
+    completingSet.current = false;
     const version = cueVersion.current;
     setPhase("cue");
     setPaused(false);
@@ -170,6 +174,8 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       musicStarted.current = true;
       await playMusic();
     }
+    if (exercise.setDurationSeconds !== null)
+      setSeconds(exercise.setDurationSeconds);
     if (cueVersion.current === version) setPhase("set");
   }
 
@@ -238,6 +244,23 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, paused]);
 
+  useEffect(() => {
+    if (phase !== "set" || current.setDurationSeconds === null) return;
+    deadline.current = Date.now() + current.setDurationSeconds * 1000;
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((deadline.current! - Date.now()) / 1000),
+      );
+      setSeconds(remaining);
+      if (remaining === 0) {
+        window.clearInterval(timer);
+        void completeSet();
+      }
+    }, 250);
+    return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, exerciseIndex, setNumber]);
+
   useEffect(
     () => () => {
       stopCues();
@@ -247,6 +270,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   );
 
   async function completeSet() {
+    if (completingSet.current) return;
+    completingSet.current = true;
+    stopMusic();
     const completed = setNumber;
     const id = sessionExerciseIds[exerciseIndex];
     if (sessionId && id)
@@ -412,16 +438,15 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             <p className="text-lg font-semibold">
               Set {setNumber}: {current.reps} reps
             </p>
+            {current.setDurationSeconds !== null ? (
+              <p className="mt-2 text-4xl font-bold tabular-nums text-slate-900">
+                {Math.floor(seconds / 60)}:
+                {String(seconds % 60).padStart(2, "0")}
+              </p>
+            ) : null}
             <Button className="mt-5" onClick={completeSet}>
               Complete set
             </Button>
-            <button
-              className="ml-4 text-sm font-semibold text-slate-600"
-              onClick={() => void startSet(setNumber)}
-              type="button"
-            >
-              Repeat cue
-            </button>
           </div>
         ) : (
           <div className="mt-9 rounded-2xl bg-slate-900 p-6 text-center text-white">

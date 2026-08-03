@@ -20,6 +20,7 @@ const blankExercise = (): Exercise => ({
   reps: 10,
   weightLb: null,
   restSeconds: 45,
+  setDurationSeconds: null,
 });
 
 type Session = {
@@ -79,7 +80,7 @@ export function ExercisePlanner({
                 field === "name"
                   ? value
                   : value === ""
-                    ? field === "weightLb"
+                    ? field === "weightLb" || field === "setDurationSeconds"
                       ? null
                       : 0
                     : Number(value),
@@ -262,6 +263,14 @@ export function ExercisePlanner({
                         updateExercise(index, "restSeconds", value)
                       }
                       min="0"
+                    />
+                    <Field
+                      label="Set duration (seconds)"
+                      value={exercise.setDurationSeconds ?? ""}
+                      onChange={(value) =>
+                        updateExercise(index, "setDurationSeconds", value)
+                      }
+                      min="1"
                     />
                   </div>
                 </fieldset>

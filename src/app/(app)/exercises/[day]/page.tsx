@@ -17,7 +17,7 @@ export default async function WorkoutPage({
   const { data } = await supabase
     .from("exercise_plans")
     .select(
-      "id, day_of_week, is_rest_day, plan_exercises(id, name, sets, reps, weight_lb, rest_seconds, sort_order)",
+      "id, day_of_week, is_rest_day, plan_exercises(id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)",
     )
     .eq("profile_id", user!.id)
     .eq("day_of_week", day)
@@ -38,6 +38,7 @@ export default async function WorkoutPage({
         weightLb:
           exercise.weight_lb === null ? null : Number(exercise.weight_lb),
         restSeconds: exercise.rest_seconds,
+        setDurationSeconds: exercise.set_duration_seconds,
       })),
   };
   return <WorkoutRunner plan={plan} />;

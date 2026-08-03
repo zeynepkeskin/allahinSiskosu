@@ -6,6 +6,7 @@ export const exerciseSchema = z.object({
   reps: z.number().int().min(1).max(500),
   weightLb: z.number().min(0).max(5000).nullable(),
   restSeconds: z.number().int().min(0).max(1800),
+  setDurationSeconds: z.number().int().min(1).max(7200).nullable(),
 });
 export const planSchema = z
   .object({
