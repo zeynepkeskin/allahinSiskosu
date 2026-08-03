@@ -228,8 +228,9 @@ activity or calorie-burn estimates.
 Coach also contains a separate **Can I eat this?** panel. The user enters a
 food, sees its estimated calories and macros, and receives a deterministic
 full-serving, reduced-serving, or skip recommendation based on today's
-remaining intake-calorie budget. The panel shows today's workout context, but
-workout completion never increases the food budget. The user can save the full
+remaining intake-calorie budget and macro balance. When carbohydrate intake is
+already high, the panel guides the user toward protein-rich choices. Workout
+completion never increases the food budget. The user can save the full
 estimated serving or discard it.
 
 ---

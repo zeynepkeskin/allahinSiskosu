@@ -4,11 +4,18 @@ import { useState } from "react";
 import type { CoachInsights } from "@/lib/coach";
 import { Button, Card, Spinner } from "@/components/ui";
 
-export function WellnessCoachPanel() {
+export function WellnessCoachPanel({
+  isOpen,
+  onOpen,
+}: {
+  isOpen: boolean;
+  onOpen: () => void;
+}) {
   const [insights, setInsights] = useState<CoachInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   async function getInsights() {
+    onOpen();
     setLoading(true);
     setError(null);
     try {
@@ -61,7 +68,7 @@ export function WellnessCoachPanel() {
           </p>
         ) : null}
       </Card>
-      {insights ? (
+      {isOpen && insights ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <InsightCard title="Today" body={insights.dailySummary} />
           <InsightCard title="This week" body={insights.weeklySummary} />
