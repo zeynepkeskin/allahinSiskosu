@@ -553,7 +553,8 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
           </div>
           <button
             aria-pressed={muted}
-            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
+            aria-label={muted ? "Turn sound on" : "Turn sound off"}
+            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold"
             onClick={() => {
               if (!muted) {
                 stopCues();
@@ -561,13 +562,15 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
               }
               setMuted((value) => !value);
             }}
+            title={muted ? "Sound off" : "Sound on"}
             type="button"
           >
-            {muted ? "Sound off" : "Sound on"}
+            {muted ? "🔇" : "🔊"}
           </button>
           <button
             aria-pressed={musicEnabled}
-            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
+            aria-label={musicEnabled ? "Turn music off" : "Turn music on"}
+            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold"
             onClick={() => {
               const nextEnabled = !musicEnabled;
               setMusicEnabled(nextEnabled);
@@ -575,9 +578,10 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
                 void playMusic(nextEnabled);
               else if (!nextEnabled) pauseMusic();
             }}
+            title={musicEnabled ? "Music on" : "Music off"}
             type="button"
           >
-            {musicEnabled ? "Music on" : "Music off"}
+            {musicEnabled ? "♫" : "♩"}
           </button>
         </div>
         <div className="mt-8">
@@ -597,8 +601,13 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             <p className="mt-8 text-sm text-slate-500">
               Start to hear the exercise prescription and a 3–2–1 countdown.
             </p>
-            <Button className="mt-4" onClick={begin}>
-              Begin workout
+            <Button
+              aria-label="Start workout"
+              className="mt-4"
+              onClick={begin}
+              title="Start workout"
+            >
+              ▶
             </Button>
           </>
         ) : phase === "cue" ? (
@@ -647,14 +656,21 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             ) : null}
             <div className="mt-5 flex justify-center gap-3">
               <button
+                aria-label={paused ? "Resume workout" : "Pause workout"}
                 className="rounded-xl border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
                 onClick={togglePause}
+                title={paused ? "Resume" : "Pause"}
                 type="button"
               >
-                {paused ? "Resume" : "Pause"}
+                {paused ? "▶" : "⏸"}
               </button>
-              <Button disabled={paused} onClick={completeSet}>
-                Complete set
+              <Button
+                aria-label="Complete set"
+                disabled={paused}
+                onClick={completeSet}
+                title="Complete set"
+              >
+                ⏭
               </Button>
             </div>
           </div>
@@ -689,21 +705,25 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             </div>
             <div className="mt-6 flex justify-center gap-3">
               <button
+                aria-label={paused ? "Resume rest" : "Pause rest"}
                 className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold"
                 onClick={togglePause}
+                title={paused ? "Resume" : "Pause"}
                 type="button"
               >
-                {paused ? "Resume" : "Pause"}
+                {paused ? "▶" : "⏸"}
               </button>
               <button
+                aria-label="Skip rest"
                 className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900"
                 onClick={() => {
                   setSeconds(0);
                   advanceFromRest();
                 }}
+                title="Skip rest"
                 type="button"
               >
-                Skip rest
+                ⏭
               </button>
             </div>
           </div>
