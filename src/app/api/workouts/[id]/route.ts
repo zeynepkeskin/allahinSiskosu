@@ -55,3 +55,35 @@ export async function PATCH(
   }
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success)
+    return NextResponse.json(
+      { error: "Invalid workout session." },
+      { status: 400 },
+    );
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json(
+      { error: "Sign in to delete a workout." },
+      { status: 401 },
+    );
+  const { error } = await supabase
+    .from("workout_sessions")
+    .delete()
+    .eq("id", id)
+    .eq("profile_id", user.id);
+  if (error)
+    return NextResponse.json(
+      { error: "Could not delete workout." },
+      { status: 500 },
+    );
+  return NextResponse.json({ ok: true });
+}

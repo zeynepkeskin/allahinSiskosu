@@ -192,7 +192,8 @@ soundtrack from the bundled tracks. Music has its own on/off control and stops
 when the workout ends, a set is completed, or a spoken or beep cue begins.
 
 Users can skip rests or end a workout. Completing or ending a workout records its
-result in the workout history.
+result in the workout history. Users can permanently delete a workout session
+from that history; its associated exercise snapshots are deleted with it.
 
 Workout sessions are first-class data throughout the product. The application
 derives training metrics from completed sessions and their completed-set

@@ -13,6 +13,7 @@ Mark the to-do items here after implementing them. Always read PRD.md and DEVELO
 - [x] The way we are displaying exercises in the exercise selection popup is a little weird. Pictures alternate every 1 second, muscle SVGs alternate every 4 seconds. SVGs (back and front muscles) should be displayed side by side. Also "Target Muscles" P element classes are different than "Movement Preview" one. Let's make them look consistent.
 - [x] The word Meals is not good. We save snacks too. Using the word "Eats" instead can make more sense.
 - [x] We have mp3 files under public/soundtracks. We can play a random one in workout-runner after 3-2-1 countdown. We should also add "music on/off" button.
+- [x] users should be able to delete added workout sessions.
 - Editing eats edits only names. We should be able to edit nutritions as well.
 - User can favorite some eats and they can add them quicly instead of using AI.
 - when we hover over the bars/points on charts, we should see the values

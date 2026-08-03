@@ -31,7 +31,7 @@ type Session = {
 
 export function ExercisePlanner({
   initialPlans,
-  sessions,
+  sessions: initialSessions,
   initialActiveDay,
 }: {
   initialPlans: ExercisePlan[];
@@ -48,6 +48,8 @@ export function ExercisePlanner({
   const [message, setMessage] = useState<string>();
   const [saving, setSaving] = useState(false);
   const [markingDone, setMarkingDone] = useState(false);
+  const [sessions, setSessions] = useState(initialSessions);
+  const [deletingSession, setDeletingSession] = useState<string>();
 
   const activePlan = plans.find((plan) => plan.dayOfWeek === activeDay);
   const canWorkout = Boolean(
@@ -158,6 +160,30 @@ export function ExercisePlanner({
       return;
     }
     setMessage("Workout marked as done.");
+  }
+
+  async function removeSession(session: Session) {
+    if (!window.confirm("Delete this workout session? This cannot be undone."))
+      return;
+    setMessage(undefined);
+    setDeletingSession(session.id);
+    try {
+      const response = await fetch(`/api/workouts/${session.id}`, {
+        method: "DELETE",
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessage(body.error ?? "Could not delete workout.");
+        return;
+      }
+      setSessions((current) =>
+        current.filter((item) => item.id !== session.id),
+      );
+    } catch {
+      setMessage("Could not delete workout.");
+    } finally {
+      setDeletingSession(undefined);
+    }
   }
 
   if (editingDay !== undefined) {
@@ -414,19 +440,29 @@ export function ExercisePlanner({
                     minute: "2-digit",
                   })}
                 </span>
-                <span
-                  className={
-                    session.status === "completed"
-                      ? "font-semibold text-emerald-700"
-                      : "font-semibold text-slate-500"
-                  }
-                >
-                  {session.status === "completed"
-                    ? "Completed"
-                    : session.status === "ended_early"
-                      ? "Ended early"
-                      : "In progress"}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={
+                      session.status === "completed"
+                        ? "font-semibold text-emerald-700"
+                        : "font-semibold text-slate-500"
+                    }
+                  >
+                    {session.status === "completed"
+                      ? "Completed"
+                      : session.status === "ended_early"
+                        ? "Ended early"
+                        : "In progress"}
+                  </span>
+                  <button
+                    className="text-xs font-semibold text-red-600 disabled:opacity-50"
+                    disabled={deletingSession === session.id}
+                    onClick={() => void removeSession(session)}
+                    type="button"
+                  >
+                    {deletingSession === session.id ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -245,8 +245,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   }, [phase, paused]);
 
   useEffect(() => {
-    if (phase !== "set" || current.setDurationSeconds === null) return;
-    deadline.current = Date.now() + current.setDurationSeconds * 1000;
+    if (phase !== "set" || current.setDurationSeconds === null || paused)
+      return;
+    deadline.current = Date.now() + seconds * 1000;
     const timer = window.setInterval(() => {
       const remaining = Math.max(
         0,
@@ -259,7 +260,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       }
     }, 250);
     return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, exerciseIndex, setNumber]);
+  }, [phase, exerciseIndex, setNumber, paused]);
 
   useEffect(
     () => () => {
@@ -318,7 +319,11 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     if (paused) {
       deadline.current = Date.now() + seconds * 1000;
       setPaused(false);
-    } else setPaused(true);
+      if (phase === "set" && musicStarted.current) void playMusic();
+    } else {
+      pauseMusic();
+      setPaused(true);
+    }
   }
 
   const totalSets = plan.exercises.reduce(
@@ -438,15 +443,29 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             <p className="text-lg font-semibold">
               Set {setNumber}: {current.reps} reps
             </p>
+            {paused ? (
+              <p className="mt-2 text-sm font-semibold text-emerald-700">
+                Workout paused
+              </p>
+            ) : null}
             {current.setDurationSeconds !== null ? (
               <p className="mt-2 text-4xl font-bold tabular-nums text-slate-900">
                 {Math.floor(seconds / 60)}:
                 {String(seconds % 60).padStart(2, "0")}
               </p>
             ) : null}
-            <Button className="mt-5" onClick={completeSet}>
-              Complete set
-            </Button>
+            <div className="mt-5 flex justify-center gap-3">
+              <button
+                className="rounded-xl border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+                onClick={togglePause}
+                type="button"
+              >
+                {paused ? "Resume" : "Pause"}
+              </button>
+              <Button disabled={paused} onClick={completeSet}>
+                Complete set
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="mt-9 rounded-2xl bg-slate-900 p-6 text-center text-white">
