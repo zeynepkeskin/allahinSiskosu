@@ -17,8 +17,8 @@ const links = [
 ];
 
 const colorfulIcons: Record<string, string> = {
-  "/dashboard": "\\u{1F5A5}\\uFE0F",
-  "/meals": "\\u{1F969}",
+  "/dashboard": String.fromCodePoint(0x1f5a5, 0xfe0f),
+  "/meals": String.fromCodePoint(0x1f969),
   "/exercises": "🏋️",
   "/coach": "✨",
   "/analytics": "📊",
