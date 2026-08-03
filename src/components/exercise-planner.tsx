@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
-import { getExerciseVisual } from "@/lib/exercise-catalog";
+import { demoFrames, getExerciseVisual } from "@/lib/exercise-catalog";
 import { formatInTimeZone } from "@/lib/timezone";
 import {
   days,
-  exercisePrescription,
   type Exercise,
   type ExercisePlan,
 } from "@/lib/exercises";
@@ -345,14 +345,12 @@ export function ExercisePlanner({
               : "No workout planned"}
         </h2>
         {activePlan && !activePlan.isRestDay ? (
-          <div className="mt-4 space-y-2">
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {activePlan.exercises.map((exercise, index) => (
-              <p
-                className="text-sm text-slate-600"
+              <ExercisePreview
+                exercise={exercise}
                 key={`${exercise.name}-${index}`}
-              >
-                {exercisePrescription(exercise)}
-              </p>
+              />
             ))}
           </div>
         ) : (
@@ -440,6 +438,36 @@ export function ExercisePlanner({
         )}
       </Card>
     </div>
+  );
+}
+
+function ExercisePreview({ exercise }: { exercise: Exercise }) {
+  const visual = getExerciseVisual(exercise.name);
+  const frame = visual?.demoId ? demoFrames(visual.demoId).start : undefined;
+
+  return (
+    <article className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+      {frame ? (
+        <Image
+          alt={`${exercise.name} starting position`}
+          className="aspect-[4/3] w-full bg-white object-contain"
+          height={240}
+          src={frame}
+          width={320}
+        />
+      ) : (
+        <div
+          aria-label={`${exercise.name} image unavailable`}
+          className="flex aspect-[4/3] items-center justify-center bg-emerald-50 text-xs font-medium text-emerald-700"
+          role="img"
+        >
+          Exercise image unavailable
+        </div>
+      )}
+      <p className="truncate px-3 py-2 text-center text-sm font-semibold text-slate-700">
+        {exercise.name}
+      </p>
+    </article>
   );
 }
 
