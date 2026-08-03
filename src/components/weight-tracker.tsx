@@ -67,7 +67,13 @@ export function WeightTracker({
     setWeight("");
     setDate(today());
     setEditing(undefined);
-    setMessage("Weight entry saved.");
+    setMessage(
+      body.profileSyncError
+        ? "Weight entry saved, but your profile could not be updated."
+        : typeof body.dailyCalorieGoal === "number"
+          ? `Weight entry saved. Your daily calorie goal is now ${body.dailyCalorieGoal} kcal.`
+          : "Weight entry saved.",
+    );
   }
   function beginEdit(entry: WeightEntry) {
     setEditing(entry.id);

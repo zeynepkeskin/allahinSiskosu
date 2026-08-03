@@ -142,6 +142,10 @@ Displays a weekly training summary next to weight trends, including completed
 workouts, training volume where available, and the latest completed workout.
 The product must not imply that a workout caused a weight change.
 
+Saving or editing a weight entry updates the profile's current weight from the
+latest dated entry and recalculates the daily calorie goal when the rest of the
+profile details are complete.
+
 ## Analytics
 
 Analytics covers nutrition and completed strength workouts over 7- and 30-day

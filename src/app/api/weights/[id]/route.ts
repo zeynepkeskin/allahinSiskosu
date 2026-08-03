@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { kilogramsToPounds, poundsToKilograms } from "@/lib/units";
+import { syncProfileWeightFromLatestEntry } from "@/lib/profile-weight-sync";
 
 const weightSchema = z.object({
   weight: z.number().min(55).max(1100),
@@ -49,9 +50,12 @@ export async function PATCH(
       { error: "Could not update weight entry." },
       { status: 500 },
     );
+  const profileSync = await syncProfileWeightFromLatestEntry(user.id);
   return NextResponse.json({
     ...data,
     weight: kilogramsToPounds(Number(data.weight)),
+    dailyCalorieGoal: profileSync.dailyCalorieGoal,
+    profileSyncError: profileSync.error,
   });
 }
 export async function DELETE(
@@ -71,5 +75,6 @@ export async function DELETE(
       { error: "Could not delete weight entry." },
       { status: 500 },
     );
+  await syncProfileWeightFromLatestEntry(user.id);
   return new NextResponse(null, { status: 204 });
 }
