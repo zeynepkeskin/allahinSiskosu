@@ -187,6 +187,9 @@ set. Users can pause, resume,
 The start cue plays sequentially as three short beeps followed by a one-second
 long beep. The final three seconds of rest each play one short beep. Starting
 a new cue, muting, or ending a workout cancels pending speech and sounds.
+After the opening countdown, the runner starts one randomly selected looping
+soundtrack from the bundled tracks. Music has its own on/off control and stops
+when the workout ends.
 
 Users can skip, repeat, or end a workout. Completing or ending a workout records its
 result in the workout history.

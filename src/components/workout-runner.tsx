@@ -15,9 +15,11 @@ const ordinal = (number: number) =>
     ? "First"
     : number === 2
       ? "Second"
-      : number === 3
-        ? "Third"
+    : number === 3
+      ? "Third"
         : `${number}th`;
+
+const soundtrackCount = 6;
 
 export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   const router = useRouter();
@@ -27,11 +29,14 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     [seconds, setSeconds] = useState(0),
     [paused, setPaused] = useState(false),
     [muted, setMuted] = useState(false),
+    [musicEnabled, setMusicEnabled] = useState(true),
     [sessionId, setSessionId] = useState<string>(),
     [sessionExerciseIds, setSessionExerciseIds] = useState<string[]>([]),
     [message, setMessage] = useState<string>();
   const deadline = useRef<number | undefined>(undefined);
   const audioContext = useRef<AudioContext | undefined>(undefined);
+  const music = useRef<HTMLAudioElement | undefined>(undefined);
+  const musicStarted = useRef(false);
   const activeSources = useRef<OscillatorNode[]>([]);
   const cueTimers = useRef<Set<number>>(new Set());
   const cueVersion = useRef(0);
@@ -68,6 +73,26 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     speechDone.current?.();
     speechDone.current = undefined;
+  }
+
+  function stopMusic() {
+    if (!music.current) return;
+    music.current.pause();
+    music.current.currentTime = 0;
+    musicStarted.current = false;
+  }
+
+  function pauseMusic() {
+    music.current?.pause();
+  }
+
+  async function playMusic(enabled = musicEnabled) {
+    if (!enabled || !music.current) return;
+    try {
+      await music.current.play();
+    } catch {
+      setMessage("Music could not start. Use the Music on button to try again.");
+    }
   }
 
   function wait(milliseconds: number, version: number) {
@@ -140,12 +165,22 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       if (!(await wait(1000, version))) return;
     }
     beep(true);
+    if (!(await wait(1000, version))) return;
+    if (!musicStarted.current) {
+      musicStarted.current = true;
+      await playMusic();
+    }
     if (cueVersion.current === version) setPhase("set");
   }
 
   async function begin() {
     setMessage(undefined);
     ensureAudioContext();
+    music.current = new Audio(
+      `/soundtracks/${Math.floor(Math.random() * soundtrackCount)}.mp3`,
+    );
+    music.current.loop = true;
+    music.current.preload = "auto";
     const response = await fetch("/api/workouts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -203,7 +238,13 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     return () => window.clearInterval(timer); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, paused]);
 
-  useEffect(() => () => stopCues(), []);
+  useEffect(
+    () => () => {
+      stopCues();
+      stopMusic();
+    },
+    [],
+  );
 
   async function completeSet() {
     const completed = setNumber;
@@ -232,6 +273,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
 
   async function finish(status: "completed" | "ended_early") {
     stopCues();
+    stopMusic();
     if (sessionId)
       await fetch(`/api/workouts/${sessionId}`, {
         method: "PATCH",
@@ -318,6 +360,20 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             type="button"
           >
             {muted ? "Sound off" : "Sound on"}
+          </button>
+          <button
+            aria-pressed={musicEnabled}
+            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
+            onClick={() => {
+              const nextEnabled = !musicEnabled;
+              setMusicEnabled(nextEnabled);
+              if (nextEnabled && musicStarted.current)
+                void playMusic(nextEnabled);
+              else if (!nextEnabled) pauseMusic();
+            }}
+            type="button"
+          >
+            {musicEnabled ? "Music on" : "Music off"}
           </button>
         </div>
         <div className="mt-8">
