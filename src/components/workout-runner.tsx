@@ -542,50 +542,50 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             </p>
             <h1 className="mt-1 text-3xl font-bold">{current.name}</h1>
             <p className="mt-2 text-slate-500">
-              {exercisePrescription(current)}
+              {exercisePrescription(current).replace(`${current.name} · `, "")}
             </p>
           </div>
-          <button
-            aria-pressed={muted}
-            aria-label={muted ? "Turn sound on" : "Turn sound off"}
-            className="grid h-10 w-10 place-items-center rounded-lg border border-slate-300 text-[0px] text-slate-700 transition hover:bg-slate-50"
-            onClick={() => {
-              if (!muted) {
-                stopCues();
-                if (phase === "cue") setPhase("set");
-              }
-              setMuted((value) => !value);
-            }}
-            title={muted ? "Sound off" : "Sound on"}
-            type="button"
-          >
-            {muted ? (
-              <VolumeX aria-hidden="true" className="h-5 w-5" />
-            ) : (
-              <Volume2 aria-hidden="true" className="h-5 w-5" />
-            )}
-            {muted ? "🔇" : "🔊"}
-          </button>
-          <button
-            aria-pressed={musicEnabled}
-            aria-label={musicEnabled ? "Turn music off" : "Turn music on"}
-            className="grid h-10 w-10 place-items-center rounded-lg border border-slate-300 text-[0px] text-slate-700 transition hover:bg-slate-50"
-            onClick={() => {
-              const nextEnabled = !musicEnabled;
-              setMusicEnabled(nextEnabled);
-              if (nextEnabled && musicStarted.current)
-                void playMusic(nextEnabled);
-              else if (!nextEnabled) pauseMusic();
-            }}
-            title={musicEnabled ? "Music on" : "Music off"}
-            type="button"
-          >
-            <Music
-              aria-hidden="true"
-              className={`h-5 w-5 ${musicEnabled ? "" : "opacity-40"}`}
-            />
-            {musicEnabled ? "♫" : "♩"}
-          </button>
+          <div className="flex items-start gap-1 text-slate-700">
+            <button
+              aria-pressed={muted}
+              aria-label={muted ? "Turn sound on" : "Turn sound off"}
+              className="grid size-8 place-items-center rounded-md transition hover:bg-slate-100"
+              onClick={() => {
+                if (!muted) {
+                  stopCues();
+                  if (phase === "cue") setPhase("set");
+                }
+                setMuted((value) => !value);
+              }}
+              title={muted ? "Sound off" : "Sound on"}
+              type="button"
+            >
+              {muted ? (
+                <VolumeX aria-hidden="true" className="h-5 w-5" />
+              ) : (
+                <Volume2 aria-hidden="true" className="h-5 w-5" />
+              )}
+            </button>
+            <button
+              aria-pressed={musicEnabled}
+              aria-label={musicEnabled ? "Turn music off" : "Turn music on"}
+              className="grid size-8 place-items-center rounded-md transition hover:bg-slate-100"
+              onClick={() => {
+                const nextEnabled = !musicEnabled;
+                setMusicEnabled(nextEnabled);
+                if (nextEnabled && musicStarted.current)
+                  void playMusic(nextEnabled);
+                else if (!nextEnabled) pauseMusic();
+              }}
+              title={musicEnabled ? "Music on" : "Music off"}
+              type="button"
+            >
+              <Music
+                aria-hidden="true"
+                className={`h-5 w-5 ${musicEnabled ? "" : "opacity-40"}`}
+              />
+            </button>
+          </div>
         </div>
         <div className="mt-8">
           <ProgressBar
@@ -599,19 +599,16 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             className="flex aspect-[4/3] flex-col justify-center rounded-xl border border-slate-200 bg-white p-4"
           >
             {phase === "ready" ? (
-              <>
-                <p className="mt-8 text-sm text-slate-500">
-                  Start to hear the exercise prescription and a 3–2–1 countdown.
-                </p>
+              <div className="flex h-full items-center justify-center">
                 <Button
                   aria-label="Start workout"
-                  className="mt-4 grid h-12 w-12 place-items-center p-0 text-[0px]"
+                  className="grid h-12 w-12 place-items-center p-0 text-[0px]"
                   onClick={begin}
                   title="Start workout"
                 >
                   <Play aria-hidden="true" className="h-5 w-5 fill-current" />▶
                 </Button>
-              </>
+              </div>
             ) : phase === "cue" ? (
               <div
                 aria-live="polite"
@@ -754,20 +751,22 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             {message}
           </p>
         ) : null}
-        <button
-          className="mt-8 text-sm font-semibold text-red-600"
-          onClick={() => {
-            if (
-              window.confirm(
-                "End this workout? Your completed sets will be saved.",
+        <div className="mt-8 flex justify-end">
+          <button
+            className="text-sm font-semibold text-slate-900"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "End this workout? Your completed sets will be saved.",
+                )
               )
-            )
-              void finish("ended_early");
-          }}
-          type="button"
-        >
-          End workout
-        </button>
+                void finish("ended_early");
+            }}
+            type="button"
+          >
+            End workout
+          </button>
+        </div>
       </Card>
     </div>
   );

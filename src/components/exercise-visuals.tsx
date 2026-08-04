@@ -171,7 +171,7 @@ export function ExerciseDemonstration({
     >
       <Image
         alt={`${name}: ${position} position`}
-        className="h-full w-full object-contain"
+        className="h-full w-full rounded-xl object-contain"
         height={300}
         priority
         src={frames[position]}
