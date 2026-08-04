@@ -133,7 +133,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     [repeatBaselineSetCounts, setRepeatBaselineSetCounts] = useState<number[]>(
       [],
     ),
+    [completedSetCounts, setCompletedSetCounts] = useState<number[]>([]),
     [estimatedCalories, setEstimatedCalories] = useState<number | null>(),
+    [loadingSession, setLoadingSession] = useState(true),
     [message, setMessage] = useState<string>();
   const deadline = useRef<number | undefined>(undefined);
   const audioContext = useRef<AudioContext | undefined>(undefined);
@@ -288,7 +290,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     if (cueVersion.current === version) setPhase("set");
   }
 
-  async function begin() {
+  function begin() {
     setMessage(undefined);
     ensureAudioContext();
     music.current = new Audio(
@@ -296,39 +298,52 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     );
     music.current.loop = true;
     music.current.preload = "auto";
-    const response = await fetch(`/api/workouts?planId=${plan.id}`);
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setMessage(body.error ?? "Could not start workout.");
-      return;
-    }
-    const existing = body.session as {
-      id: string;
-      exerciseIds: string[];
-      completedSetCounts: number[];
-      estimatedCalBurned: number | null;
-    } | null;
-    if (!existing) {
-      void startSet(1, current, true);
-      return;
-    }
-
-    setSessionId(existing.id);
-    setSessionExerciseIds(existing.exerciseIds);
-    setEstimatedCalories(existing.estimatedCalBurned);
-    const firstIncomplete = plan.exercises.findIndex(
-      (exercise, index) =>
-        (existing.completedSetCounts[index] ?? 0) < exercise.sets,
-    );
-    const isRepeat = firstIncomplete === -1;
-    const nextExerciseIndex = isRepeat ? 0 : firstIncomplete;
-    const nextSet = isRepeat
-      ? 1
-      : (existing.completedSetCounts[nextExerciseIndex] ?? 0) + 1;
-    setRepeatBaselineSetCounts(isRepeat ? existing.completedSetCounts : []);
-    setExerciseIndex(nextExerciseIndex);
-    void startSet(nextSet, exerciseAt(nextExerciseIndex), true);
+    void startSet(setNumber, current, true);
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSession() {
+      const response = await fetch(`/api/workouts?planId=${plan.id}`);
+      const body = await response.json().catch(() => ({}));
+      if (cancelled) return;
+      if (!response.ok) {
+        setMessage(body.error ?? "Could not load workout progress.");
+        setLoadingSession(false);
+        return;
+      }
+      const existing = body.session as {
+        id: string;
+        exerciseIds: string[];
+        completedSetCounts: number[];
+        estimatedCalBurned: number | null;
+      } | null;
+      if (existing) {
+        setSessionId(existing.id);
+        setSessionExerciseIds(existing.exerciseIds);
+        setCompletedSetCounts(existing.completedSetCounts);
+        setEstimatedCalories(existing.estimatedCalBurned);
+        const firstIncomplete = plan.exercises.findIndex(
+          (exercise, index) =>
+            (existing.completedSetCounts[index] ?? 0) < exercise.sets,
+        );
+        const isRepeat = firstIncomplete === -1;
+        const nextExerciseIndex = isRepeat ? 0 : firstIncomplete;
+        setRepeatBaselineSetCounts(isRepeat ? existing.completedSetCounts : []);
+        setExerciseIndex(nextExerciseIndex);
+        setSetNumber(
+          isRepeat
+            ? 1
+            : (existing.completedSetCounts[nextExerciseIndex] ?? 0) + 1,
+        );
+      }
+      setLoadingSession(false);
+    }
+    void loadSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [plan.id, plan.exercises]);
 
   function advanceFromRest() {
     if (advancingRest.current) return;
@@ -433,6 +448,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       id = body.exerciseIds?.[exerciseIndex];
       setSessionId(activeSessionId);
       setSessionExerciseIds(body.exerciseIds ?? []);
+      setCompletedSetCounts(body.completedSetCounts ?? []);
       setEstimatedCalories(body.estimatedCalBurned ?? null);
     } else if (id) {
       const response = await fetch(`/api/workouts/${activeSessionId}`, {
@@ -449,7 +465,15 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
         }),
       });
       const body = await response.json().catch(() => ({}));
-      if (response.ok) setEstimatedCalories(body.estimatedCalBurned ?? null);
+      if (response.ok) {
+        setEstimatedCalories(body.estimatedCalBurned ?? null);
+        setCompletedSetCounts((counts) => {
+          const next = [...counts];
+          next[exerciseIndex] =
+            (repeatBaselineSetCounts[exerciseIndex] ?? 0) + completed;
+          return next;
+        });
+      }
     }
     if (
       completed >= current.sets &&
@@ -544,6 +568,22 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   function cancelTimerEdit() {
     setEditingTimer(undefined);
     setTimerValue("");
+  }
+
+  function jumpToExercise(index: number) {
+    const completedSets = completedSetCounts[index] ?? 0;
+    const isComplete = completedSets >= plan.exercises[index].sets;
+    stopCues();
+    stopMusic();
+    setExerciseIndex(index);
+    setSetNumber(isComplete ? 1 : completedSets + 1);
+    setRepeatBaselineSetCounts((counts) => {
+      const next = [...counts];
+      next[index] = isComplete ? completedSets : 0;
+      return next;
+    });
+    setPaused(false);
+    setPhase("ready");
   }
 
   const totalSets = plan.exercises.reduce(
@@ -646,6 +686,25 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             value={(doneSets / totalSets) * 100}
           />
         </div>
+        <div
+          aria-label="Exercise completion progress"
+          className="mt-4 flex flex-wrap gap-2"
+        >
+          {plan.exercises.map((exercise, index) => {
+            const completedSets = completedSetCounts[index] ?? 0;
+            const isComplete = completedSets >= exercise.sets;
+            return (
+              <button
+                aria-label={`${exercise.name}: ${completedSets} of ${exercise.sets} sets completed. Jump to exercise.`}
+                className={`size-4 rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : completedSets > 0 ? "bg-emerald-100" : "bg-white"}`}
+                key={`${exercise.name}-${index}`}
+                onClick={() => jumpToExercise(index)}
+                title={exercise.name}
+                type="button"
+              />
+            );
+          })}
+        </div>
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <section
             aria-label="Workout controls"
@@ -656,6 +715,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
                 <Button
                   aria-label="Start workout"
                   className="grid h-12 w-12 place-items-center p-0 text-[0px]"
+                  disabled={loadingSession}
                   onClick={begin}
                   title="Start workout"
                 >
