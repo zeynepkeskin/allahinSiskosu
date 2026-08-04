@@ -130,9 +130,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     >({}),
     [sessionId, setSessionId] = useState<string>(),
     [sessionExerciseIds, setSessionExerciseIds] = useState<string[]>([]),
-    [sessionCompletedSetCounts, setSessionCompletedSetCounts] = useState<
-      number[]
-    >([]),
+    [repeatBaselineSetCounts, setRepeatBaselineSetCounts] = useState<number[]>(
+      [],
+    ),
     [message, setMessage] = useState<string>();
   const deadline = useRef<number | undefined>(undefined);
   const audioContext = useRef<AudioContext | undefined>(undefined);
@@ -295,7 +295,36 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     );
     music.current.loop = true;
     music.current.preload = "auto";
-    void startSet(1, current, true);
+    const response = await fetch(`/api/workouts?planId=${plan.id}`);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(body.error ?? "Could not start workout.");
+      return;
+    }
+    const existing = body.session as {
+      id: string;
+      exerciseIds: string[];
+      completedSetCounts: number[];
+    } | null;
+    if (!existing) {
+      void startSet(1, current, true);
+      return;
+    }
+
+    setSessionId(existing.id);
+    setSessionExerciseIds(existing.exerciseIds);
+    const firstIncomplete = plan.exercises.findIndex(
+      (exercise, index) =>
+        (existing.completedSetCounts[index] ?? 0) < exercise.sets,
+    );
+    const isRepeat = firstIncomplete === -1;
+    const nextExerciseIndex = isRepeat ? 0 : firstIncomplete;
+    const nextSet = isRepeat
+      ? 1
+      : (existing.completedSetCounts[nextExerciseIndex] ?? 0) + 1;
+    setRepeatBaselineSetCounts(isRepeat ? existing.completedSetCounts : []);
+    setExerciseIndex(nextExerciseIndex);
+    void startSet(nextSet, exerciseAt(nextExerciseIndex), true);
   }
 
   function advanceFromRest() {
@@ -401,7 +430,6 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       id = body.exerciseIds?.[exerciseIndex];
       setSessionId(activeSessionId);
       setSessionExerciseIds(body.exerciseIds ?? []);
-      setSessionCompletedSetCounts(body.completedSetCounts ?? []);
     } else if (id) {
       await fetch(`/api/workouts/${activeSessionId}`, {
         method: "PATCH",
@@ -411,7 +439,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             {
               id,
               completedSets:
-                (sessionCompletedSetCounts[exerciseIndex] ?? 0) + completed,
+                (repeatBaselineSetCounts[exerciseIndex] ?? 0) + completed,
             },
           ],
         }),

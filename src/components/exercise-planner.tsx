@@ -22,8 +22,12 @@ const blankExercise = (): Exercise => ({
 
 type Session = {
   id: string;
-  status: "completed" | "ended_early" | "in_progress";
   startedAt: string;
+  exercises: Array<{
+    name: string;
+    plannedSets: number;
+    completedSets: number;
+  }>;
 };
 
 export function ExercisePlanner({
@@ -434,19 +438,26 @@ export function ExercisePlanner({
                   })}
                 </span>
                 <div className="flex items-center gap-3">
-                  <span
-                    className={
-                      session.status === "completed"
-                        ? "font-semibold text-emerald-700"
-                        : "font-semibold text-slate-500"
-                    }
+                  <div
+                    aria-label="Exercise completion progress"
+                    className="flex items-center gap-1"
                   >
-                    {session.status === "completed"
-                      ? "Completed"
-                      : session.status === "ended_early"
-                        ? "Ended early"
-                        : "In progress"}
-                  </span>
+                    {session.exercises.map((exercise, index) => {
+                      const isComplete =
+                        exercise.plannedSets > 0 &&
+                        exercise.completedSets >= exercise.plannedSets;
+                      const hasProgress = exercise.completedSets > 0;
+                      return (
+                        <span
+                          aria-label={`${exercise.name}: ${exercise.completedSets} of ${exercise.plannedSets} sets completed`}
+                          className={`size-3 rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : hasProgress ? "bg-emerald-100" : "bg-white"}`}
+                          key={`${exercise.name}-${index}`}
+                          role="img"
+                          title={`${exercise.name}: ${exercise.completedSets}/${exercise.plannedSets} sets`}
+                        />
+                      );
+                    })}
+                  </div>
                   <button
                     aria-label="Delete workout session"
                     className="grid h-8 w-8 place-items-center rounded-lg text-[0px] text-red-600 hover:bg-red-50 disabled:opacity-50"

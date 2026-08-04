@@ -16,7 +16,7 @@ export default async function ExercisesPage() {
     .eq("profile_id", user!.id);
   const { data: sessionData } = await supabase
     .from("workout_sessions")
-    .select("id, status, started_at")
+    .select("id, started_at, exercises")
     .order("started_at", { ascending: false })
     .limit(8);
   const plans: ExercisePlan[] = (data ?? []).map(exercisePlanFromRow);
@@ -34,8 +34,16 @@ export default async function ExercisesPage() {
         initialPlans={plans}
         sessions={(sessionData ?? []).map((session) => ({
           id: session.id,
-          status: session.status,
           startedAt: session.started_at,
+          exercises: (
+            (session.exercises ?? []) as Array<Record<string, unknown>>
+          )
+            .sort((a, b) => Number(a.sort_order) - Number(b.sort_order))
+            .map((exercise) => ({
+              name: String(exercise.name),
+              plannedSets: Number(exercise.planned_sets),
+              completedSets: Number(exercise.completed_sets),
+            })),
         }))}
       />
     </>

@@ -19,6 +19,60 @@ const startSchema = z.object({
 
 type SessionExercise = Record<string, unknown>;
 
+const sessionSelect = "id, exercises, exercise_plans!inner(profile_id)";
+
+export async function GET(request: Request) {
+  const planId = new URL(request.url).searchParams.get("planId");
+  if (!z.string().uuid().safeParse(planId).success)
+    return NextResponse.json(
+      { error: "Invalid workout plan." },
+      { status: 400 },
+    );
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json(
+      { error: "Sign in to start a workout." },
+      { status: 401 },
+    );
+
+  const { data: plan } = await supabase
+    .from("exercise_plans")
+    .select("id")
+    .eq("id", planId)
+    .eq("profile_id", user.id)
+    .single();
+  if (!plan)
+    return NextResponse.json(
+      { error: "Invalid workout plan." },
+      { status: 400 },
+    );
+
+  const { data: session } = await supabase
+    .from("workout_sessions")
+    .select(sessionSelect)
+    .eq("exercise_plans.profile_id", user.id)
+    .eq("workout_date", todayInTimeZone(await userTimeZone()))
+    .maybeSingle();
+  if (!session) return NextResponse.json({ session: null });
+
+  const exercises = ((session.exercises ?? []) as SessionExercise[]).sort(
+    (a, b) => Number(a.sort_order) - Number(b.sort_order),
+  );
+  return NextResponse.json({
+    session: {
+      id: session.id,
+      exerciseIds: exercises.map((exercise) => String(exercise.id)),
+      completedSetCounts: exercises.map((exercise) =>
+        Number(exercise.completed_sets ?? 0),
+      ),
+    },
+  });
+}
+
 function updateCompletedSets(
   exercises: SessionExercise[],
   completedSets: Map<number, number>,
@@ -83,7 +137,7 @@ export async function POST(request: Request) {
   );
   const { data: existing } = await supabase
     .from("workout_sessions")
-    .select("id, exercises, exercise_plans!inner(profile_id)")
+    .select(sessionSelect)
     .eq("exercise_plans.profile_id", user.id)
     .eq("workout_date", workoutDate)
     .maybeSingle();
