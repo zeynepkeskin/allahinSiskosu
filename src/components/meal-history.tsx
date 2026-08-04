@@ -6,6 +6,17 @@ import type { SavedMeal } from "@/lib/nutrition";
 import { Button, EmptyState, Spinner } from "@/components/ui";
 import { formatInTimeZone } from "@/lib/timezone";
 
+const nutritionFields = [
+  { key: "calories", label: "Calories", unit: "kcal", step: "1" },
+  { key: "protein", label: "Protein", unit: "g", step: "0.1" },
+  { key: "carbs", label: "Carbs", unit: "g", step: "0.1" },
+  { key: "fat", label: "Fat", unit: "g", step: "0.1" },
+  { key: "fiber", label: "Fiber", unit: "g", step: "0.1" },
+  { key: "sugar", label: "Sugar", unit: "g", step: "0.1" },
+] as const;
+
+type NutritionField = (typeof nutritionFields)[number]["key"];
+
 export function MealHistory({ refreshKey }: { refreshKey: number }) {
   const [meals, setMeals] = useState<SavedMeal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +24,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
   const [deleting, setDeleting] = useState<string>();
   const [editing, setEditing] = useState<SavedMeal>();
   const [name, setName] = useState("");
+  const [items, setItems] = useState<SavedMeal["items"]>([]);
   useEffect(() => {
     let active = true;
     async function load() {
@@ -63,9 +75,24 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
   function startEditing(meal: SavedMeal) {
     setEditing(meal);
     setName(meal.mealName);
+    setItems(meal.items);
+  }
+  function updateNutrition(
+    index: number,
+    field: NutritionField,
+    value: string,
+  ) {
+    const amount = Number(value);
+    setItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index
+          ? { ...item, [field]: Number.isFinite(amount) && amount >= 0 ? amount : 0 }
+          : item,
+      ),
+    );
   }
   async function saveEdit() {
-    if (!editing || name.trim().length < 1) return;
+    if (!editing || name.trim().length < 1 || items.length === 0) return;
     setError(undefined);
     try {
       const response = await fetch(`/api/meals/${editing.id}`, {
@@ -73,7 +100,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mealName: name.trim(),
-          items: editing.items,
+          items,
           mealTime: editing.mealTime,
         }),
       });
@@ -173,9 +200,9 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
           aria-modal="true"
           aria-labelledby="edit-meal-title"
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[calc(100vh-2.5rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h2 id="edit-meal-title" className="text-xl font-bold">
-              Edit eat name
+              Edit eat
             </h2>
             <label
               className="mt-5 block text-sm font-medium"
@@ -189,6 +216,41 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
+            <div className="mt-6 space-y-5">
+              <h3 className="text-sm font-medium">Nutrition values</h3>
+              {items.map((item, index) => (
+                <fieldset
+                  className="rounded-xl border border-slate-200 p-4"
+                  key={`${item.foodName}-${item.serving}-${index}`}
+                >
+                  <legend className="px-1 text-sm font-semibold text-slate-900">
+                    {item.foodName}
+                    <span className="ml-2 font-normal text-slate-500">
+                      {item.serving}
+                    </span>
+                  </legend>
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {nutritionFields.map(({ key, label, step, unit }) => (
+                      <label className="text-sm font-medium" key={key}>
+                        {label}
+                        <span className="ml-1 text-slate-500">({unit})</span>
+                        <input
+                          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-emerald-500"
+                          inputMode="decimal"
+                          min="0"
+                          onChange={(event) =>
+                            updateNutrition(index, key, event.target.value)
+                          }
+                          step={step}
+                          type="number"
+                          value={item[key]}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
+            </div>
             <div className="mt-6 flex justify-end gap-3">
               <button
                 className="text-sm font-semibold text-slate-600"
