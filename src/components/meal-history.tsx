@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { SavedMeal } from "@/lib/nutrition";
 import { Button, EmptyState, Spinner } from "@/components/ui";
 import { formatInTimeZone } from "@/lib/timezone";
@@ -133,18 +134,23 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
               </div>
               <div className="flex gap-2">
                 <button
-                  className="text-sm font-semibold text-emerald-700"
+                  aria-label={`Edit ${meal.mealName}`}
+                  className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-50"
                   onClick={() => startEditing(meal)}
+                  title="Edit eat"
                   type="button"
                 >
-                  Edit
+                  <Pencil aria-hidden="true" className="h-4 w-4" />
                 </button>
                 <button
-                  className="text-sm font-semibold text-rose-600 disabled:opacity-50"
+                  aria-label={`Delete ${meal.mealName}`}
+                  className="grid h-8 w-8 place-items-center rounded-lg text-[0px] text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                   disabled={deleting === meal.id}
                   onClick={() => void remove(meal)}
+                  title="Delete eat"
                   type="button"
                 >
+                  <Trash2 aria-hidden="true" className="h-4 w-4" />
                   {deleting === meal.id ? "Deleting…" : "Delete"}
                 </button>
               </div>

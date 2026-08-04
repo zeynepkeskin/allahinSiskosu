@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Trash2 } from "lucide-react";
 import type { MealAnalysis } from "@/lib/nutrition";
 import { type DailyNutrition, recommendFood } from "@/lib/recommendations";
 import { Button, Card, Spinner } from "@/components/ui";
@@ -220,11 +221,13 @@ function RecommendationPreview({
         </p>
         <div className="flex gap-3">
           <button
-            className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+            aria-label="Discard food check"
+            className="grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"
             onClick={onDiscard}
+            title="Discard"
             type="button"
           >
-            Delete
+            <Trash2 aria-hidden="true" className="h-5 w-5" />
           </button>
           <Button disabled={isSaving || saved} onClick={onSave} type="button">
             {saved ? "Saved" : isSaving ? "Saving..." : "I ate this"}

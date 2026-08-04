@@ -3,29 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import {
+  BarChart3,
+  Dumbbell,
+  LayoutDashboard,
+  Menu,
+  Settings,
+  Sparkles,
+  TrendingUp,
+  UserRound,
+  UtensilsCrossed,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-const links = [
-  { href: "/dashboard", label: "Dashboard", icon: "⌂" },
-  { href: "/meals", label: "Eats", icon: "☷" },
-  { href: "/exercises", label: "Exercises", icon: "🏋" },
-  { href: "/coach", label: "Coach", icon: "✨" },
-  { href: "/analytics", label: "Analytics", icon: "≋" },
-  { href: "/progress", label: "Progress", icon: "↗" },
-  { href: "/profile", label: "Profile", icon: "◎" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
+const links: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/meals", label: "Eats", icon: UtensilsCrossed },
+  { href: "/exercises", label: "Exercises", icon: Dumbbell },
+  { href: "/coach", label: "Coach", icon: Sparkles },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/progress", label: "Progress", icon: TrendingUp },
+  { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
-
-const colorfulIcons: Record<string, string> = {
-  "/dashboard": String.fromCodePoint(0x1f5a5, 0xfe0f),
-  "/meals": String.fromCodePoint(0x1f969),
-  "/exercises": "🏋️",
-  "/coach": "✨",
-  "/analytics": "📊",
-  "/progress": "🎯",
-  "/profile": "👤",
-  "/settings": "🛠️",
-};
 
 type NavigationProps = {
   close?: () => void;
@@ -36,7 +38,9 @@ function Navigation({ close, pathname }: NavigationProps) {
   return (
     <nav aria-label="Main navigation" className="flex flex-col gap-1 px-4 py-4">
       {links.map((link) => {
-        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active =
+          pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const Icon = link.icon;
 
         return (
           <Link
@@ -50,9 +54,11 @@ function Navigation({ close, pathname }: NavigationProps) {
             key={link.href}
             onClick={close}
           >
-            <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center text-xl leading-none">
-              {colorfulIcons[link.href]}
-            </span>
+            <Icon
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0"
+              strokeWidth={2}
+            />
             {link.label}
           </Link>
         );
@@ -63,7 +69,10 @@ function Navigation({ close, pathname }: NavigationProps) {
 
 function Brand() {
   return (
-    <Link className="text-lg font-bold tracking-tight text-slate-900" href="/dashboard">
+    <Link
+      className="text-lg font-bold tracking-tight text-slate-900"
+      href="/dashboard"
+    >
       Fit<span className="text-emerald-600">log</span>
     </Link>
   );
@@ -111,7 +120,7 @@ export function AppSidebar({ email }: { email?: string }) {
           ref={menuButtonRef}
           type="button"
         >
-          <span aria-hidden="true" className="text-xl leading-none">☰</span>
+          <Menu aria-hidden="true" className="h-5 w-5" />
         </button>
       </header>
 
@@ -138,13 +147,19 @@ export function AppSidebar({ email }: { email?: string }) {
                 onClick={() => setIsOpen(false)}
                 type="button"
               >
-                <span aria-hidden="true" className="text-2xl leading-none">×</span>
+                <X aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>
             <Navigation close={() => setIsOpen(false)} pathname={pathname} />
             <div className="mt-auto border-t border-slate-100 p-4">
-              <p className="truncate px-3 text-sm font-medium text-slate-700">{email ?? "Your account"}</p>
-              <button className="mt-2 w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900" onClick={signOut} type="button">
+              <p className="truncate px-3 text-sm font-medium text-slate-700">
+                {email ?? "Your account"}
+              </p>
+              <button
+                className="mt-2 w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                onClick={signOut}
+                type="button"
+              >
                 Sign out
               </button>
             </div>
@@ -155,12 +170,20 @@ export function AppSidebar({ email }: { email?: string }) {
       <aside className="hidden min-h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="flex items-center justify-between px-6 py-5">
           <Brand />
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Beta</span>
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+            Beta
+          </span>
         </div>
         <Navigation pathname={pathname} />
         <div className="mt-auto border-t border-slate-100 p-4">
-          <p className="truncate px-3 text-sm font-medium text-slate-700">{email ?? "Your account"}</p>
-          <button className="mt-2 w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900" onClick={signOut} type="button">
+          <p className="truncate px-3 text-sm font-medium text-slate-700">
+            {email ?? "Your account"}
+          </p>
+          <button
+            className="mt-2 w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            onClick={signOut}
+            type="button"
+          >
             Sign out
           </button>
         </div>

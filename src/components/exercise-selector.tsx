@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useId, useState } from "react";
+import { X } from "lucide-react";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import {
   demoFrames,
@@ -102,11 +103,11 @@ export function ExerciseSelector({
               </div>
               <button
                 aria-label="Close exercise selector"
-                className="rounded-lg px-2 py-1 text-lg text-slate-500 hover:bg-slate-100"
+                className="grid h-9 w-9 place-items-center rounded-lg text-[0px] text-slate-500 hover:bg-slate-100"
                 onClick={() => setOpen(false)}
                 type="button"
               >
-                ×
+                <X aria-hidden="true" className="h-5 w-5" />×
               </button>
             </header>
             <div className="p-5">
@@ -191,9 +192,7 @@ export function ExerciseSelector({
                       <p className="border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         Target muscles
                       </p>
-                      <ExerciseMuscleMap
-                        visual={visual}
-                      />
+                      <ExerciseMuscleMap visual={visual} />
                     </section>
                   </div>
                 </>

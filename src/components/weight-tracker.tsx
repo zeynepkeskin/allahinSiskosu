@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button, Card, EmptyState } from "@/components/ui";
 import { addCalendarDays, todayInTimeZone } from "@/lib/timezone";
 export type WeightEntry = { id: string; weight: number; date: string };
@@ -226,20 +227,24 @@ export function WeightTracker({
                       {displayDate(entry.date)}
                     </p>
                   </div>
-                  <div className="flex gap-4 text-sm font-semibold">
+                  <div className="flex gap-1">
                     <button
-                      className="text-emerald-700"
+                      aria-label={`Edit weight entry for ${displayDate(entry.date)}`}
+                      className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-50"
                       onClick={() => beginEdit(entry)}
+                      title="Edit weight entry"
                       type="button"
                     >
-                      Edit
+                      <Pencil aria-hidden="true" className="h-4 w-4" />
                     </button>
                     <button
-                      className="text-red-600"
+                      aria-label={`Delete weight entry for ${displayDate(entry.date)}`}
+                      className="rounded-lg p-2 text-red-600 hover:bg-red-50"
                       onClick={() => remove(entry.id)}
+                      title="Delete weight entry"
                       type="button"
                     >
-                      Delete
+                      <Trash2 aria-hidden="true" className="h-4 w-4" />
                     </button>
                   </div>
                 </div>

@@ -3,16 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
 import { demoFrames, getExerciseVisual } from "@/lib/exercise-catalog";
 import { formatInTimeZone } from "@/lib/timezone";
-import {
-  days,
-  type Exercise,
-  type ExercisePlan,
-} from "@/lib/exercises";
+import { days, type Exercise, type ExercisePlan } from "@/lib/exercises";
 
 const blankExercise = (): Exercise => ({
   name: "",
@@ -198,11 +195,13 @@ export function ExercisePlanner({
               <h2 className="mt-1 text-xl font-bold">Edit workout plan</h2>
             </div>
             <button
-              className="text-sm font-semibold text-slate-500"
+              aria-label="Close plan editor"
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
               onClick={() => setEditingDay(undefined)}
+              title="Close"
               type="button"
             >
-              Close
+              <X aria-hidden="true" className="h-5 w-5" />
             </button>
           </div>
           <label className="mt-5 flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-medium">
@@ -236,7 +235,8 @@ export function ExercisePlanner({
                     </legend>
                     {draft.exercises.length > 1 ? (
                       <button
-                        className="text-sm font-semibold text-red-600"
+                        aria-label={`Remove exercise ${index + 1}`}
+                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
                         onClick={() =>
                           setDraft((current) => ({
                             ...current,
@@ -245,9 +245,10 @@ export function ExercisePlanner({
                             ),
                           }))
                         }
+                        title="Remove exercise"
                         type="button"
                       >
-                        Remove
+                        <Trash2 aria-hidden="true" className="h-4 w-4" />
                       </button>
                     ) : null}
                   </div>
@@ -302,7 +303,7 @@ export function ExercisePlanner({
                 </fieldset>
               ))}
               <button
-                className="text-sm font-semibold text-emerald-700"
+                className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700"
                 onClick={() =>
                   setDraft((current) => ({
                     ...current,
@@ -311,7 +312,8 @@ export function ExercisePlanner({
                 }
                 type="button"
               >
-                + Add exercise
+                <Plus aria-hidden="true" className="h-4 w-4" />
+                Add exercise
               </button>
             </div>
           ) : null}
@@ -415,11 +417,13 @@ export function ExercisePlanner({
             {markingDone ? "Marking…" : "Mark as done"}
           </Button>
           <button
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            aria-label="Edit workout plan"
+            className="grid h-10 w-10 place-items-center rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50"
             onClick={() => open(activeDay)}
+            title="Edit workout plan"
             type="button"
           >
-            Edit
+            <Pencil aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
       </Card>
@@ -455,11 +459,14 @@ export function ExercisePlanner({
                         : "In progress"}
                   </span>
                   <button
-                    className="text-xs font-semibold text-red-600 disabled:opacity-50"
+                    aria-label="Delete workout session"
+                    className="grid h-8 w-8 place-items-center rounded-lg text-[0px] text-red-600 hover:bg-red-50 disabled:opacity-50"
                     disabled={deletingSession === session.id}
                     onClick={() => void removeSession(session)}
+                    title="Delete workout session"
                     type="button"
                   >
+                    <Trash2 aria-hidden="true" className="h-4 w-4" />
                     {deletingSession === session.id ? "Deleting…" : "Delete"}
                   </button>
                 </div>

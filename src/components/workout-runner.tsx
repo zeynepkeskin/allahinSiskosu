@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  Music,
+  Pause,
+  Pencil,
+  Play,
+  SkipForward,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ExerciseDemonstration } from "@/components/exercise-visuals";
 import { Button, Card, ProgressBar } from "@/components/ui";
@@ -39,26 +48,7 @@ function TimerEditButton({
       title={label}
       type="button"
     >
-      <svg
-        aria-hidden="true"
-        className="size-5"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <path
-          d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-        />
-        <path
-          d="m13.5 6.5 4 4"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeWidth="2"
-        />
-      </svg>
+      <Pencil aria-hidden="true" className="size-5" strokeWidth={2} />
     </button>
   );
 }
@@ -554,7 +544,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
           <button
             aria-pressed={muted}
             aria-label={muted ? "Turn sound on" : "Turn sound off"}
-            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold"
+            className="grid h-10 w-10 place-items-center rounded-lg border border-slate-300 text-[0px] text-slate-700 transition hover:bg-slate-50"
             onClick={() => {
               if (!muted) {
                 stopCues();
@@ -565,12 +555,17 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             title={muted ? "Sound off" : "Sound on"}
             type="button"
           >
+            {muted ? (
+              <VolumeX aria-hidden="true" className="h-5 w-5" />
+            ) : (
+              <Volume2 aria-hidden="true" className="h-5 w-5" />
+            )}
             {muted ? "🔇" : "🔊"}
           </button>
           <button
             aria-pressed={musicEnabled}
             aria-label={musicEnabled ? "Turn music off" : "Turn music on"}
-            className="h-fit rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold"
+            className="grid h-10 w-10 place-items-center rounded-lg border border-slate-300 text-[0px] text-slate-700 transition hover:bg-slate-50"
             onClick={() => {
               const nextEnabled = !musicEnabled;
               setMusicEnabled(nextEnabled);
@@ -581,6 +576,10 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             title={musicEnabled ? "Music on" : "Music off"}
             type="button"
           >
+            <Music
+              aria-hidden="true"
+              className={`h-5 w-5 ${musicEnabled ? "" : "opacity-40"}`}
+            />
             {musicEnabled ? "♫" : "♩"}
           </button>
         </div>
@@ -603,11 +602,11 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             </p>
             <Button
               aria-label="Start workout"
-              className="mt-4"
+              className="mt-4 grid h-12 w-12 place-items-center p-0 text-[0px]"
               onClick={begin}
               title="Start workout"
             >
-              ▶
+              <Play aria-hidden="true" className="h-5 w-5 fill-current" />▶
             </Button>
           </>
         ) : phase === "cue" ? (
@@ -657,20 +656,26 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             <div className="mt-5 flex justify-center gap-3">
               <button
                 aria-label={paused ? "Resume workout" : "Pause workout"}
-                className="rounded-xl border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+                className="grid h-12 w-12 place-items-center rounded-xl border border-emerald-600 text-[0px] text-emerald-700 transition hover:bg-emerald-100"
                 onClick={togglePause}
                 title={paused ? "Resume" : "Pause"}
                 type="button"
               >
+                {paused ? (
+                  <Play aria-hidden="true" className="h-5 w-5 fill-current" />
+                ) : (
+                  <Pause aria-hidden="true" className="h-5 w-5" />
+                )}
                 {paused ? "▶" : "⏸"}
               </button>
               <Button
                 aria-label="Complete set"
+                className="grid h-12 w-12 place-items-center p-0 text-[0px]"
                 disabled={paused}
                 onClick={completeSet}
                 title="Complete set"
               >
-                ⏭
+                <SkipForward aria-hidden="true" className="h-5 w-5" />⏭
               </Button>
             </div>
           </div>
@@ -706,16 +711,21 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             <div className="mt-6 flex justify-center gap-3">
               <button
                 aria-label={paused ? "Resume rest" : "Pause rest"}
-                className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold"
+                className="grid h-12 w-12 place-items-center rounded-xl bg-white/15 text-[0px] text-white transition hover:bg-white/25"
                 onClick={togglePause}
                 title={paused ? "Resume" : "Pause"}
                 type="button"
               >
+                {paused ? (
+                  <Play aria-hidden="true" className="h-5 w-5 fill-current" />
+                ) : (
+                  <Pause aria-hidden="true" className="h-5 w-5" />
+                )}
                 {paused ? "▶" : "⏸"}
               </button>
               <button
                 aria-label="Skip rest"
-                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900"
+                className="grid h-12 w-12 place-items-center rounded-xl bg-white text-[0px] text-slate-900 transition hover:bg-slate-100"
                 onClick={() => {
                   setSeconds(0);
                   advanceFromRest();
@@ -723,7 +733,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
                 title="Skip rest"
                 type="button"
               >
-                ⏭
+                <SkipForward aria-hidden="true" className="h-5 w-5" />⏭
               </button>
             </div>
           </div>
