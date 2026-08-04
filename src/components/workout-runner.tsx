@@ -573,7 +573,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
               onClick={() => {
                 const nextEnabled = !musicEnabled;
                 setMusicEnabled(nextEnabled);
-                if (nextEnabled && musicStarted.current)
+                if (nextEnabled && musicStarted.current && !paused)
                   void playMusic(nextEnabled);
                 else if (!nextEnabled) pauseMusic();
               }}
