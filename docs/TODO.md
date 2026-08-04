@@ -15,7 +15,7 @@ Mark the to-do items here after implementing them. Always read PRD.md and DEVELO
 - [x] We have mp3 files under public/soundtracks. We can play a random one in workout-runner after 3-2-1 countdown. We should also add "music on/off" button.
 - [x] users should be able to delete added workout sessions
 - [x] In workout-runner, add a pencil icon next to set duration and rest counters. When clicked, display an input to update the plan value so users can adjust timings during a workout.
-- Editing eats edits only names. We should be able to edit nutritions as well.
-- User can favorite some eats and they can add them quicly instead of using AI.
-- when we hover over the bars/points on charts, we should see the values
+- [x] Editing eats edits only names. We should be able to edit nutritions as well.
+- [x] User can favorite some eats and they can add them quicly instead of using AI.
+- [x] when we hover over the bars/points on charts, we should see the values
 - add connections to settings for apple health, google health, fitbit, etc

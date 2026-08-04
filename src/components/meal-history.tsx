@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Copy, Pencil, Trash2 } from "lucide-react";
 import type { SavedMeal } from "@/lib/nutrition";
 import { Button, EmptyState, Spinner } from "@/components/ui";
 import { formatInTimeZone } from "@/lib/timezone";
@@ -22,6 +22,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [deleting, setDeleting] = useState<string>();
+  const [duplicating, setDuplicating] = useState<string>();
   const [editing, setEditing] = useState<SavedMeal>();
   const [name, setName] = useState("");
   const [items, setItems] = useState<SavedMeal["items"]>([]);
@@ -70,6 +71,29 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
       );
     } finally {
       setDeleting(undefined);
+    }
+  }
+  async function duplicate(meal: SavedMeal) {
+    setDuplicating(meal.id);
+    setError(undefined);
+    try {
+      const response = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealName: meal.mealName, items: meal.items }),
+      });
+      const payload = (await response.json()) as SavedMeal | { error?: string };
+      if (!response.ok || !("id" in payload))
+        throw new Error(
+          "error" in payload ? payload.error : "Could not add eat again.",
+        );
+      setMeals((current) => [payload, ...current]);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not add eat again.",
+      );
+    } finally {
+      setDuplicating(undefined);
     }
   }
   function startEditing(meal: SavedMeal) {
@@ -147,9 +171,9 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
             className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
             key={meal.id}
           >
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-slate-900">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="font-semibold leading-6 text-slate-900">
                   {meal.mealName}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
@@ -159,10 +183,21 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
                   })}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex w-full items-center gap-2 border-t border-slate-100 pt-3 sm:w-auto sm:border-0 sm:pt-0">
+                <button
+                  aria-label={`Eat ${meal.mealName} again`}
+                  className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-50 px-3 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                  disabled={duplicating === meal.id}
+                  onClick={() => void duplicate(meal)}
+                  title="Eat again"
+                  type="button"
+                >
+                  <Copy aria-hidden="true" className="h-4 w-4" />
+                  {duplicating === meal.id ? "Adding…" : "Eat again"}
+                </button>
                 <button
                   aria-label={`Edit ${meal.mealName}`}
-                  className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-50"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-emerald-700 transition-colors hover:bg-emerald-50"
                   onClick={() => startEditing(meal)}
                   title="Edit eat"
                   type="button"
@@ -171,7 +206,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
                 </button>
                 <button
                   aria-label={`Delete ${meal.mealName}`}
-                  className="grid h-8 w-8 place-items-center rounded-lg text-[0px] text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[0px] text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={deleting === meal.id}
                   onClick={() => void remove(meal)}
                   title="Delete eat"
@@ -182,7 +217,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
                 </button>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
               <span>
                 <b>{meal.totals.calories}</b> kcal
               </span>
