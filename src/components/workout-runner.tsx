@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ExerciseDemonstration } from "@/components/exercise-visuals";
-import { Button, Card, ProgressBar } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { getExerciseVisual } from "@/lib/exercise-catalog";
 import { exercisePrescription, type ExercisePlan } from "@/lib/exercises";
 
@@ -465,15 +465,18 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
         }),
       });
       const body = await response.json().catch(() => ({}));
-      if (response.ok) {
-        setEstimatedCalories(body.estimatedCalBurned ?? null);
-        setCompletedSetCounts((counts) => {
-          const next = [...counts];
-          next[exerciseIndex] =
-            (repeatBaselineSetCounts[exerciseIndex] ?? 0) + completed;
-          return next;
-        });
+      if (!response.ok) {
+        completingSet.current = false;
+        setMessage(body.error ?? "Could not save this completed set.");
+        return;
       }
+      setEstimatedCalories(body.estimatedCalBurned ?? null);
+      setCompletedSetCounts((counts) => {
+        const next = [...counts];
+        next[exerciseIndex] =
+          (repeatBaselineSetCounts[exerciseIndex] ?? 0) + completed;
+        return next;
+      });
     }
     if (
       completed >= current.sets &&
@@ -586,15 +589,6 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     setPhase("ready");
   }
 
-  const totalSets = plan.exercises.reduce(
-    (sum, exercise) => sum + exercise.sets,
-    0,
-  );
-  const doneSets =
-    plan.exercises
-      .slice(0, exerciseIndex)
-      .reduce((sum, exercise) => sum + exercise.sets, 0) +
-    (phase === "rest" ? setNumber : Math.max(0, setNumber - 1));
   if (phase === "complete" || phase === "ended")
     return (
       <Card className="mx-auto mt-10 max-w-xl text-center">
@@ -614,35 +608,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     );
   return (
     <div className="mx-auto mt-3 max-w-2xl">
-      <button
-        className="text-sm font-semibold text-slate-500"
-        onClick={() => router.push("/exercises")}
-        type="button"
-      >
-        ← Back to plan
-      </button>
-      <Card className="mt-5">
+      <Card>
         <div className="flex justify-between gap-4">
           <div>
-            <div
-              aria-label="Exercise completion progress"
-              className="mb-4 flex flex-wrap gap-2"
-            >
-              {plan.exercises.map((exercise, index) => {
-                const completedSets = completedSetCounts[index] ?? 0;
-                const isComplete = completedSets >= exercise.sets;
-                return (
-                  <button
-                    aria-label={`${exercise.name}: ${completedSets} of ${exercise.sets} sets completed. Jump to exercise.`}
-                    className={`size-4 cursor-pointer rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : completedSets > 0 ? "bg-emerald-100" : "bg-white"}`}
-                    key={`${exercise.name}-${index}`}
-                    onClick={() => jumpToExercise(index)}
-                    title={exercise.name}
-                    type="button"
-                  />
-                );
-              })}
-            </div>
             <h1 className="mt-1 text-3xl font-bold">{current.name}</h1>
             <p className="mt-2 text-slate-500">
               {exercisePrescription(current).replace(`${current.name} · `, "")}
@@ -689,12 +657,6 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
               />
             </button>
           </div>
-        </div>
-        <div className="hidden">
-          <ProgressBar
-            label={`Set ${setNumber} of ${current.sets} · Exercise ${exerciseIndex + 1} of ${plan.exercises.length}`}
-            value={(doneSets / totalSets) * 100}
-          />
         </div>
         <div
           aria-label="Exercise completion progress"
