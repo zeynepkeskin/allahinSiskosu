@@ -133,6 +133,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     [repeatBaselineSetCounts, setRepeatBaselineSetCounts] = useState<number[]>(
       [],
     ),
+    [estimatedCalories, setEstimatedCalories] = useState<number | null>(),
     [message, setMessage] = useState<string>();
   const deadline = useRef<number | undefined>(undefined);
   const audioContext = useRef<AudioContext | undefined>(undefined);
@@ -305,6 +306,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       id: string;
       exerciseIds: string[];
       completedSetCounts: number[];
+      estimatedCalBurned: number | null;
     } | null;
     if (!existing) {
       void startSet(1, current, true);
@@ -313,6 +315,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
 
     setSessionId(existing.id);
     setSessionExerciseIds(existing.exerciseIds);
+    setEstimatedCalories(existing.estimatedCalBurned);
     const firstIncomplete = plan.exercises.findIndex(
       (exercise, index) =>
         (existing.completedSetCounts[index] ?? 0) < exercise.sets,
@@ -430,8 +433,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       id = body.exerciseIds?.[exerciseIndex];
       setSessionId(activeSessionId);
       setSessionExerciseIds(body.exerciseIds ?? []);
+      setEstimatedCalories(body.estimatedCalBurned ?? null);
     } else if (id) {
-      await fetch(`/api/workouts/${activeSessionId}`, {
+      const response = await fetch(`/api/workouts/${activeSessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -444,6 +448,8 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
           ],
         }),
       });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok) setEstimatedCalories(body.estimatedCalBurned ?? null);
     }
     if (
       completed >= current.sets &&
@@ -796,6 +802,11 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
         {message ? (
           <p aria-live="polite" className="mt-4 text-sm text-red-600">
             {message}
+          </p>
+        ) : null}
+        {estimatedCalories !== undefined ? (
+          <p className="mt-4 text-sm font-semibold text-emerald-700">
+            Estimated calories burned: {estimatedCalories ?? "—"} kcal
           </p>
         ) : null}
         <div className="mt-8 flex justify-end">

@@ -23,6 +23,7 @@ const blankExercise = (): Exercise => ({
 type Session = {
   id: string;
   startedAt: string;
+  estimatedCalBurned: number | null;
   exercises: Array<{
     name: string;
     plannedSets: number;
@@ -438,6 +439,11 @@ export function ExercisePlanner({
                   })}
                 </span>
                 <div className="flex items-center gap-3">
+                  {session.estimatedCalBurned !== null ? (
+                    <span className="font-semibold text-emerald-700">
+                      {session.estimatedCalBurned} kcal
+                    </span>
+                  ) : null}
                   <div
                     aria-label="Exercise completion progress"
                     className="flex items-center gap-1"

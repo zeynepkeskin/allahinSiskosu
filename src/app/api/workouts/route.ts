@@ -3,6 +3,10 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { todayInTimeZone } from "@/lib/timezone";
 import { userTimeZone } from "@/lib/timezone-server";
+import {
+  estimateWorkoutCalories,
+  type WorkoutExerciseForCalories,
+} from "@/lib/workout-calories";
 
 const startSchema = z.object({
   planId: z.string().uuid(),
@@ -17,9 +21,10 @@ const startSchema = z.object({
   status: z.enum(["completed", "ended_early"]).optional(),
 });
 
-type SessionExercise = Record<string, unknown>;
+type SessionExercise = WorkoutExerciseForCalories & Record<string, unknown>;
 
-const sessionSelect = "id, exercises, exercise_plans!inner(profile_id)";
+const sessionSelect =
+  "id, exercises, estimated_cal_burned, exercise_plans!inner(profile_id)";
 
 export async function GET(request: Request) {
   const planId = new URL(request.url).searchParams.get("planId");
@@ -69,6 +74,10 @@ export async function GET(request: Request) {
       completedSetCounts: exercises.map((exercise) =>
         Number(exercise.completed_sets ?? 0),
       ),
+      estimatedCalBurned:
+        session.estimated_cal_burned === null
+          ? null
+          : Number(session.estimated_cal_burned),
     },
   });
 }
@@ -159,12 +168,26 @@ export async function POST(request: Request) {
             weight_lb:
               exercise.weight_lb === null ? null : Number(exercise.weight_lb),
             rest_seconds: Number(exercise.rest_seconds),
+            set_duration_seconds:
+              exercise.set_duration_seconds === null
+                ? null
+                : Number(exercise.set_duration_seconds),
             sort_order: sortOrder,
           })),
         completedSets,
       );
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("weight_kg")
+    .eq("id", user.id)
+    .maybeSingle();
+  const estimatedCalories = estimateWorkoutCalories(
+    sessionExercises,
+    profile?.weight_kg,
+  );
   const update = {
     exercises: sessionExercises,
+    estimated_cal_burned: estimatedCalories,
     ...(parsed.data.status
       ? { status: parsed.data.status, completed_at: new Date().toISOString() }
       : {}),
@@ -210,5 +233,6 @@ export async function POST(request: Request) {
     completedSetCounts: ((session.exercises ?? []) as SessionExercise[])
       .sort((a, b) => Number(a.sort_order) - Number(b.sort_order))
       .map((exercise) => Number(exercise.completed_sets ?? 0)),
+    estimatedCalBurned: estimatedCalories,
   });
 }
