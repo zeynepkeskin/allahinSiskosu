@@ -153,7 +153,7 @@ export function ExerciseDemonstration({
     if (!isAnimating) return;
     const timer = window.setInterval(() => {
       setPosition((current) => (current === "start" ? "finish" : "start"));
-    }, 1400);
+    }, 800);
     return () => window.clearInterval(timer);
   }, [isAnimating]);
 
@@ -167,19 +167,16 @@ export function ExerciseDemonstration({
   return (
     <figure
       aria-label={`${name} demonstration`}
-      className="flex aspect-[4/3] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white"
+      className="aspect-[4/3] overflow-hidden rounded-xl border border-slate-200 bg-white"
     >
       <Image
         alt={`${name}: ${position} position`}
-        className="min-h-0 w-full flex-1 object-contain"
+        className="h-full w-full object-contain"
         height={300}
         priority
         src={frames[position]}
         width={400}
       />
-      <figcaption className="border-t border-slate-100 px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">
-        {position}
-      </figcaption>
     </figure>
   );
 }
