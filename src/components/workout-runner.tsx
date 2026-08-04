@@ -611,6 +611,25 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       <Card>
         <div className="flex justify-between gap-4">
           <div>
+            <div
+              aria-label="Exercise completion progress"
+              className="mb-4 flex flex-wrap gap-2"
+            >
+              {plan.exercises.map((exercise, index) => {
+                const completedSets = completedSetCounts[index] ?? 0;
+                const isComplete = completedSets >= exercise.sets;
+                return (
+                  <button
+                    aria-label={`${exercise.name}: ${completedSets} of ${exercise.sets} sets completed. Jump to exercise.`}
+                    className={`size-4 cursor-pointer rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : completedSets > 0 ? "bg-emerald-100" : "bg-white"}`}
+                    key={`${exercise.name}-${index}`}
+                    onClick={() => jumpToExercise(index)}
+                    title={exercise.name}
+                    type="button"
+                  />
+                );
+              })}
+            </div>
             <h1 className="mt-1 text-3xl font-bold">{current.name}</h1>
             <p className="mt-2 text-slate-500">
               {exercisePrescription(current).replace(`${current.name} · `, "")}
@@ -657,25 +676,6 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
               />
             </button>
           </div>
-        </div>
-        <div
-          aria-label="Exercise completion progress"
-          className="mt-8 flex flex-wrap gap-2"
-        >
-          {plan.exercises.map((exercise, index) => {
-            const completedSets = completedSetCounts[index] ?? 0;
-            const isComplete = completedSets >= exercise.sets;
-            return (
-              <button
-                aria-label={`${exercise.name}: ${completedSets} of ${exercise.sets} sets completed. Jump to exercise.`}
-                className={`size-4 cursor-pointer rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : completedSets > 0 ? "bg-emerald-100" : "bg-white"}`}
-                key={`${exercise.name}-${index}`}
-                onClick={() => jumpToExercise(index)}
-                title={exercise.name}
-                type="button"
-              />
-            );
-          })}
         </div>
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <section
