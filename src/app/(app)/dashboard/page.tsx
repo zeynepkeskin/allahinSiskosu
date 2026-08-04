@@ -163,7 +163,7 @@ export default async function DashboardPage() {
         </Link>
       </header>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-8 grid grid-cols-2 gap-4 xl:grid-cols-5">
         <Stat
           label="Calories today"
           value={`${totals.calories} kcal`}
@@ -185,15 +185,17 @@ export default async function DashboardPage() {
           value={`${Math.round(totals.protein)} g`}
           hint="Logged today"
         />
-        <Stat
-          label="Weekly average"
-          value={weeklyAverage === null ? "—" : `${weeklyAverage} kcal`}
-          hint={
-            weeklyAverage === null
-              ? "No eats logged this week"
-              : "Across logged days"
-          }
-        />
+        <div className="hidden sm:block">
+          <Stat
+            label="Weekly average"
+            value={weeklyAverage === null ? "—" : `${weeklyAverage} kcal`}
+            hint={
+              weeklyAverage === null
+                ? "No eats logged this week"
+                : "Across logged days"
+            }
+          />
+        </div>
         <Stat
           label="Training this week"
           value={`${weeklyWorkoutMetrics.completedWorkouts} workouts`}
