@@ -117,7 +117,6 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     [paused, setPaused] = useState(false),
     [muted, setMuted] = useState(false),
     [musicEnabled, setMusicEnabled] = useState(true),
-    [isMusicPlaying, setIsMusicPlaying] = useState(false),
     [editingTimer, setEditingTimer] = useState<EditableTimer>(),
     [timerValue, setTimerValue] = useState(""),
     [timingOverrides, setTimingOverrides] = useState<
@@ -185,19 +184,16 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     music.current.pause();
     music.current.currentTime = 0;
     musicStarted.current = false;
-    setIsMusicPlaying(false);
   }
 
   function pauseMusic() {
     music.current?.pause();
-    setIsMusicPlaying(false);
   }
 
   async function playMusic(enabled = musicEnabled) {
     if (!enabled || !music.current) return;
     try {
       await music.current.play();
-      setIsMusicPlaying(true);
     } catch {
       setMessage(
         "Music could not start. Use the Music on button to try again.",
@@ -741,7 +737,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             )}
           </section>
           <ExerciseDemonstration
-            isAnimating={isMusicPlaying}
+            isAnimating={musicStarted.current && !paused}
             name={current.name}
             visual={getExerciseVisual(current.name)}
           />
