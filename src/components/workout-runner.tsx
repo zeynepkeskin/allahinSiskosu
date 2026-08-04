@@ -593,7 +593,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             value={(doneSets / totalSets) * 100}
           />
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <section
             aria-label="Workout controls"
             className="flex aspect-[4/3] flex-col justify-center rounded-xl border border-slate-200 bg-white p-4"
