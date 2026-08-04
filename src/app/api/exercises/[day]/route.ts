@@ -52,49 +52,45 @@ export async function PUT(
         profile_id: user.id,
         day_of_week: day,
         is_rest_day: parsed.data.isRestDay,
+        exercises: parsed.data.exercises.map((exercise, sortOrder) => ({
+          id: exercise.id ?? crypto.randomUUID(),
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight_lb: exercise.weightLb,
+          rest_seconds: exercise.restSeconds,
+          set_duration_seconds: exercise.setDurationSeconds,
+          sort_order: sortOrder,
+        })),
       },
       { onConflict: "profile_id,day_of_week" },
     )
-    .select("id, day_of_week, is_rest_day")
+    .select("id, day_of_week, is_rest_day, exercises")
     .single();
   if (planError || !plan)
     return NextResponse.json(
       { error: "Could not save the exercise plan." },
       { status: 500 },
     );
-  const { error: deleteError } = await supabase
-    .from("plan_exercises")
-    .delete()
-    .eq("exercise_plan_id", plan.id);
-  if (deleteError)
-    return NextResponse.json(
-      { error: "Could not update exercises." },
-      { status: 500 },
-    );
-  if (parsed.data.exercises.length) {
-    const { error } = await supabase.from("plan_exercises").insert(
-      parsed.data.exercises.map((exercise, sortOrder) => ({
-        exercise_plan_id: plan.id,
-        name: exercise.name,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weight_lb: exercise.weightLb,
-        rest_seconds: exercise.restSeconds,
-        set_duration_seconds: exercise.setDurationSeconds,
-        sort_order: sortOrder,
-      })),
-    );
-    if (error)
-      return NextResponse.json(
-        { error: "Could not save exercises." },
-        { status: 500 },
-      );
-  }
   return NextResponse.json({
     id: plan.id,
     dayOfWeek: plan.day_of_week,
     isRestDay: plan.is_rest_day,
-    exercises: parsed.data.exercises,
+    exercises: ((plan.exercises ?? []) as Array<Record<string, unknown>>).map(
+      (exercise) => ({
+        id: String(exercise.id),
+        name: String(exercise.name),
+        sets: Number(exercise.sets),
+        reps: Number(exercise.reps),
+        weightLb:
+          exercise.weight_lb === null ? null : Number(exercise.weight_lb),
+        restSeconds: Number(exercise.rest_seconds),
+        setDurationSeconds:
+          exercise.set_duration_seconds === null
+            ? null
+            : Number(exercise.set_duration_seconds),
+      }),
+    ),
   });
 }
 
@@ -120,13 +116,37 @@ export async function PATCH(
       { error: "Sign in to update exercises." },
       { status: 401 },
     );
-  const column =
+  const { data: plan, error: fetchError } = await supabase
+    .from("exercise_plans")
+    .select("exercises")
+    .eq("id", parsed.data.planId)
+    .eq("profile_id", user.id)
+    .single();
+  const key =
     parsed.data.timer === "set" ? "set_duration_seconds" : "rest_seconds";
+  const exercises = (
+    (plan?.exercises ?? []) as Array<Record<string, unknown>>
+  ).map((exercise) =>
+    String(exercise.id) === parsed.data.exerciseId
+      ? { ...exercise, [key]: parsed.data.seconds }
+      : exercise,
+  );
+  if (
+    fetchError ||
+    !plan ||
+    !exercises.some(
+      (exercise) => String(exercise.id) === parsed.data.exerciseId,
+    )
+  )
+    return NextResponse.json(
+      { error: "Could not update the exercise plan." },
+      { status: 500 },
+    );
   const { error } = await supabase
-    .from("plan_exercises")
-    .update({ [column]: parsed.data.seconds })
-    .eq("id", parsed.data.exerciseId)
-    .eq("exercise_plan_id", parsed.data.planId);
+    .from("exercise_plans")
+    .update({ exercises })
+    .eq("id", parsed.data.planId)
+    .eq("profile_id", user.id);
   if (error)
     return NextResponse.json(
       { error: "Could not update the exercise plan." },

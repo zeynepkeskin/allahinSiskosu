@@ -33,26 +33,47 @@ export async function PATCH(
       { error: "Sign in to update a workout." },
       { status: 401 },
     );
-  for (const exercise of parsed.data.completedSets ?? [])
-    await supabase
-      .from("workout_session_exercises")
-      .update({ completed_sets: exercise.completedSets })
-      .eq("id", exercise.id);
-  if (parsed.data.status) {
-    const { error } = await supabase
-      .from("workout_sessions")
-      .update({
-        status: parsed.data.status,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .eq("profile_id", user.id);
-    if (error)
-      return NextResponse.json(
-        { error: "Could not finish workout." },
-        { status: 500 },
-      );
-  }
+  const { data: session, error: fetchError } = await supabase
+    .from("workout_sessions")
+    .select("exercises")
+    .eq("id", id)
+    .single();
+  if (fetchError || !session)
+    return NextResponse.json(
+      { error: "Could not update workout." },
+      { status: 500 },
+    );
+  const completedSets = new Map(
+    (parsed.data.completedSets ?? []).map((exercise) => [
+      exercise.id,
+      exercise.completedSets,
+    ]),
+  );
+  const exercises = (
+    (session.exercises ?? []) as Array<Record<string, unknown>>
+  ).map((exercise) => {
+    const completed = completedSets.get(String(exercise.id));
+    return completed === undefined
+      ? exercise
+      : { ...exercise, completed_sets: completed };
+  });
+  const { error } = await supabase
+    .from("workout_sessions")
+    .update({
+      exercises,
+      ...(parsed.data.status
+        ? {
+            status: parsed.data.status,
+            completed_at: new Date().toISOString(),
+          }
+        : {}),
+    })
+    .eq("id", id)
+  if (error)
+    return NextResponse.json(
+      { error: "Could not finish workout." },
+      { status: 500 },
+    );
   return NextResponse.json({ ok: true });
 }
 
@@ -79,7 +100,6 @@ export async function DELETE(
     .from("workout_sessions")
     .delete()
     .eq("id", id)
-    .eq("profile_id", user.id);
   if (error)
     return NextResponse.json(
       { error: "Could not delete workout." },

@@ -60,7 +60,7 @@ Deno.serve(async (request) => {
     const end = startOfDayInTimeZone(addCalendarDays(today, 1), timeZone);
     const [{ count: meals }, { count: workouts }, { data: plan }, { data: subscriptions }] = await Promise.all([
       supabase.from("meals").select("id", { count: "exact", head: true }).eq("profile_id", profile.id).gte("meal_time", start.toISOString()).lt("meal_time", end.toISOString()),
-      supabase.from("workout_sessions").select("id", { count: "exact", head: true }).eq("profile_id", profile.id).eq("status", "completed").gte("started_at", start.toISOString()).lt("started_at", end.toISOString()),
+      supabase.from("workout_sessions").select("id, exercise_plans!inner(profile_id)", { count: "exact", head: true }).eq("exercise_plans.profile_id", profile.id).eq("status", "completed").gte("started_at", start.toISOString()).lt("started_at", end.toISOString()),
       supabase.from("exercise_plans").select("is_rest_day").eq("profile_id", profile.id).eq("day_of_week", dayOfWeek(today)).maybeSingle(),
       supabase.from("push_subscriptions").select("endpoint, p256dh, auth").eq("profile_id", profile.id),
     ]);

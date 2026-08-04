@@ -1,5 +1,5 @@
 import { ExercisePlanner } from "@/components/exercise-planner";
-import type { ExercisePlan } from "@/lib/exercises";
+import { exercisePlanFromRow, type ExercisePlan } from "@/lib/exercises";
 import { createClient } from "@/lib/supabase/server";
 import { dayOfWeek, todayInTimeZone } from "@/lib/timezone";
 import { userTimeZone } from "@/lib/timezone-server";
@@ -12,33 +12,14 @@ export default async function ExercisesPage() {
   } = await supabase.auth.getUser();
   const { data } = await supabase
     .from("exercise_plans")
-    .select(
-      "id, day_of_week, is_rest_day, plan_exercises(id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)",
-    )
+    .select("id, day_of_week, is_rest_day, exercises")
     .eq("profile_id", user!.id);
   const { data: sessionData } = await supabase
     .from("workout_sessions")
     .select("id, status, started_at")
-    .eq("profile_id", user!.id)
     .order("started_at", { ascending: false })
     .limit(8);
-  const plans: ExercisePlan[] = (data ?? []).map((plan) => ({
-    id: plan.id,
-    dayOfWeek: plan.day_of_week,
-    isRestDay: plan.is_rest_day,
-    exercises: (plan.plan_exercises ?? [])
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((exercise) => ({
-        id: exercise.id,
-        name: exercise.name,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weightLb:
-          exercise.weight_lb === null ? null : Number(exercise.weight_lb),
-        restSeconds: exercise.rest_seconds,
-        setDurationSeconds: exercise.set_duration_seconds,
-      })),
-  }));
+  const plans: ExercisePlan[] = (data ?? []).map(exercisePlanFromRow);
   return (
     <>
       <header>

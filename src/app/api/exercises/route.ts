@@ -13,9 +13,7 @@ export async function GET() {
     );
   const { data, error } = await supabase
     .from("exercise_plans")
-    .select(
-      "id, day_of_week, is_rest_day, plan_exercises(id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)",
-    )
+    .select("id, day_of_week, is_rest_day, exercises")
     .eq("profile_id", user.id)
     .order("day_of_week");
   if (error)
@@ -28,17 +26,20 @@ export async function GET() {
       id: plan.id,
       dayOfWeek: plan.day_of_week,
       isRestDay: plan.is_rest_day,
-      exercises: (plan.plan_exercises ?? [])
-        .sort((a, b) => a.sort_order - b.sort_order)
+      exercises: ((plan.exercises ?? []) as Array<Record<string, unknown>>)
+        .sort((a, b) => Number(a.sort_order) - Number(b.sort_order))
         .map((exercise) => ({
-          id: exercise.id,
-          name: exercise.name,
-          sets: exercise.sets,
-          reps: exercise.reps,
+          id: String(exercise.id),
+          name: String(exercise.name),
+          sets: Number(exercise.sets),
+          reps: Number(exercise.reps),
           weightLb:
             exercise.weight_lb === null ? null : Number(exercise.weight_lb),
-          restSeconds: exercise.rest_seconds,
-          setDurationSeconds: exercise.set_duration_seconds,
+          restSeconds: Number(exercise.rest_seconds),
+          setDurationSeconds:
+            exercise.set_duration_seconds === null
+              ? null
+              : Number(exercise.set_duration_seconds),
         })),
     })),
   );

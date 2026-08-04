@@ -109,7 +109,10 @@ function buildDailyData(meals: MealRow[], timeZone: string): DailyNutrition[] {
   });
 }
 
-function buildDailyTraining(sessions: WorkoutSessionRow[], timeZone: string): DailyTraining[] {
+function buildDailyTraining(
+  sessions: WorkoutSessionRow[],
+  timeZone: string,
+): DailyTraining[] {
   const today = todayInTimeZone(timeZone);
   const completed = completedWorkoutSessions(sessions);
   return Array.from({ length: 7 }, (_, index) => {
@@ -171,16 +174,14 @@ export async function POST() {
           .order("meal_time", { ascending: true }),
         supabase
           .from("workout_sessions")
-          .select(
-            "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
-          )
-          .eq("profile_id", user.id)
+          .select("id, status, started_at, completed_at, exercises")
           .gte("started_at", sevenDaysAgo.toISOString())
           .order("started_at", { ascending: true }),
       ]);
     const daily = buildDailyData((mealData ?? []) as MealRow[], timeZone);
     const training = buildDailyTraining(
-      (sessionData ?? []) as WorkoutSessionRow[], timeZone,
+      (sessionData ?? []) as WorkoutSessionRow[],
+      timeZone,
     );
     const loggedDays = daily.filter((day) => day.calories > 0).length;
     const workoutDays = training.filter(

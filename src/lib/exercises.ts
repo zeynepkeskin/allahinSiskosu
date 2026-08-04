@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const exerciseSchema = z.object({
+  id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(120),
   sets: z.number().int().min(1).max(30),
   reps: z.number().int().min(1).max(500),
@@ -23,6 +24,35 @@ export type ExercisePlan = {
   isRestDay: boolean;
   exercises: Exercise[];
 };
+type ExerciseJson = Record<string, unknown>;
+
+export function exercisePlanFromRow(row: {
+  id: string;
+  day_of_week: number;
+  is_rest_day: boolean;
+  exercises: unknown;
+}): ExercisePlan {
+  return {
+    id: row.id,
+    dayOfWeek: row.day_of_week,
+    isRestDay: row.is_rest_day,
+    exercises: ((row.exercises ?? []) as ExerciseJson[])
+      .sort((a, b) => Number(a.sort_order) - Number(b.sort_order))
+      .map((exercise) => ({
+        id: String(exercise.id),
+        name: String(exercise.name),
+        sets: Number(exercise.sets),
+        reps: Number(exercise.reps),
+        weightLb:
+          exercise.weight_lb === null ? null : Number(exercise.weight_lb),
+        restSeconds: Number(exercise.rest_seconds),
+        setDurationSeconds:
+          exercise.set_duration_seconds === null
+            ? null
+            : Number(exercise.set_duration_seconds),
+      })),
+  };
+}
 export const days = [
   "Sunday",
   "Monday",

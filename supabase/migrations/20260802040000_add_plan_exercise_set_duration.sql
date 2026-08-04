@@ -1,5 +1,1 @@
-alter table public.plan_exercises
-add column set_duration_seconds smallint check (
-  set_duration_seconds is null
-  or set_duration_seconds between 1 and 7200
-);
+-- Set duration is stored in each exercise_plans.exercises JSON object.

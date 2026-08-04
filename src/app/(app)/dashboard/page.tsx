@@ -31,9 +31,13 @@ type MealRow = {
 const number = (value: number | string) => Number(value) || 0;
 
 function dayLabel(dateKey: string, timeZone: string) {
-  return formatInTimeZone(startOfDayInTimeZone(dateKey, timeZone), {
-    weekday: "short",
-  }, timeZone);
+  return formatInTimeZone(
+    startOfDayInTimeZone(dateKey, timeZone),
+    {
+      weekday: "short",
+    },
+    timeZone,
+  );
 }
 
 export default async function DashboardPage() {
@@ -65,11 +69,11 @@ export default async function DashboardPage() {
       .order("meal_time", { ascending: false }),
     supabase
       .from("workout_sessions")
-      .select(
-        "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
+      .select("id, status, started_at, completed_at, exercises")
+      .gte(
+        "started_at",
+        startOfDayInTimeZone(weekStart, timeZone).toISOString(),
       )
-      .eq("profile_id", user!.id)
-      .gte("started_at", startOfDayInTimeZone(weekStart, timeZone).toISOString())
       .order("started_at", { ascending: false }),
     supabase
       .from("exercise_plans")
@@ -80,7 +84,10 @@ export default async function DashboardPage() {
   const recentMeals = (meals ?? []) as MealRow[];
   const workoutSessions = (sessions ?? []) as WorkoutSessionRow[];
   const completedWorkouts = completedWorkoutSessions(workoutSessions);
-  const weeklyWorkoutMetrics = calculateWorkoutMetrics(workoutSessions, timeZone);
+  const weeklyWorkoutMetrics = calculateWorkoutMetrics(
+    workoutSessions,
+    timeZone,
+  );
   const todayPlan = (plans ?? []).find(
     (plan) => plan.day_of_week === dayOfWeek(today),
   );
@@ -118,8 +125,7 @@ export default async function DashboardPage() {
         })
         .reduce((sum, meal) => sum + number(meal.total_calories), 0),
       workouts: completedWorkouts.filter(
-        (session) =>
-          calendarDateKey(session.started_at, timeZone) === date,
+        (session) => calendarDateKey(session.started_at, timeZone) === date,
       ).length,
     };
   });
@@ -346,10 +352,14 @@ export default async function DashboardPage() {
                   <div>
                     <h3 className="font-medium">{meal.meal_name}</h3>
                     <p className="mt-1 text-sm text-slate-500">
-                      {formatInTimeZone(meal.meal_time, {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      }, timeZone)}
+                      {formatInTimeZone(
+                        meal.meal_time,
+                        {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        },
+                        timeZone,
+                      )}
                     </p>
                   </div>
                   <div className="flex gap-4 text-sm text-slate-600">

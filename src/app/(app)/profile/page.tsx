@@ -24,7 +24,6 @@ export default async function ProfilePage() {
   const { count: completedWorkouts } = await supabase
     .from("workout_sessions")
     .select("id", { count: "exact", head: true })
-    .eq("profile_id", user!.id)
     .eq("status", "completed")
     .gte("started_at", fourWeeksAgo.toISOString());
 

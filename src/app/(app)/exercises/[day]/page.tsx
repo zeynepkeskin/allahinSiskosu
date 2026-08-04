@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { WorkoutRunner } from "@/components/workout-runner";
-import type { ExercisePlan } from "@/lib/exercises";
+import { exercisePlanFromRow, type ExercisePlan } from "@/lib/exercises";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function WorkoutPage({
@@ -16,30 +16,12 @@ export default async function WorkoutPage({
   } = await supabase.auth.getUser();
   const { data } = await supabase
     .from("exercise_plans")
-    .select(
-      "id, day_of_week, is_rest_day, plan_exercises(id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)",
-    )
+    .select("id, day_of_week, is_rest_day, exercises")
     .eq("profile_id", user!.id)
     .eq("day_of_week", day)
     .single();
-  if (!data || data.is_rest_day || !data.plan_exercises.length)
+  if (!data || data.is_rest_day || !(data.exercises ?? []).length)
     redirect("/exercises");
-  const plan: ExercisePlan = {
-    id: data.id,
-    dayOfWeek: data.day_of_week,
-    isRestDay: data.is_rest_day,
-    exercises: [...data.plan_exercises]
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((exercise) => ({
-        id: exercise.id,
-        name: exercise.name,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weightLb:
-          exercise.weight_lb === null ? null : Number(exercise.weight_lb),
-        restSeconds: exercise.rest_seconds,
-        setDurationSeconds: exercise.set_duration_seconds,
-      })),
-  };
+  const plan: ExercisePlan = exercisePlanFromRow(data);
   return <WorkoutRunner plan={plan} />;
 }

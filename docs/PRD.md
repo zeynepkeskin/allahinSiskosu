@@ -309,24 +309,11 @@ nutrition and an explanation of how it supports the day's remaining balance.
 - profile_id
 - day_of_week
 - is_rest_day
+- exercises (JSON array: id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)
 - created_at
 - updated_at
 
 One plan per user and day of week.
-
-## plan_exercises
-
-- id
-- exercise_plan_id
-- name
-- sets
-- reps
-- weight_lb
-- rest_seconds
-- set_duration_seconds (optional)
-- sort_order
-- created_at
-- updated_at
 
 `weight_lb` stores the total loaded weight when applicable.
 When set, `set_duration_seconds` makes each set timed; the workout runner
@@ -335,29 +322,16 @@ automatically begins rest when its countdown ends.
 ## workout_sessions
 
 - id
-- profile_id
 - exercise_plan_id
 - started_at
 - completed_at
 - status (completed / ended_early)
+- exercises (JSON array: id, name, planned_sets, planned_reps, completed_sets, weight_lb, rest_seconds, sort_order)
 - created_at
-
-## workout_session_exercises
-
-- id
-- workout_session_id
-- plan_exercise_id
-- exercise_name
-- planned_sets
-- planned_reps
-- completed_sets
-- weight_lb
-- rest_seconds
-- sort_order
 
 The existing workout tables support the first exercise-aware analytics phase:
 workout completion comes from `workout_sessions`; completed sets, reps, and
-loaded volume come from `workout_session_exercises`; duration comes from
+loaded volume come from its `exercises` JSON array; duration comes from
 `started_at` and `completed_at`. Bodyweight exercises count toward sets and
 reps but not loaded volume.
 

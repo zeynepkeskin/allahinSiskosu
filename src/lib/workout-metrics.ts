@@ -10,7 +10,7 @@ export type WorkoutSessionRow = {
   status: "in_progress" | "completed" | "ended_early";
   started_at: string;
   completed_at: string | null;
-  workout_session_exercises?: WorkoutExerciseRow[] | null;
+  exercises?: WorkoutExerciseRow[] | null;
 };
 
 export type WorkoutMetrics = {
@@ -53,7 +53,7 @@ export function calculateWorkoutMetrics(
     .filter((duration): duration is number => duration !== null);
   const totals = completed.reduce(
     (total, session) => {
-      for (const exercise of session.workout_session_exercises ?? []) {
+      for (const exercise of session.exercises ?? []) {
         const completedSets = Math.min(
           number(exercise.completed_sets),
           number(exercise.planned_sets),
@@ -99,8 +99,4 @@ export function countPlannedWorkoutDays(
     return trainingDays.has(dayOfWeek(dateKey));
   }).filter(Boolean).length;
 }
-import {
-  addCalendarDays,
-  dateKeyInTimeZone,
-  dayOfWeek,
-} from "@/lib/timezone";
+import { addCalendarDays, dateKeyInTimeZone, dayOfWeek } from "@/lib/timezone";

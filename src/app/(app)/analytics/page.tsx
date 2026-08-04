@@ -34,16 +34,24 @@ type DailyTotal = {
 };
 const number = (value: number | string) => Number(value) || 0;
 const shortDate = (date: string, timeZone: string) =>
-  formatInTimeZone(startOfDayInTimeZone(date, timeZone), {
-    month: "short",
-    day: "numeric",
-  }, timeZone);
+  formatInTimeZone(
+    startOfDayInTimeZone(date, timeZone),
+    {
+      month: "short",
+      day: "numeric",
+    },
+    timeZone,
+  );
 const average = (values: number[]) =>
   values.length
     ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
     : null;
 
-function buildDailyTotals(meals: MealRow[], start: string, timeZone: string): DailyTotal[] {
+function buildDailyTotals(
+  meals: MealRow[],
+  start: string,
+  timeZone: string,
+): DailyTotal[] {
   return Array.from({ length: 30 }, (_, index) => {
     const date = addCalendarDays(start, index);
     const total = meals
@@ -84,15 +92,18 @@ export default async function AnalyticsPage() {
       .from("meals")
       .select("id, meal_time, total_calories, protein, carbs, fat")
       .eq("profile_id", user!.id)
-      .gte("meal_time", startOfDayInTimeZone(monthStart, timeZone).toISOString())
+      .gte(
+        "meal_time",
+        startOfDayInTimeZone(monthStart, timeZone).toISOString(),
+      )
       .order("meal_time", { ascending: true }),
     supabase
       .from("workout_sessions")
-      .select(
-        "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
+      .select("id, status, started_at, completed_at, exercises")
+      .gte(
+        "started_at",
+        startOfDayInTimeZone(monthStart, timeZone).toISOString(),
       )
-      .eq("profile_id", user!.id)
-      .gte("started_at", startOfDayInTimeZone(monthStart, timeZone).toISOString())
       .order("started_at", { ascending: true }),
     supabase
       .from("exercise_plans")
@@ -105,7 +116,9 @@ export default async function AnalyticsPage() {
   const monthlyTraining = calculateWorkoutMetrics(sessions, timeZone);
   const weeklyTraining = calculateWorkoutMetrics(
     sessions.filter(
-      (session) => dateKeyInTimeZone(session.started_at, timeZone) >= addCalendarDays(today, -6),
+      (session) =>
+        dateKeyInTimeZone(session.started_at, timeZone) >=
+        addCalendarDays(today, -6),
     ),
     timeZone,
   );

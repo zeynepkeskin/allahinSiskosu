@@ -34,10 +34,7 @@ export default async function ProgressPage() {
         .order("date", { ascending: false }),
       supabase
         .from("workout_sessions")
-        .select(
-          "id, status, started_at, completed_at, workout_session_exercises(planned_sets, planned_reps, completed_sets, weight_lb)",
-        )
-        .eq("profile_id", user!.id)
+        .select("id, status, started_at, completed_at, exercises")
         .gte("started_at", weekAgo.toISOString())
         .order("started_at", { ascending: false }),
       supabase

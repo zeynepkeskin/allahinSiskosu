@@ -149,45 +149,19 @@ Tables
 - profile_id
 - day_of_week
 - is_rest_day
-- created_at
-- updated_at
-
-## plan_exercises
-
-- id
-- exercise_plan_id
-- name
-- sets
-- reps
-- weight_lb
-- rest_seconds
-- set_duration_seconds (optional)
-- sort_order
+- exercises (JSON array: id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)
 - created_at
 - updated_at
 
 ## workout_sessions
 
 - id
-- profile_id
 - exercise_plan_id
 - started_at
 - completed_at
 - status
+- exercises (JSON array: id, name, planned_sets, planned_reps, completed_sets, weight_lb, rest_seconds, sort_order)
 - created_at
-
-## workout_session_exercises
-
-- id
-- workout_session_id
-- plan_exercise_id
-- exercise_name
-- planned_sets
-- planned_reps
-- completed_sets
-- weight_lb
-- rest_seconds
-- sort_order
 
 Tasks
 
@@ -537,17 +511,17 @@ Tasks
 - [x] Create the exercise-plan and workout-session migration.
 - [x] Enable RLS and create profile-owned CRUD policies for all exercise tables.
 - [x] Add strict Zod schemas, TypeScript types, and validation for plans,
-  exercises, and session progress.
+      exercises, and session progress.
 - [x] Implement authenticated plan CRUD API routes/server actions.
 - [x] Build the seven-day weekly plan and exercise editor, including REST days
-  and exercise ordering.
+      and exercise ordering.
 - [x] Build the workout-session creation and progress persistence flow.
 - [x] Build the workout runner timer, set/rest state machine, and controls.
 - [x] Add accessible beep and speech-cue utilities with mute support.
 - [x] Add completed/ended-early session states.
 - [x] Add navigation entry, empty states, loading states, and error handling.
 - [ ] Apply the migration to Supabase, then test RLS isolation and session
-  persistence against the linked project.
+      persistence against the linked project.
 
 Deliverable
 
@@ -569,7 +543,7 @@ calorie budget.
 Scope and calculation rules
 
 - Build a shared server-side workout-metrics utility from `workout_sessions`
-  and `workout_session_exercises`.
+  and their embedded `exercises` JSON arrays.
 - Count only `completed` sessions in completion, consistency, set, rep, volume,
   and average-duration metrics. Keep `in_progress` and `ended_early` sessions
   visible in history where relevant.
@@ -586,23 +560,23 @@ Tasks
 - [x] Add reusable workout types and date helpers.
 - [ ] Add aggregation tests.
 - [x] Add dashboard workout context: today's plan/rest state, completion or
-  in-progress status, a start/view action, weekly completed-workout days, and a
-  training-consistency summary.
+      in-progress status, a start/view action, weekly completed-workout days, and a
+      training-consistency summary.
 - [x] Expand Analytics from nutrition-only to nutrition-and-training insights:
-  7- and 30-day completed workouts, workout days, planned-day consistency,
-  completed sets, reps, loaded volume, average duration, and a weekly
-  completion visualization alongside calorie trends.
+      7- and 30-day completed workouts, workout days, planned-day consistency,
+      completed sets, reps, loaded volume, average duration, and a weekly
+      completion visualization alongside calorie trends.
 - [x] Add a training summary to Progress next to weight trends, including the
-  latest completed workout and current-week metrics without implying causation.
+      latest completed workout and current-week metrics without implying causation.
 - [x] Add today's workout context and an exercise link to Recommendations and
-  the meal-log workspace; preserve intake-only recommendation logic.
+      the meal-log workspace; preserve intake-only recommendation logic.
 - [x] Update Profile help text to explain that activity level is a deliberate
-  TDEE estimate and show recent workout frequency only as optional context.
+      TDEE estimate and show recent workout frequency only as optional context.
 - [x] Update the Analytics empty state for users who have meal data but no
-  workout data, and the reverse.
+      workout data, and the reverse.
 - [ ] Add remaining loading and error states for mixed meal/workout data.
 - [ ] Add automated coverage for local-day boundaries, bodyweight exercises,
-  missing completion timestamps, mobile layouts, and RLS-scoped data reads.
+      missing completion timestamps, mobile layouts, and RLS-scoped data reads.
 
 Deliverable
 
@@ -626,22 +600,22 @@ logged meals and completed workouts from the previous seven days.
 Tasks
 
 - [x] Move the deterministic food-recommendation workflow into a separate
-  "Can I eat this?" panel on Coach and retire the standalone navigation item.
+      "Can I eat this?" panel on Coach and retire the standalone navigation item.
 - [x] Rename coach page and component copy from nutrition-only language to
-  nutrition-and-training language.
+      nutrition-and-training language.
 - [x] Extend the authenticated coach API to fetch and aggregate completed
-  workout data alongside meals and profile goal data.
+      workout data alongside meals and profile goal data.
 - [x] Define and validate an expanded strict response schema with a training
-  summary and integrated next steps, while retaining daily summary, weekly
-  summary, strengths, improvements, and macro analysis.
+      summary and integrated next steps, while retaining daily summary, weekly
+      summary, strengths, improvements, and macro analysis.
 - [x] Update the system prompt to use only supplied meal and workout data,
-  identify limited logging, avoid medical advice and shame, and never invent
-  activity, calorie expenditure, or causal weight claims.
+      identify limited logging, avoid medical advice and shame, and never invent
+      activity, calorie expenditure, or causal weight claims.
 - [x] Update the coach panel to render the training summary and explain the
-  educational limits of the generated insights.
+      educational limits of the generated insights.
 - [ ] Add automated coverage for no-meal, no-workout, sparse-data,
-  completed-workout, and
-  ended-early-workout scenarios.
+      completed-workout, and
+      ended-early-workout scenarios.
 
 Deliverable
 
@@ -663,16 +637,16 @@ from strength-plan prescriptions.
 Tasks
 
 - [ ] Decide and document whether the product should show intake-only targets,
-  net balance, or both; define the user-facing terminology.
+      net balance, or both; define the user-facing terminology.
 - [ ] Create an activity-log migration with activity type, date/time, duration,
-  intensity, estimated calories, source, and confidence/estimation method.
+      intensity, estimated calories, source, and confidence/estimation method.
 - [ ] Add RLS policies, validation, CRUD APIs, and a clear manual-entry UI.
 - [ ] Separate intake goal from net balance in dashboard, recommendations, and
-  analytics; make any adjustment optional and clearly labelled.
+      analytics; make any adjustment optional and clearly labelled.
 - [ ] Add safeguards against double counting activity already represented by
-  the user's profile activity-level TDEE estimate.
+      the user's profile activity-level TDEE estimate.
 - [ ] Test estimates, manual edits, deleted activities, time zones, and all
-  recommendation boundary cases.
+      recommendation boundary cases.
 
 Deliverable
 
@@ -733,7 +707,7 @@ Catalog and asset strategy
   only after its exercise and target muscles are verified. Keep a visible
   fallback for the rare name with no safe match.
 - This is presentation/catalog data, not user data: do not add muscle maps or
-  asset URLs to `plan_exercises` or workout-session snapshots in the first
+  asset URLs to exercise-plan JSON entries or workout-session snapshots in the first
   release. The runner resolves a stored exercise name through the catalog;
   document a future snapshot strategy if catalog versions ever need historical
   rendering guarantees.
@@ -741,21 +715,21 @@ Catalog and asset strategy
 Tasks
 
 - [x] Audit all current exercise names and create the typed catalog plus alias
-  table; record primary/secondary-muscle decisions for all supported names.
+      table; record primary/secondary-muscle decisions for all supported names.
 - [x] Select and document the reusable asset source; download and optimize the
-  reviewed two-frame pairs locally, with a provenance/license manifest.
+      reviewed two-frame pairs locally, with a provenance/license manifest.
 - [x] Add the layered SVG body-map component, muscle-to-layer mapping, text
-  legend, and a non-color accessibility treatment.
+      legend, and a non-color accessibility treatment.
 - [x] Integrate the selected-exercise muscle-map preview into every planner
-  row, including loading, unselected, custom, and unavailable states.
+      row, including loading, unselected, custom, and unavailable states.
 - [x] Integrate the two-frame current-exercise demonstration into the workout
-  runner only after a workout has started; maintain it across set/rest and
-  exercise transitions.
+      runner only after a workout has started; maintain it across set/rest and
+      exercise transitions.
 - [x] Add image sizing, responsive styling, reduced-data-friendly static
-  delivery, and graceful missing-asset handling.
+      delivery, and graceful missing-asset handling.
 - [ ] Add tests for catalog coverage, aliases, body-view/muscle mappings,
-  unselected and custom exercises, runner transitions, alt text, and mobile
-  layout. Manually review form accuracy before release.
+      unselected and custom exercises, runner transitions, alt text, and mobile
+      layout. Manually review form accuracy before release.
 
 Deliverable
 
