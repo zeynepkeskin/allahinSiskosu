@@ -129,7 +129,14 @@ export function ExercisePlanner({
     const startResponse = await fetch("/api/workouts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planId: activePlan.id }),
+      body: JSON.stringify({
+        planId: activePlan.id,
+        status: "completed",
+        completedSets: activePlan.exercises.map((exercise, exerciseIndex) => ({
+          exerciseIndex,
+          completedSets: exercise.sets,
+        })),
+      }),
     });
     const session = await startResponse.json().catch(() => ({}));
     if (!startResponse.ok) {
@@ -137,25 +144,7 @@ export function ExercisePlanner({
       setMessage(session.error ?? "Could not mark this workout as done.");
       return;
     }
-    const finishResponse = await fetch(`/api/workouts/${session.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: "completed",
-        completedSets: activePlan.exercises.map((exercise, index) => ({
-          id: session.exerciseIds[index],
-          completedSets: exercise.sets,
-        })),
-      }),
-    });
-    const result = await finishResponse.json().catch(() => ({}));
     setMarkingDone(false);
-    if (!finishResponse.ok) {
-      setMessage(
-        result.error ?? "The workout was started but could not be completed.",
-      );
-      return;
-    }
     setMessage("Workout marked as done.");
   }
 

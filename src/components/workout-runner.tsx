@@ -130,6 +130,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     >({}),
     [sessionId, setSessionId] = useState<string>(),
     [sessionExerciseIds, setSessionExerciseIds] = useState<string[]>([]),
+    [sessionCompletedSetCounts, setSessionCompletedSetCounts] = useState<
+      number[]
+    >([]),
     [message, setMessage] = useState<string>();
   const deadline = useRef<number | undefined>(undefined);
   const audioContext = useRef<AudioContext | undefined>(undefined);
@@ -292,18 +295,6 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     );
     music.current.loop = true;
     music.current.preload = "auto";
-    const response = await fetch("/api/workouts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planId: plan.id }),
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setMessage(body.error ?? "Could not start workout.");
-      return;
-    }
-    setSessionId(body.id);
-    setSessionExerciseIds(body.exerciseIds);
     void startSet(1, current, true);
   }
 
@@ -385,15 +376,47 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     completingSet.current = true;
     stopMusic();
     const completed = setNumber;
-    const id = sessionExerciseIds[exerciseIndex];
-    if (sessionId && id)
-      await fetch(`/api/workouts/${sessionId}`, {
+    let id = sessionExerciseIds[exerciseIndex];
+    let activeSessionId = sessionId;
+    if (!activeSessionId) {
+      const response = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan.id,
+          completedSets: [{ exerciseIndex, completedSets: completed }],
+          ...(completed >= current.sets &&
+          exerciseIndex + 1 >= plan.exercises.length
+            ? { status: "completed" }
+            : {}),
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        completingSet.current = false;
+        setMessage(body.error ?? "Could not save this completed set.");
+        return;
+      }
+      activeSessionId = body.id;
+      id = body.exerciseIds?.[exerciseIndex];
+      setSessionId(activeSessionId);
+      setSessionExerciseIds(body.exerciseIds ?? []);
+      setSessionCompletedSetCounts(body.completedSetCounts ?? []);
+    } else if (id) {
+      await fetch(`/api/workouts/${activeSessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          completedSets: [{ id, completedSets: completed }],
+          completedSets: [
+            {
+              id,
+              completedSets:
+                (sessionCompletedSetCounts[exerciseIndex] ?? 0) + completed,
+            },
+          ],
         }),
       });
+    }
     if (
       completed >= current.sets &&
       exerciseIndex + 1 >= plan.exercises.length
