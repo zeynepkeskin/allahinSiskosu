@@ -206,14 +206,13 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
                 </button>
                 <button
                   aria-label={`Delete ${meal.mealName}`}
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[0px] text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={deleting === meal.id}
                   onClick={() => void remove(meal)}
                   title="Delete eat"
                   type="button"
                 >
                   <Trash2 aria-hidden="true" className="h-4 w-4" />
-                  {deleting === meal.id ? "Deleting…" : "Delete"}
                 </button>
               </div>
             </div>
