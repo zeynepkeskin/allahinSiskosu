@@ -589,155 +589,167 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             value={(doneSets / totalSets) * 100}
           />
         </div>
-        {phase !== "ready" ? (
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <section
+            aria-label="Workout controls"
+            className="flex aspect-[4/3] flex-col justify-center rounded-xl border border-slate-200 bg-white p-4"
+          >
+            {phase === "ready" ? (
+              <>
+                <p className="mt-8 text-sm text-slate-500">
+                  Start to hear the exercise prescription and a 3–2–1 countdown.
+                </p>
+                <Button
+                  aria-label="Start workout"
+                  className="mt-4 grid h-12 w-12 place-items-center p-0 text-[0px]"
+                  onClick={begin}
+                  title="Start workout"
+                >
+                  <Play aria-hidden="true" className="h-5 w-5 fill-current" />▶
+                </Button>
+              </>
+            ) : phase === "cue" ? (
+              <div
+                aria-live="polite"
+                className="rounded-2xl bg-emerald-50 p-4 text-center"
+              >
+                <p className="text-lg font-semibold">
+                  Get ready for set {setNumber}
+                </p>
+                <p className="mt-2 text-sm text-slate-600">3 • 2 • 1 • go</p>
+              </div>
+            ) : phase === "set" ? (
+              <div className="rounded-2xl bg-emerald-50 p-4 text-center">
+                <p className="text-lg font-semibold">
+                  Set {setNumber}: {current.reps} reps
+                </p>
+                {paused ? (
+                  <p className="mt-2 text-sm font-semibold text-emerald-700">
+                    Workout paused
+                  </p>
+                ) : null}
+                {current.setDurationSeconds !== null ? (
+                  <div className="mt-2 flex items-center justify-center gap-2">
+                    {editingTimer === "set" ? (
+                      <TimerEditor
+                        label="Set duration in seconds"
+                        onCancel={cancelTimerEdit}
+                        onChange={setTimerValue}
+                        onSave={() => void saveTimerEdit()}
+                        value={timerValue}
+                      />
+                    ) : (
+                      <>
+                        <p className="text-4xl font-bold tabular-nums text-slate-900">
+                          {Math.floor(seconds / 60)}:
+                          {String(seconds % 60).padStart(2, "0")}
+                        </p>
+                        <TimerEditButton
+                          label="Edit set duration"
+                          onClick={() => beginTimerEdit("set")}
+                        />
+                      </>
+                    )}
+                  </div>
+                ) : null}
+                <div className="mt-5 flex justify-center gap-3">
+                  <button
+                    aria-label={paused ? "Resume workout" : "Pause workout"}
+                    className="grid h-12 w-12 place-items-center rounded-xl border border-emerald-600 text-[0px] text-emerald-700 transition hover:bg-emerald-100"
+                    onClick={togglePause}
+                    title={paused ? "Resume" : "Pause"}
+                    type="button"
+                  >
+                    {paused ? (
+                      <Play
+                        aria-hidden="true"
+                        className="h-5 w-5 fill-current"
+                      />
+                    ) : (
+                      <Pause aria-hidden="true" className="h-5 w-5" />
+                    )}
+                    {paused ? "▶" : "⏸"}
+                  </button>
+                  <Button
+                    aria-label="Complete set"
+                    className="grid h-12 w-12 place-items-center p-0 text-[0px]"
+                    disabled={paused}
+                    onClick={completeSet}
+                    title="Complete set"
+                  >
+                    <SkipForward aria-hidden="true" className="h-5 w-5" />⏭
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-slate-900 p-4 text-center text-white">
+                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-300">
+                  Rest
+                </p>
+                <div className="mt-2 flex items-center justify-center gap-2">
+                  {editingTimer === "rest" ? (
+                    <TimerEditor
+                      dark
+                      label="Rest duration in seconds"
+                      onCancel={cancelTimerEdit}
+                      onChange={setTimerValue}
+                      onSave={() => void saveTimerEdit()}
+                      value={timerValue}
+                    />
+                  ) : (
+                    <>
+                      <p className="text-6xl font-bold tabular-nums">
+                        {Math.floor(seconds / 60)}:
+                        {String(seconds % 60).padStart(2, "0")}
+                      </p>
+                      <TimerEditButton
+                        dark
+                        label="Edit rest duration"
+                        onClick={() => beginTimerEdit("rest")}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="mt-6 flex justify-center gap-3">
+                  <button
+                    aria-label={paused ? "Resume rest" : "Pause rest"}
+                    className="grid h-12 w-12 place-items-center rounded-xl bg-white/15 text-[0px] text-white transition hover:bg-white/25"
+                    onClick={togglePause}
+                    title={paused ? "Resume" : "Pause"}
+                    type="button"
+                  >
+                    {paused ? (
+                      <Play
+                        aria-hidden="true"
+                        className="h-5 w-5 fill-current"
+                      />
+                    ) : (
+                      <Pause aria-hidden="true" className="h-5 w-5" />
+                    )}
+                    {paused ? "▶" : "⏸"}
+                  </button>
+                  <button
+                    aria-label="Skip rest"
+                    className="grid h-12 w-12 place-items-center rounded-xl bg-white text-[0px] text-slate-900 transition hover:bg-slate-100"
+                    onClick={() => {
+                      setSeconds(0);
+                      advanceFromRest();
+                    }}
+                    title="Skip rest"
+                    type="button"
+                  >
+                    <SkipForward aria-hidden="true" className="h-5 w-5" />⏭
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
           <ExerciseDemonstration
+            isAnimating={phase !== "ready" && !paused}
             name={current.name}
             visual={getExerciseVisual(current.name)}
           />
-        ) : null}
-        {phase === "ready" ? (
-          <>
-            <p className="mt-8 text-sm text-slate-500">
-              Start to hear the exercise prescription and a 3–2–1 countdown.
-            </p>
-            <Button
-              aria-label="Start workout"
-              className="mt-4 grid h-12 w-12 place-items-center p-0 text-[0px]"
-              onClick={begin}
-              title="Start workout"
-            >
-              <Play aria-hidden="true" className="h-5 w-5 fill-current" />▶
-            </Button>
-          </>
-        ) : phase === "cue" ? (
-          <div
-            aria-live="polite"
-            className="mt-9 rounded-2xl bg-emerald-50 p-6 text-center"
-          >
-            <p className="text-lg font-semibold">
-              Get ready for set {setNumber}
-            </p>
-            <p className="mt-2 text-sm text-slate-600">3 • 2 • 1 • go</p>
-          </div>
-        ) : phase === "set" ? (
-          <div className="mt-9 rounded-2xl bg-emerald-50 p-6 text-center">
-            <p className="text-lg font-semibold">
-              Set {setNumber}: {current.reps} reps
-            </p>
-            {paused ? (
-              <p className="mt-2 text-sm font-semibold text-emerald-700">
-                Workout paused
-              </p>
-            ) : null}
-            {current.setDurationSeconds !== null ? (
-              <div className="mt-2 flex items-center justify-center gap-2">
-                {editingTimer === "set" ? (
-                  <TimerEditor
-                    label="Set duration in seconds"
-                    onCancel={cancelTimerEdit}
-                    onChange={setTimerValue}
-                    onSave={() => void saveTimerEdit()}
-                    value={timerValue}
-                  />
-                ) : (
-                  <>
-                    <p className="text-4xl font-bold tabular-nums text-slate-900">
-                      {Math.floor(seconds / 60)}:
-                      {String(seconds % 60).padStart(2, "0")}
-                    </p>
-                    <TimerEditButton
-                      label="Edit set duration"
-                      onClick={() => beginTimerEdit("set")}
-                    />
-                  </>
-                )}
-              </div>
-            ) : null}
-            <div className="mt-5 flex justify-center gap-3">
-              <button
-                aria-label={paused ? "Resume workout" : "Pause workout"}
-                className="grid h-12 w-12 place-items-center rounded-xl border border-emerald-600 text-[0px] text-emerald-700 transition hover:bg-emerald-100"
-                onClick={togglePause}
-                title={paused ? "Resume" : "Pause"}
-                type="button"
-              >
-                {paused ? (
-                  <Play aria-hidden="true" className="h-5 w-5 fill-current" />
-                ) : (
-                  <Pause aria-hidden="true" className="h-5 w-5" />
-                )}
-                {paused ? "▶" : "⏸"}
-              </button>
-              <Button
-                aria-label="Complete set"
-                className="grid h-12 w-12 place-items-center p-0 text-[0px]"
-                disabled={paused}
-                onClick={completeSet}
-                title="Complete set"
-              >
-                <SkipForward aria-hidden="true" className="h-5 w-5" />⏭
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-9 rounded-2xl bg-slate-900 p-6 text-center text-white">
-            <p className="text-sm font-semibold uppercase tracking-wider text-emerald-300">
-              Rest
-            </p>
-            <div className="mt-2 flex items-center justify-center gap-2">
-              {editingTimer === "rest" ? (
-                <TimerEditor
-                  dark
-                  label="Rest duration in seconds"
-                  onCancel={cancelTimerEdit}
-                  onChange={setTimerValue}
-                  onSave={() => void saveTimerEdit()}
-                  value={timerValue}
-                />
-              ) : (
-                <>
-                  <p className="text-6xl font-bold tabular-nums">
-                    {Math.floor(seconds / 60)}:
-                    {String(seconds % 60).padStart(2, "0")}
-                  </p>
-                  <TimerEditButton
-                    dark
-                    label="Edit rest duration"
-                    onClick={() => beginTimerEdit("rest")}
-                  />
-                </>
-              )}
-            </div>
-            <div className="mt-6 flex justify-center gap-3">
-              <button
-                aria-label={paused ? "Resume rest" : "Pause rest"}
-                className="grid h-12 w-12 place-items-center rounded-xl bg-white/15 text-[0px] text-white transition hover:bg-white/25"
-                onClick={togglePause}
-                title={paused ? "Resume" : "Pause"}
-                type="button"
-              >
-                {paused ? (
-                  <Play aria-hidden="true" className="h-5 w-5 fill-current" />
-                ) : (
-                  <Pause aria-hidden="true" className="h-5 w-5" />
-                )}
-                {paused ? "▶" : "⏸"}
-              </button>
-              <button
-                aria-label="Skip rest"
-                className="grid h-12 w-12 place-items-center rounded-xl bg-white text-[0px] text-slate-900 transition hover:bg-slate-100"
-                onClick={() => {
-                  setSeconds(0);
-                  advanceFromRest();
-                }}
-                title="Skip rest"
-                type="button"
-              >
-                <SkipForward aria-hidden="true" className="h-5 w-5" />⏭
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
         {message ? (
           <p aria-live="polite" className="mt-4 text-sm text-red-600">
             {message}

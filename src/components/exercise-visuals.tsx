@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { MALE_BACK, MALE_FRONT } from "@musclemap/assets";
 import type { MuscleGroup } from "@musclemap/core";
 import {
@@ -140,40 +141,45 @@ export function ExerciseMuscleMap({
 export function ExerciseDemonstration({
   name,
   visual,
+  isAnimating = false,
 }: {
   name: string;
   visual?: ExerciseVisual;
+  isAnimating?: boolean;
 }) {
+  const [position, setPosition] = useState<"start" | "finish">("start");
+
+  useEffect(() => {
+    if (!isAnimating) return;
+    const timer = window.setInterval(() => {
+      setPosition((current) => (current === "start" ? "finish" : "start"));
+    }, 1400);
+    return () => window.clearInterval(timer);
+  }, [isAnimating]);
+
   if (!visual?.demoId)
     return (
-      <p className="mt-6 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">
+      <p className="grid aspect-[4/3] place-items-center rounded-xl bg-slate-50 p-3 text-center text-sm text-slate-500">
         Two-frame form guidance is not available for this exercise yet.
       </p>
     );
   const frames = demoFrames(visual.demoId);
   return (
-    <section aria-label={`${name} demonstration`} className="mt-6">
-      <h2 className="text-sm font-semibold text-slate-700">Form reference</h2>
-      <div className="mt-2 grid grid-cols-2 gap-3">
-        {(["start", "finish"] as const).map((position) => (
-          <figure
-            className="overflow-hidden rounded-xl border border-slate-200 bg-white"
-            key={position}
-          >
-            <Image
-              alt={`${name}: ${position} position`}
-              className="aspect-[4/3] w-full object-contain"
-              height={300}
-              priority
-              src={frames[position]}
-              width={400}
-            />
-            <figcaption className="border-t border-slate-100 px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">
-              {position}
-            </figcaption>
-          </figure>
-        ))}
-      </div>
-    </section>
+    <figure
+      aria-label={`${name} demonstration`}
+      className="flex aspect-[4/3] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white"
+    >
+      <Image
+        alt={`${name}: ${position} position`}
+        className="min-h-0 w-full flex-1 object-contain"
+        height={300}
+        priority
+        src={frames[position]}
+        width={400}
+      />
+      <figcaption className="border-t border-slate-100 px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">
+        {position}
+      </figcaption>
+    </figure>
   );
 }
