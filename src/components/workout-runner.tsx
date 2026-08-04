@@ -624,15 +624,25 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       <Card className="mt-5">
         <div className="flex justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-emerald-600">
-              {phase === "ready"
-                ? "READY"
-                : phase === "rest"
-                  ? "REST"
-                  : phase === "cue"
-                    ? "GET READY"
-                    : "ACTIVE SET"}
-            </p>
+            <div
+              aria-label="Exercise completion progress"
+              className="mb-4 flex flex-wrap gap-2"
+            >
+              {plan.exercises.map((exercise, index) => {
+                const completedSets = completedSetCounts[index] ?? 0;
+                const isComplete = completedSets >= exercise.sets;
+                return (
+                  <button
+                    aria-label={`${exercise.name}: ${completedSets} of ${exercise.sets} sets completed. Jump to exercise.`}
+                    className={`size-4 cursor-pointer rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : completedSets > 0 ? "bg-emerald-100" : "bg-white"}`}
+                    key={`${exercise.name}-${index}`}
+                    onClick={() => jumpToExercise(index)}
+                    title={exercise.name}
+                    type="button"
+                  />
+                );
+              })}
+            </div>
             <h1 className="mt-1 text-3xl font-bold">{current.name}</h1>
             <p className="mt-2 text-slate-500">
               {exercisePrescription(current).replace(`${current.name} · `, "")}
@@ -680,7 +690,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             </button>
           </div>
         </div>
-        <div className="mt-8">
+        <div className="hidden">
           <ProgressBar
             label={`Set ${setNumber} of ${current.sets} · Exercise ${exerciseIndex + 1} of ${plan.exercises.length}`}
             value={(doneSets / totalSets) * 100}
@@ -688,7 +698,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
         </div>
         <div
           aria-label="Exercise completion progress"
-          className="mt-4 flex flex-wrap gap-2"
+          className="mt-8 flex flex-wrap gap-2"
         >
           {plan.exercises.map((exercise, index) => {
             const completedSets = completedSetCounts[index] ?? 0;
@@ -696,7 +706,7 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             return (
               <button
                 aria-label={`${exercise.name}: ${completedSets} of ${exercise.sets} sets completed. Jump to exercise.`}
-                className={`size-4 rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : completedSets > 0 ? "bg-emerald-100" : "bg-white"}`}
+                className={`size-4 cursor-pointer rounded-full border border-slate-300 ${isComplete ? "bg-emerald-600" : completedSets > 0 ? "bg-emerald-100" : "bg-white"}`}
                 key={`${exercise.name}-${index}`}
                 onClick={() => jumpToExercise(index)}
                 title={exercise.name}
