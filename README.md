@@ -15,4 +15,4 @@ Before applying `20260802030000_schedule_push_reminders.sql`, add two Supabase V
 
 For a linked Supabase project, deploy with `supabase functions deploy send-reminders` and apply the migrations with `supabase db push`. The Edge Function's `REMINDER_CRON_SECRET` must exactly match the Vault `reminder_cron_secret`; it protects the function from public invocation.
 
-The `/dashboard` route is protected and email confirmations return through `/auth/callback`.
+The `/dashboard` route is protected and email confirmations return through `/auth/callback`..
