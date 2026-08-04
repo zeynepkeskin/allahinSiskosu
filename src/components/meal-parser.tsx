@@ -58,8 +58,7 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
       };
-      if (!response.ok)
-        throw new Error(payload.error ?? "Could not save eat.");
+      if (!response.ok) throw new Error(payload.error ?? "Could not save eat.");
       setSaved(true);
       onSaved?.();
     } catch (caught) {
@@ -71,64 +70,76 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
     }
   }
 
+  function closeAnalysis() {
+    setAnalysis(undefined);
+    setError(undefined);
+    setSaved(false);
+  }
+
   return (
-    <form className="mt-8 space-y-6" onSubmit={analyze}>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <label
-          className="text-sm font-semibold text-slate-700"
-          htmlFor="meal-description"
-        >
-          What did you eat?
-        </label>
-        <textarea
-          className="mt-2 min-h-32 w-full rounded-xl border border-slate-300 p-3 text-sm outline-none placeholder:text-slate-400 focus:border-emerald-500"
-          id="meal-description"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="e.g. Two eggs, avocado toast, and a latte"
-          required
-          minLength={3}
-          maxLength={2000}
-        />
-        {error ? (
-          <p aria-live="polite" className="mt-3 text-sm text-rose-600">
-            {error}
-          </p>
-        ) : null}
-        <Button
-          className="mt-4 inline-flex items-center gap-2"
-          disabled={isLoading}
-          type="submit"
-        >
-          {isLoading ? (
-            <>
-              <Spinner /> Analyzing…
-            </>
-          ) : (
-            "Analyze eat"
-          )}
-        </Button>
-      </section>
+    <div className="mt-8">
       {analysis ? (
         <MealPreview
           analysis={analysis}
           isSaving={isSaving}
+          onClose={closeAnalysis}
           onSave={saveMeal}
           saved={saved}
         />
-      ) : null}
-    </form>
+      ) : (
+        <form onSubmit={analyze}>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <label
+              className="text-sm font-semibold text-slate-700"
+              htmlFor="meal-description"
+            >
+              What did you eat?
+            </label>
+            <textarea
+              className="mt-2 min-h-32 w-full rounded-xl border border-slate-300 p-3 text-sm outline-none placeholder:text-slate-400 focus:border-emerald-500"
+              id="meal-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="e.g. Two eggs, avocado toast, and a latte"
+              required
+              minLength={3}
+              maxLength={2000}
+            />
+            {error ? (
+              <p aria-live="polite" className="mt-3 text-sm text-rose-600">
+                {error}
+              </p>
+            ) : null}
+            <Button
+              className="mt-4 inline-flex items-center gap-2"
+              disabled={isLoading}
+              type="submit"
+            >
+              {isLoading ? (
+                <>
+                  <Spinner /> Analyzing…
+                </>
+              ) : (
+                "Analyze eat"
+              )}
+            </Button>
+          </section>
+        </form>
+      )}
+    </div>
   );
 }
 
 function MealPreview({
   analysis,
   isSaving,
+  onClose,
   onSave,
   saved,
 }: {
   analysis: MealAnalysis;
   isSaving: boolean;
+  onClose: () => void;
   onSave: () => void;
   saved: boolean;
 }) {
@@ -138,9 +149,18 @@ function MealPreview({
       className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
     >
       <div className="border-b border-slate-200 p-5">
-        <p className="text-sm font-semibold text-emerald-600">
-          NUTRITION PREVIEW
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm font-semibold text-emerald-600">
+            NUTRITION PREVIEW
+          </p>
+          <button
+            className="text-sm font-medium text-slate-600 underline underline-offset-4 hover:text-slate-900"
+            onClick={onClose}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
         <h2 className="mt-1 text-xl font-bold">{analysis.mealName}</h2>
       </div>
       <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-5">
