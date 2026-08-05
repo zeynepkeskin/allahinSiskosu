@@ -136,11 +136,8 @@ export default async function DashboardPage() {
           loggedDays.length,
       )
     : null;
-  const chartMaximum = Math.max(
-    goal ?? 0,
-    ...dailyCalories.map((day) => day.calories),
-    1,
-  );
+  const chartMaximum =
+    Math.max(goal ?? 0, ...dailyCalories.map((day) => day.calories), 1) * 1.1;
 
   const workoutLabel = todayPlan?.is_rest_day
     ? "Rest day"
@@ -248,15 +245,27 @@ export default async function DashboardPage() {
           </div>
           <div
             aria-label="Calories and completed workouts over the last seven days"
-            className="mt-8 flex h-36 items-end gap-2"
+            className="mt-8"
           >
-            {dailyCalories.map((day) => (
-              <div
-                className="flex h-full flex-1 flex-col justify-end gap-2"
-                key={day.label}
-                title={`${day.label}: ${day.calories} kcal, ${day.workouts} workouts`}
-              >
-                <div className="flex h-full items-end gap-0.5">
+            <div className="relative flex h-28 items-end gap-2">
+              {goal !== null ? (
+                <div
+                  aria-label={`Daily calorie limit: ${goal} kcal`}
+                  className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-dashed border-amber-500"
+                  style={{ bottom: `${(goal / chartMaximum) * 100}%` }}
+                  title={`Daily calorie limit: ${goal} kcal`}
+                >
+                  <span className="absolute -top-5 right-0 text-[10px] font-semibold text-amber-700">
+                    {goal} kcal limit
+                  </span>
+                </div>
+              ) : null}
+              {dailyCalories.map((day) => (
+                <div
+                  className="flex h-full flex-1 items-end gap-0.5"
+                  key={day.date}
+                  title={`${day.label}: ${day.calories} kcal, ${day.workouts} workouts`}
+                >
                   <div
                     className="min-h-1 flex-1 rounded-t-md bg-emerald-500"
                     style={{
@@ -270,11 +279,18 @@ export default async function DashboardPage() {
                     }}
                   />
                 </div>
-                <span className="text-center text-xs text-slate-500">
+              ))}
+            </div>
+            <div className="mt-2 flex gap-2">
+              {dailyCalories.map((day) => (
+                <span
+                  className="flex-1 text-center text-xs text-slate-500"
+                  key={day.date}
+                >
                   {day.label}
                 </span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
           <p className="mt-5 text-sm text-slate-500">
             {weeklyAverage === null
