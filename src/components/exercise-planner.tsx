@@ -3,11 +3,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { HeartPulse, Pencil, Plus, Trash2, X } from "lucide-react";
 import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
-import { demoFrames, getExerciseVisual } from "@/lib/exercise-catalog";
+import {
+  demoFrames,
+  getExerciseVisual,
+  type BodyView,
+  type ExerciseVisual,
+  type MuscleId,
+} from "@/lib/exercise-catalog";
 import { formatInTimeZone } from "@/lib/timezone";
 import { days, type Exercise, type ExercisePlan } from "@/lib/exercises";
 
@@ -52,16 +58,21 @@ export function ExercisePlanner({
   const [markingDone, setMarkingDone] = useState(false);
   const [sessions, setSessions] = useState(initialSessions);
   const [deletingSession, setDeletingSession] = useState<string>();
+  const [showMuscleMap, setShowMuscleMap] = useState(false);
 
   const activePlan = plans.find((plan) => plan.dayOfWeek === activeDay);
   const canWorkout = Boolean(
     activePlan && !activePlan.isRestDay && activePlan.exercises.length,
   );
+  const muscleVisual = activePlan?.isRestDay
+    ? undefined
+    : buildAggregatedMuscleVisual(activePlan?.exercises ?? []);
 
   function open(day: number) {
     const plan = plans.find((item) => item.dayOfWeek === day);
     setActiveDay(day);
     setEditingDay(day);
+    setShowMuscleMap(false);
     setDraft(
       plan
         ? {
@@ -347,6 +358,7 @@ export function ExercisePlanner({
             onClick={() => {
               setActiveDay(index);
               setMessage(undefined);
+              setShowMuscleMap(false);
             }}
             type="button"
           >
@@ -356,25 +368,46 @@ export function ExercisePlanner({
         ))}
       </nav>
       <Card>
-        <p className="text-sm font-semibold text-emerald-600">
-          {days[activeDay].toUpperCase()}
-        </p>
-        <h2 className="mt-1 text-xl font-bold">
-          {activePlan?.isRestDay
-            ? "Rest day"
-            : activePlan
-              ? "Planned workout"
-              : "No workout planned"}
-        </h2>
-        {activePlan && !activePlan.isRestDay ? (
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {activePlan.exercises.map((exercise, index) => (
-              <ExercisePreview
-                exercise={exercise}
-                key={`${exercise.name}-${index}`}
-              />
-            ))}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-emerald-600">
+              {days[activeDay].toUpperCase()}
+            </p>
+            <h2 className="mt-1 text-xl font-bold">
+              {activePlan?.isRestDay
+                ? "Rest day"
+                : activePlan
+                  ? "Planned workout"
+                  : "No workout planned"}
+            </h2>
           </div>
+          {muscleVisual ? (
+            <button
+              aria-label={showMuscleMap ? "Show exercise list" : "Show muscle map"}
+              className="grid h-10 w-10 place-items-center rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50"
+              onClick={() => setShowMuscleMap((current) => !current)}
+              title={showMuscleMap ? "Show exercise list" : "Show muscle map"}
+              type="button"
+            >
+              <HeartPulse aria-hidden="true" className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        {activePlan && !activePlan.isRestDay ? (
+          showMuscleMap && muscleVisual ? (
+            <div className="mt-5">
+              <ExerciseMuscleMap visual={muscleVisual} />
+            </div>
+          ) : (
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {activePlan.exercises.map((exercise, index) => (
+                <ExercisePreview
+                  exercise={exercise}
+                  key={`${exercise.name}-${index}`}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <p className="mt-2 text-sm text-slate-500">
             {activePlan?.isRestDay
@@ -488,6 +521,33 @@ export function ExercisePlanner({
       </Card>
     </div>
   );
+}
+
+function buildAggregatedMuscleVisual(
+  exercises: Exercise[],
+): ExerciseVisual | undefined {
+  const visuals = exercises
+    .map((exercise) => getExerciseVisual(exercise.name))
+    .filter((visual): visual is ExerciseVisual => Boolean(visual));
+
+  if (!visuals.length) return undefined;
+
+  const primary = Array.from(
+    new Set(visuals.flatMap((visual) => visual.primary)),
+  ) as MuscleId[];
+  const secondary = Array.from(
+    new Set(visuals.flatMap((visual) => visual.secondary)),
+  ) as MuscleId[];
+  const views = Array.from(
+    new Set(visuals.flatMap((visual) => visual.views)),
+  ) as BodyView[];
+
+  return {
+    category: "Planned workout",
+    primary,
+    secondary,
+    views: views.length ? views : ["front", "back"],
+  };
 }
 
 function ExercisePreview({ exercise }: { exercise: Exercise }) {
