@@ -348,12 +348,12 @@ export function ExercisePlanner({
     <div className="mt-8 space-y-6">
       <nav
         aria-label="Days of the week"
-        className="flex gap-2 overflow-x-auto pb-1"
+        className="grid w-full grid-cols-7 gap-1 sm:gap-2"
       >
         {days.map((day, index) => (
           <button
             aria-current={activeDay === index ? "date" : undefined}
-            className={`min-w-20 rounded-xl px-4 py-3 text-sm font-semibold transition ${activeDay === index ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            className={`min-w-0 rounded-xl px-1 py-3 text-xs font-semibold transition sm:px-4 sm:text-sm ${activeDay === index ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
             key={day}
             onClick={() => {
               setActiveDay(index);
@@ -383,7 +383,9 @@ export function ExercisePlanner({
           </div>
           {muscleVisual ? (
             <button
-              aria-label={showMuscleMap ? "Show exercise list" : "Show muscle map"}
+              aria-label={
+                showMuscleMap ? "Show exercise list" : "Show muscle map"
+              }
               className="grid h-10 w-10 place-items-center rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50"
               onClick={() => setShowMuscleMap((current) => !current)}
               title={showMuscleMap ? "Show exercise list" : "Show muscle map"}
