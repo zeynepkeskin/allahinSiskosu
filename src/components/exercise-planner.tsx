@@ -55,7 +55,6 @@ export function ExercisePlanner({
   });
   const [message, setMessage] = useState<string>();
   const [saving, setSaving] = useState(false);
-  const [markingDone, setMarkingDone] = useState(false);
   const [sessions, setSessions] = useState(initialSessions);
   const [deletingSession, setDeletingSession] = useState<string>();
   const [showMuscleMap, setShowMuscleMap] = useState(false);
@@ -136,32 +135,6 @@ export function ExercisePlanner({
       ),
     );
     setEditingDay(undefined);
-  }
-
-  async function markDone() {
-    if (!activePlan) return;
-    setMessage(undefined);
-    setMarkingDone(true);
-    const startResponse = await fetch("/api/workouts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        planId: activePlan.id,
-        status: "completed",
-        completedSets: activePlan.exercises.map((exercise, exerciseIndex) => ({
-          exerciseIndex,
-          completedSets: exercise.sets,
-        })),
-      }),
-    });
-    const session = await startResponse.json().catch(() => ({}));
-    if (!startResponse.ok) {
-      setMarkingDone(false);
-      setMessage(session.error ?? "Could not mark this workout as done.");
-      return;
-    }
-    setMarkingDone(false);
-    setMessage("Workout marked as done.");
   }
 
   async function removeSession(session: Session) {
@@ -346,21 +319,6 @@ export function ExercisePlanner({
 
   return (
     <div className="mt-8 space-y-6">
-      <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <p className="text-sm font-semibold text-emerald-600">FREE FORM</p>
-          <h2 className="mt-1 text-xl font-bold">Train without a plan</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Choose an exercise, finish its sets, then choose the next one.
-          </p>
-        </div>
-        <Link
-          className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-emerald-700"
-          href="/exercises/free-form"
-        >
-          Start Free Form
-        </Link>
-      </Card>
       <nav
         aria-label="Days of the week"
         className="grid w-full grid-cols-7 gap-1 sm:gap-2"
@@ -441,25 +399,20 @@ export function ExercisePlanner({
           </p>
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3">
-          {canWorkout ? (
-            <Link
-              className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
-              href={`/exercises/${activeDay}`}
-            >
-              Start
-            </Link>
-          ) : (
-            <Button disabled type="button">
-              Start
-            </Button>
-          )}
-          <Button
-            disabled={!canWorkout || markingDone}
-            onClick={markDone}
-            type="button"
-          >
-            {markingDone ? "Marking…" : "Mark as done"}
-          </Button>
+          {activeDay === initialActiveDay ? (
+            canWorkout ? (
+              <Link
+                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                href={`/exercises/${activeDay}`}
+              >
+                Start
+              </Link>
+            ) : (
+              <Button disabled type="button">
+                Start
+              </Button>
+            )
+          ) : null}
           <button
             aria-label="Edit workout plan"
             className="grid h-10 w-10 place-items-center rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50"
@@ -470,6 +423,21 @@ export function ExercisePlanner({
             <Pencil aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
+      </Card>
+      <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <p className="text-sm font-semibold text-emerald-600">OR: FREE FORM</p>
+          <h2 className="mt-1 text-xl font-bold">Train without a plan</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Choose an exercise, finish its sets, then choose the next one.
+          </p>
+        </div>
+        <Link
+          className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-emerald-700"
+          href="/exercises/free-form"
+        >
+          Start Free Form
+        </Link>
       </Card>
       <Card>
         <h2 className="font-semibold">Recent workouts</h2>
