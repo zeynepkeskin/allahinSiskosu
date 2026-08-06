@@ -13,7 +13,8 @@ export default async function ExercisesPage() {
   const { data } = await supabase
     .from("exercise_plans")
     .select("id, day_of_week, is_rest_day, exercises")
-    .eq("profile_id", user!.id);
+    .eq("profile_id", user!.id)
+    .eq("plan_type", "scheduled");
   const { data: sessionData } = await supabase
     .from("workout_sessions")
     .select("id, started_at, exercises, estimated_cal_burned")
