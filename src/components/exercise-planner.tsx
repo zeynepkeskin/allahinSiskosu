@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
-import { HeartPulse, Pencil, Plus, Trash2, X } from "lucide-react";
+import { HeartPulse, Plus, Trash2, X } from "lucide-react";
 import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
@@ -48,81 +48,27 @@ export function ExercisePlanner({
 }) {
   const [plans, setPlans] = useState(initialPlans);
   const [activeDay, setActiveDay] = useState(initialActiveDay);
-  const [editingDay, setEditingDay] = useState<number>();
-  const [draft, setDraft] = useState({
-    isRestDay: false,
-    exercises: [blankExercise()],
-  });
   const [message, setMessage] = useState<string>();
-  const [saving, setSaving] = useState(false);
   const [sessions, setSessions] = useState(initialSessions);
   const [deletingSession, setDeletingSession] = useState<string>();
   const [showMuscleMap, setShowMuscleMap] = useState(false);
-  const [addingExercise, setAddingExercise] = useState(false);
-  const [addDraft, setAddDraft] = useState<Exercise>(blankExercise());
-  const [addMessage, setAddMessage] = useState<string>();
-  const [adding, setAdding] = useState(false);
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState<
+    number | null
+  >();
+  const [exerciseDraft, setExerciseDraft] = useState<Exercise>(blankExercise());
+  const [dialogMessage, setDialogMessage] = useState<string>();
+  const [savingExercise, setSavingExercise] = useState(false);
 
   const activePlan = plans.find((plan) => plan.dayOfWeek === activeDay);
-  const editingPlan = plans.find((plan) => plan.dayOfWeek === editingDay);
-  const cloneablePlans = plans.filter(
-    (plan) =>
-      plan.dayOfWeek !== editingDay &&
-      !plan.isRestDay &&
-      plan.exercises.length > 0,
-  );
-  const canClonePlan =
-    editingDay !== undefined &&
-    !editingPlan &&
-    !draft.isRestDay &&
-    !draft.exercises.some((exercise) => exercise.name.trim()) &&
-    cloneablePlans.length > 0;
-  const canWorkout = Boolean(
-    activePlan && !activePlan.isRestDay && activePlan.exercises.length,
-  );
-  const muscleVisual = activePlan?.isRestDay
-    ? undefined
-    : buildAggregatedMuscleVisual(activePlan?.exercises ?? []);
+  const activeExercises =
+    activePlan && !activePlan.isRestDay ? activePlan.exercises : [];
+  const canWorkout = activeExercises.length > 0;
+  const muscleVisual = buildAggregatedMuscleVisual(activeExercises);
+  const dialogOpen = editingExerciseIndex !== undefined;
+  const isEditingExercise = editingExerciseIndex !== null;
 
-  function open(day: number) {
-    const plan = plans.find((item) => item.dayOfWeek === day);
-    setActiveDay(day);
-    setEditingDay(day);
-    setShowMuscleMap(false);
-    setDraft(
-      plan
-        ? {
-            isRestDay: plan.isRestDay,
-            exercises: plan.exercises.map((exercise) => ({ ...exercise })),
-          }
-        : { isRestDay: false, exercises: [blankExercise()] },
-    );
-    setMessage(undefined);
-  }
-
-  function updateExercise(index: number, field: keyof Exercise, value: string) {
-    setDraft((current) => ({
-      ...current,
-      exercises: current.exercises.map((exercise, i) =>
-        i === index
-          ? {
-              ...exercise,
-              [field]:
-                field === "name"
-                  ? value
-                  : value === ""
-                    ? field === "weightLb" || field === "setDurationSeconds"
-                      ? null
-                      : 0
-                    : Number(value),
-            }
-          : exercise,
-      ),
-    }));
-  }
-
-  function updateAddExercise(field: keyof Exercise, value: string) {
-    setAddDraft((current) => ({
+  function updateExerciseDraft(field: keyof Exercise, value: string) {
+    setExerciseDraft((current) => ({
       ...current,
       [field]:
         field === "name"
@@ -136,90 +82,104 @@ export function ExercisePlanner({
   }
 
   function openAddExercise() {
-    setAddDraft(blankExercise());
-    setAddMessage(undefined);
-    setAddingExercise(true);
+    setExerciseDraft(blankExercise());
+    setDialogMessage(undefined);
+    setEditingExerciseIndex(null);
   }
 
-  async function addExercise() {
-    if (!addDraft.name.trim() || addDraft.sets < 1 || addDraft.reps < 1) {
-      setAddMessage("Select an exercise and enter sets and reps.");
-      return;
-    }
+  function openEditExercise(exercise: Exercise, index: number) {
+    setExerciseDraft({ ...exercise });
+    setDialogMessage(undefined);
+    setEditingExerciseIndex(index);
+  }
 
-    setAdding(true);
-    setAddMessage(undefined);
-    const exercises = [...(activePlan?.exercises ?? []), addDraft];
+  function closeExerciseDialog() {
+    if (!savingExercise) setEditingExerciseIndex(undefined);
+  }
+
+  async function persistExercises(exercises: Exercise[]) {
     const response = await fetch(`/api/exercises/${activeDay}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isRestDay: false, exercises }),
     });
     const body = await response.json().catch(() => ({}));
-    setAdding(false);
-    if (!response.ok) {
-      setAddMessage(body.error ?? "Could not add exercise.");
-      return;
-    }
-
+    if (!response.ok) throw new Error(body.error ?? "Could not save exercise.");
     setPlans((current) =>
       [...current.filter((plan) => plan.dayOfWeek !== activeDay), body].sort(
         (a, b) => a.dayOfWeek - b.dayOfWeek,
       ),
     );
-    setAddingExercise(false);
-    setMessage(`${addDraft.name} added to ${days[activeDay]}.`);
   }
 
-  function clonePlan(day: string) {
-    if (day === "") return;
-    const source = plans.find((plan) => plan.dayOfWeek === Number(day));
-    if (!source || source.isRestDay || !source.exercises.length) return;
-    setDraft({
-      isRestDay: false,
-      exercises: source.exercises.map((exercise) => ({
-        name: exercise.name,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        weightLb: exercise.weightLb,
-        restSeconds: exercise.restSeconds,
-        setDurationSeconds: exercise.setDurationSeconds,
-      })),
-    });
-    setMessage(undefined);
-  }
-
-  async function save() {
-    if (editingDay === undefined) return;
-    setMessage(undefined);
+  async function saveExercise() {
     if (
-      !draft.isRestDay &&
-      draft.exercises.some(
-        (exercise) =>
-          !exercise.name.trim() || exercise.sets < 1 || exercise.reps < 1,
-      )
+      !exerciseDraft.name.trim() ||
+      exerciseDraft.sets < 1 ||
+      exerciseDraft.reps < 1
     ) {
-      setMessage("Select an exercise and enter sets and reps for every item.");
+      setDialogMessage("Select an exercise and enter sets and reps.");
       return;
     }
-    setSaving(true);
-    const response = await fetch(`/api/exercises/${editingDay}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(draft),
-    });
-    const body = await response.json().catch(() => ({}));
-    setSaving(false);
-    if (!response.ok) {
-      setMessage(body.error ?? "Could not save plan.");
-      return;
+
+    const exercises = isEditingExercise
+      ? activeExercises.map((exercise, index) =>
+          index === editingExerciseIndex ? exerciseDraft : exercise,
+        )
+      : [...activeExercises, exerciseDraft];
+
+    setSavingExercise(true);
+    setDialogMessage(undefined);
+    try {
+      await persistExercises(exercises);
+      setEditingExerciseIndex(undefined);
+      setMessage(
+        isEditingExercise
+          ? `${exerciseDraft.name} updated.`
+          : `${exerciseDraft.name} added to ${days[activeDay]}.`,
+      );
+    } catch (error) {
+      setDialogMessage(
+        error instanceof Error ? error.message : "Could not save exercise.",
+      );
+    } finally {
+      setSavingExercise(false);
     }
-    setPlans((current) =>
-      [...current.filter((plan) => plan.dayOfWeek !== editingDay), body].sort(
-        (a, b) => a.dayOfWeek - b.dayOfWeek,
-      ),
+  }
+
+  async function deleteExercise() {
+    if (!isEditingExercise || editingExerciseIndex === undefined) return;
+    if (!window.confirm(`Delete ${exerciseDraft.name} from this workout?`))
+      return;
+
+    const exercises = activeExercises.filter(
+      (_, index) => index !== editingExerciseIndex,
     );
-    setEditingDay(undefined);
+    setSavingExercise(true);
+    setDialogMessage(undefined);
+    try {
+      if (exercises.length) {
+        await persistExercises(exercises);
+      } else {
+        const response = await fetch(`/api/exercises/${activeDay}`, {
+          method: "DELETE",
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok)
+          throw new Error(body.error ?? "Could not delete exercise.");
+        setPlans((current) =>
+          current.filter((plan) => plan.dayOfWeek !== activeDay),
+        );
+      }
+      setEditingExerciseIndex(undefined);
+      setMessage(`${exerciseDraft.name} deleted.`);
+    } catch (error) {
+      setDialogMessage(
+        error instanceof Error ? error.message : "Could not delete exercise.",
+      );
+    } finally {
+      setSavingExercise(false);
+    }
   }
 
   async function removeSession(session: Session) {
@@ -244,166 +204,6 @@ export function ExercisePlanner({
     } finally {
       setDeletingSession(undefined);
     }
-  }
-
-  if (editingDay !== undefined) {
-    return (
-      <section className="mt-8">
-        <Card>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-emerald-600">
-                {days[editingDay].toUpperCase()}
-              </p>
-              <h2 className="mt-1 text-xl font-bold">Edit workout plan</h2>
-            </div>
-            <button
-              aria-label="Close plan editor"
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-              onClick={() => setEditingDay(undefined)}
-              title="Close"
-              type="button"
-            >
-              <X aria-hidden="true" className="h-5 w-5" />
-            </button>
-          </div>
-          <label className="mt-5 flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-medium">
-            <input
-              checked={draft.isRestDay}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  isRestDay: event.target.checked,
-                  exercises: event.target.checked
-                    ? []
-                    : current.exercises.length
-                      ? current.exercises
-                      : [blankExercise()],
-                }))
-              }
-              type="checkbox"
-            />
-            REST day
-          </label>
-          {canClonePlan ? (
-            <label className="mt-4 block text-sm font-medium text-slate-700">
-              Clone from
-              <select
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
-                defaultValue=""
-                onChange={(event) => clonePlan(event.target.value)}
-              >
-                <option value="">Select a day</option>
-                {cloneablePlans.map((plan) => (
-                  <option key={plan.id} value={plan.dayOfWeek}>
-                    {days[plan.dayOfWeek]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {!draft.isRestDay ? (
-            <div className="mt-5 space-y-4">
-              {draft.exercises.map((exercise, index) => (
-                <fieldset
-                  className="rounded-xl border border-slate-200 p-3"
-                  key={index}
-                >
-                  <div className="flex justify-between gap-3">
-                    <legend className="font-semibold">
-                      Exercise {index + 1}
-                    </legend>
-                    {draft.exercises.length > 1 ? (
-                      <button
-                        aria-label={`Remove exercise ${index + 1}`}
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                        onClick={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            exercises: current.exercises.filter(
-                              (_, i) => i !== index,
-                            ),
-                          }))
-                        }
-                        title="Remove exercise"
-                        type="button"
-                      >
-                        <Trash2 aria-hidden="true" className="h-4 w-4" />
-                      </button>
-                    ) : null}
-                  </div>
-                  <ExerciseSelector
-                    label={`Exercise ${index + 1}`}
-                    value={exercise.name}
-                    onChange={(value) => updateExercise(index, "name", value)}
-                  />
-                  {exercise.name ? (
-                    <ExerciseMuscleMap
-                      visual={getExerciseVisual(exercise.name)}
-                    />
-                  ) : null}
-                  <div className="mt-3 grid grid-cols-2 gap-2 min-[520px]:grid-cols-5">
-                    <Field
-                      label="Sets"
-                      value={exercise.sets}
-                      onChange={(value) => updateExercise(index, "sets", value)}
-                      min="1"
-                    />
-                    <Field
-                      label="Reps"
-                      value={exercise.reps}
-                      onChange={(value) => updateExercise(index, "reps", value)}
-                      min="1"
-                    />
-                    <Field
-                      label="Weight (lb)"
-                      value={exercise.weightLb ?? ""}
-                      onChange={(value) =>
-                        updateExercise(index, "weightLb", value)
-                      }
-                      min="0"
-                    />
-                    <Field
-                      label="Rest (s)"
-                      value={exercise.restSeconds}
-                      onChange={(value) =>
-                        updateExercise(index, "restSeconds", value)
-                      }
-                      min="0"
-                    />
-                    <Field
-                      label="Duration (s)"
-                      value={exercise.setDurationSeconds ?? ""}
-                      onChange={(value) =>
-                        updateExercise(index, "setDurationSeconds", value)
-                      }
-                      min="1"
-                    />
-                  </div>
-                </fieldset>
-              ))}
-            </div>
-          ) : null}
-          {message ? (
-            <p aria-live="polite" className="mt-4 text-sm text-red-600">
-              {message}
-            </p>
-          ) : null}
-          <div className="mt-6 flex gap-3">
-            <Button disabled={saving} onClick={save} type="button">
-              {saving ? "Saving…" : "Save plan"}
-            </Button>
-            <button
-              className="text-sm font-semibold text-slate-600"
-              onClick={() => setEditingDay(undefined)}
-              type="button"
-            >
-              Cancel
-            </button>
-          </div>
-        </Card>
-      </section>
-    );
   }
 
   return (
@@ -436,11 +236,7 @@ export function ExercisePlanner({
               {days[activeDay].toUpperCase()}
             </p>
             <h2 className="mt-1 text-xl font-bold">
-              {activePlan?.isRestDay
-                ? "Rest day"
-                : activePlan
-                  ? "Planned workout"
-                  : "No workout planned"}
+              {canWorkout ? "Planned workout" : "No workout planned"}
             </h2>
           </div>
           {muscleVisual ? (
@@ -457,28 +253,21 @@ export function ExercisePlanner({
             </button>
           ) : null}
         </div>
-        {activePlan && !activePlan.isRestDay ? (
-          showMuscleMap && muscleVisual ? (
-            <div className="mt-5">
-              <ExerciseMuscleMap visual={muscleVisual} />
-            </div>
-          ) : (
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {activePlan.exercises.map((exercise, index) => (
-                <ExercisePreview
-                  exercise={exercise}
-                  key={`${exercise.name}-${index}`}
-                />
-              ))}
-              <AddExerciseCard onClick={openAddExercise} />
-            </div>
-          )
+        {showMuscleMap && muscleVisual ? (
+          <div className="mt-5">
+            <ExerciseMuscleMap visual={muscleVisual} />
+          </div>
         ) : (
-          <p className="mt-2 text-sm text-slate-500">
-            {activePlan?.isRestDay
-              ? "Recovery is part of the plan."
-              : "Add a workout for this day when you are ready."}
-          </p>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {activeExercises.map((exercise, index) => (
+              <ExercisePreview
+                exercise={exercise}
+                key={exercise.id ?? `${exercise.name}-${index}`}
+                onClick={() => openEditExercise(exercise, index)}
+              />
+            ))}
+            <AddExerciseCard onClick={openAddExercise} />
+          </div>
         )}
         {message ? (
           <p
@@ -488,35 +277,27 @@ export function ExercisePlanner({
             {message}
           </p>
         ) : null}
-        <div className="mt-6 flex flex-wrap gap-3">
-          {canWorkout ? (
+        {canWorkout ? (
+          <div className="mt-6">
             <Link
-              className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+              className="inline-block rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
               href={`/exercises/${activeDay}`}
             >
               Start
             </Link>
-          ) : null}
-          <button
-            aria-label="Plan workout"
-            className="flex h-10 items-center gap-2 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            onClick={() => open(activeDay)}
-            title="Plan workout"
-            type="button"
-          >
-            <Pencil aria-hidden="true" className="h-4 w-4" />
-            Plan
-          </button>
-        </div>
+          </div>
+        ) : null}
       </Card>
-      {addingExercise ? (
-        <AddExerciseDialog
-          draft={addDraft}
-          message={addMessage}
-          saving={adding}
-          onChange={updateAddExercise}
-          onClose={() => setAddingExercise(false)}
-          onSave={() => void addExercise()}
+      {dialogOpen ? (
+        <ExerciseDialog
+          draft={exerciseDraft}
+          isEditing={isEditingExercise}
+          message={dialogMessage}
+          saving={savingExercise}
+          onChange={updateExerciseDraft}
+          onClose={closeExerciseDialog}
+          onDelete={() => void deleteExercise()}
+          onSave={() => void saveExercise()}
         />
       ) : null}
       <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -625,24 +406,28 @@ function AddExerciseCard({ onClick }: { onClick: () => void }) {
   );
 }
 
-function AddExerciseDialog({
+function ExerciseDialog({
   draft,
+  isEditing,
   message,
   saving,
   onChange,
   onClose,
+  onDelete,
   onSave,
 }: {
   draft: Exercise;
+  isEditing: boolean;
   message?: string;
   saving: boolean;
   onChange: (field: keyof Exercise, value: string) => void;
   onClose: () => void;
+  onDelete: () => void;
   onSave: () => void;
 }) {
   return (
     <div
-      aria-labelledby="add-exercise-title"
+      aria-labelledby="exercise-dialog-title"
       aria-modal="true"
       className="fixed inset-0 z-40 flex items-end bg-slate-950/45 p-3 sm:items-center sm:justify-center"
       onMouseDown={(event) => {
@@ -656,12 +441,12 @@ function AddExerciseDialog({
             <p className="text-sm font-semibold text-emerald-700">
               BUILD YOUR WORKOUT
             </p>
-            <h2 className="mt-1 text-xl font-bold" id="add-exercise-title">
-              Add exercise
+            <h2 className="mt-1 text-xl font-bold" id="exercise-dialog-title">
+              {isEditing ? "Edit exercise" : "Add exercise"}
             </h2>
           </div>
           <button
-            aria-label="Close add exercise form"
+            aria-label="Close exercise form"
             className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"
             disabled={saving}
             onClick={onClose}
@@ -676,9 +461,7 @@ function AddExerciseDialog({
             onChange={(value) => onChange("name", value)}
             value={draft.name}
           />
-          {draft.name ? (
-            <ExerciseMuscleMap visual={getExerciseVisual(draft.name)} />
-          ) : null}
+          <ExerciseMuscleMap visual={getExerciseVisual(draft.name)} />
           <div className="mt-4 grid grid-cols-2 gap-3 min-[520px]:grid-cols-5">
             <Field
               label="Sets"
@@ -717,18 +500,33 @@ function AddExerciseDialog({
             </p>
           ) : null}
         </div>
-        <footer className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
-          <button
-            className="text-sm font-semibold text-slate-600"
-            disabled={saving}
-            onClick={onClose}
-            type="button"
-          >
-            Cancel
-          </button>
-          <Button disabled={saving} onClick={onSave} type="button">
-            {saving ? "Adding..." : "Add exercise"}
-          </Button>
+        <footer className="flex items-center justify-between gap-3 border-t border-slate-200 px-5 py-4">
+          <div>
+            {isEditing ? (
+              <button
+                className="flex items-center gap-2 text-sm font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+                disabled={saving}
+                onClick={onDelete}
+                type="button"
+              >
+                <Trash2 aria-hidden="true" className="h-4 w-4" />
+                Delete
+              </button>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              className="text-sm font-semibold text-slate-600"
+              disabled={saving}
+              onClick={onClose}
+              type="button"
+            >
+              Cancel
+            </button>
+            <Button disabled={saving} onClick={onSave} type="button">
+              {saving ? "Saving…" : isEditing ? "Save changes" : "Add exercise"}
+            </Button>
+          </div>
         </footer>
       </section>
     </div>
@@ -741,33 +539,37 @@ function buildAggregatedMuscleVisual(
   const visuals = exercises
     .map((exercise) => getExerciseVisual(exercise.name))
     .filter((visual): visual is ExerciseVisual => Boolean(visual));
-
   if (!visuals.length) return undefined;
-
-  const primary = Array.from(
-    new Set(visuals.flatMap((visual) => visual.primary)),
-  ) as MuscleId[];
-  const secondary = Array.from(
-    new Set(visuals.flatMap((visual) => visual.secondary)),
-  ) as MuscleId[];
-  const views = Array.from(
-    new Set(visuals.flatMap((visual) => visual.views)),
-  ) as BodyView[];
-
   return {
     category: "Planned workout",
-    primary,
-    secondary,
-    views: views.length ? views : ["front", "back"],
+    primary: Array.from(
+      new Set(visuals.flatMap((visual) => visual.primary)),
+    ) as MuscleId[],
+    secondary: Array.from(
+      new Set(visuals.flatMap((visual) => visual.secondary)),
+    ) as MuscleId[],
+    views: Array.from(
+      new Set(visuals.flatMap((visual) => visual.views)),
+    ) as BodyView[],
   };
 }
 
-function ExercisePreview({ exercise }: { exercise: Exercise }) {
+function ExercisePreview({
+  exercise,
+  onClick,
+}: {
+  exercise: Exercise;
+  onClick: () => void;
+}) {
   const visual = getExerciseVisual(exercise.name);
   const frame = visual?.demoId ? demoFrames(visual.demoId).start : undefined;
-
   return (
-    <article className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+    <button
+      aria-label={`Edit ${exercise.name}`}
+      className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left transition hover:border-emerald-400 hover:shadow-sm"
+      onClick={onClick}
+      type="button"
+    >
       {frame ? (
         <Image
           alt={`${exercise.name} starting position`}
@@ -777,18 +579,18 @@ function ExercisePreview({ exercise }: { exercise: Exercise }) {
           width={320}
         />
       ) : (
-        <div
+        <span
           aria-label={`${exercise.name} image unavailable`}
           className="flex aspect-[4/3] items-center justify-center bg-emerald-50 text-xs font-medium text-emerald-700"
           role="img"
         >
           Exercise image unavailable
-        </div>
+        </span>
       )}
-      <p className="truncate px-3 py-2 text-center text-sm font-semibold text-slate-700">
+      <span className="block truncate px-3 py-2 text-center text-sm font-semibold text-slate-700">
         {exercise.name}
-      </p>
-    </article>
+      </span>
+    </button>
   );
 }
 

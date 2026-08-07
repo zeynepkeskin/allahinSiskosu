@@ -106,12 +106,12 @@ export function ExerciseMuscleMap({
   visual?: ExerciseVisual;
   views?: BodyView[];
 }) {
-  if (!visual)
-    return (
-      <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-        Visual guidance is not available for this custom exercise.
-      </p>
-    );
+  const displayVisual: ExerciseVisual = visual ?? {
+    category: "Exercise",
+    primary: [],
+    secondary: [],
+    views: ["front", "back"],
+  };
   const names = (muscles: MuscleId[]) =>
     muscles.map((muscle) => muscleLabels[muscle]).join(", ");
   return (
@@ -120,15 +120,17 @@ export function ExerciseMuscleMap({
       className="mt-3 rounded-xl bg-emerald-50/70 p-3"
     >
       <div className="flex justify-center gap-2">
-        {(views ?? visual.views).map((view) => (
-          <MuscleBody key={view} view={view} visual={visual} />
+        {(views ?? displayVisual.views).map((view) => (
+          <MuscleBody key={view} view={view} visual={displayVisual} />
         ))}
       </div>
-      <p className="mt-2 text-xs text-slate-700">
-        <span className="font-semibold text-emerald-800">Primary:</span>{" "}
-        {names(visual.primary)}
-      </p>
-      {visual.secondary.length ? (
+      {visual ? (
+        <p className="mt-2 text-xs text-slate-700">
+          <span className="font-semibold text-emerald-800">Primary:</span>{" "}
+          {names(visual.primary)}
+        </p>
+      ) : null}
+      {visual?.secondary.length ? (
         <p className="mt-1 text-xs text-slate-600">
           <span className="font-semibold">Secondary:</span>{" "}
           {names(visual.secondary)}

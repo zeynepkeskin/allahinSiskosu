@@ -94,6 +94,37 @@ export async function PUT(
   });
 }
 
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ day: string }> },
+) {
+  const day = dayFrom(await params);
+  if (day === null)
+    return NextResponse.json({ error: "Enter a valid day." }, { status: 400 });
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json(
+      { error: "Sign in to manage exercises." },
+      { status: 401 },
+    );
+
+  const { error } = await supabase
+    .from("exercise_plans")
+    .delete()
+    .eq("profile_id", user.id)
+    .eq("day_of_week", day);
+  if (error)
+    return NextResponse.json(
+      { error: "Could not delete the exercise plan." },
+      { status: 500 },
+    );
+
+  return NextResponse.json({ ok: true });
+}
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ day: string }> },
