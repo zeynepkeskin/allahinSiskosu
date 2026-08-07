@@ -288,7 +288,7 @@ export function ExercisePlanner({
                       visual={getExerciseVisual(exercise.name)}
                     />
                   ) : null}
-                  <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="mt-3 grid grid-cols-2 gap-2 min-[520px]:grid-cols-5">
                     <Field
                       label="Sets"
                       value={exercise.sets}
@@ -302,7 +302,7 @@ export function ExercisePlanner({
                       min="1"
                     />
                     <Field
-                      label="Total weight (lb)"
+                      label="Weight (lb)"
                       value={exercise.weightLb ?? ""}
                       onChange={(value) =>
                         updateExercise(index, "weightLb", value)
@@ -310,7 +310,7 @@ export function ExercisePlanner({
                       min="0"
                     />
                     <Field
-                      label="Rest (seconds)"
+                      label="Rest (s)"
                       value={exercise.restSeconds}
                       onChange={(value) =>
                         updateExercise(index, "restSeconds", value)
@@ -318,7 +318,7 @@ export function ExercisePlanner({
                       min="0"
                     />
                     <Field
-                      label="Set duration (seconds)"
+                      label="Duration (s)"
                       value={exercise.setDurationSeconds ?? ""}
                       onChange={(value) =>
                         updateExercise(index, "setDurationSeconds", value)
@@ -589,7 +589,7 @@ function ExercisePreview({ exercise }: { exercise: Exercise }) {
       {frame ? (
         <Image
           alt={`${exercise.name} starting position`}
-          className="aspect-[4/3] w-full bg-white object-contain"
+          className="aspect-[4/3] w-full bg-white p-3 object-contain"
           height={240}
           src={frame}
           width={320}
@@ -622,10 +622,11 @@ function Field({
   min: string;
 }) {
   return (
-    <label className="text-xs font-medium text-slate-600">
+    <label className="min-w-0 text-[11px] font-medium text-slate-600">
       {label}
       <input
-        className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+        className="mt-1 h-10 w-full rounded-lg border border-slate-300 px-2 text-sm"
+        inputMode="numeric"
         min={min}
         onChange={(event) => onChange(event.target.value)}
         type="number"

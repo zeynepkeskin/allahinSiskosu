@@ -17,8 +17,6 @@ html { scroll-behavior: smooth; }
 ::selection { background: #a7f3d0; color: #064e3b; }
 :focus-visible { outline: 3px solid #34d399; outline-offset: 3px; }
 
-.rounded-xl { padding: var(--radius-xl); }
-
 [data-theme="dark"] { --background: #0b1120; --foreground: #e2e8f0; color-scheme: dark; }
 [data-theme="dark"] .bg-white { background-color: #111827 !important; }
 [data-theme="dark"] .bg-slate-50 { background-color: #0b1120 !important; }

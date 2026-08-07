@@ -171,7 +171,7 @@ export function ExerciseSelector({
                         <>
                           <Image
                             alt={`${candidate}: ${frame} position`}
-                            className="aspect-[4/3] w-full object-contain"
+                            className="aspect-[4/3] w-full p-3 object-contain"
                             height={360}
                             priority
                             src={frames[frame]}
