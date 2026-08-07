@@ -289,6 +289,7 @@ Tasks
 - [x] Save meal items
 - [x] Fetch meals
 - [x] Edit meals
+- [x] Choose an eat date when saving and change it later
 - [x] Delete meals
 - [x] Confirm deletion
 
@@ -296,7 +297,7 @@ Deliverable
 
 Persistent meal history.
 
-Status: [x] Implemented — authenticated CRUD endpoints persist meals and items through RLS; the meal log supports saving parsed meals, browsing history, renaming meals, and confirmed deletion.
+Status: [x] Implemented — authenticated CRUD endpoints persist meals and items through RLS; the meal log supports saving parsed meals for a chosen date, browsing history, changing an eat's date, renaming meals, and confirmed deletion.
 
 ---
 

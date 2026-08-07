@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { Copy, Pencil, Trash2 } from "lucide-react";
 import type { SavedMeal } from "@/lib/nutrition";
 import { Button, EmptyState, Spinner } from "@/components/ui";
-import { formatInTimeZone } from "@/lib/timezone";
+import {
+  dateKeyInTimeZone,
+  formatInTimeZone,
+  moveToLocalDate,
+} from "@/lib/timezone";
 
 const nutritionFields = [
   { key: "calories", label: "Calories", unit: "kcal", step: "1" },
@@ -26,6 +30,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
   const [editing, setEditing] = useState<SavedMeal>();
   const [name, setName] = useState("");
   const [items, setItems] = useState<SavedMeal["items"]>([]);
+  const [mealDate, setMealDate] = useState("");
   useEffect(() => {
     let active = true;
     async function load() {
@@ -100,6 +105,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
     setEditing(meal);
     setName(meal.mealName);
     setItems(meal.items);
+    setMealDate(dateKeyInTimeZone(meal.mealTime));
   }
   function updateNutrition(
     index: number,
@@ -110,13 +116,17 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
     setItems((current) =>
       current.map((item, itemIndex) =>
         itemIndex === index
-          ? { ...item, [field]: Number.isFinite(amount) && amount >= 0 ? amount : 0 }
+          ? {
+              ...item,
+              [field]: Number.isFinite(amount) && amount >= 0 ? amount : 0,
+            }
           : item,
       ),
     );
   }
   async function saveEdit() {
-    if (!editing || name.trim().length < 1 || items.length === 0) return;
+    if (!editing || !mealDate || name.trim().length < 1 || items.length === 0)
+      return;
     setError(undefined);
     try {
       const response = await fetch(`/api/meals/${editing.id}`, {
@@ -125,7 +135,7 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
         body: JSON.stringify({
           mealName: name.trim(),
           items,
-          mealTime: editing.mealTime,
+          mealTime: moveToLocalDate(editing.mealTime, mealDate),
         }),
       });
       const payload = (await response.json()) as SavedMeal | { error?: string };
@@ -249,6 +259,20 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
               id="meal-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
+            />
+            <label
+              className="mt-5 block text-sm font-medium"
+              htmlFor="meal-date"
+            >
+              Eat date
+            </label>
+            <input
+              className="mt-2 rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-emerald-500"
+              id="meal-date"
+              onChange={(event) => setMealDate(event.target.value)}
+              required
+              type="date"
+              value={mealDate}
             />
             <div className="mt-6 space-y-5">
               <h3 className="text-sm font-medium">Nutrition values</h3>

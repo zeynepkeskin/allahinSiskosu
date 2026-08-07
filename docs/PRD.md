@@ -125,8 +125,11 @@ Workflow:
 1. User enters free-form eat text.
 2. AI returns structured nutrition JSON.
 3. Preview appears.
-4. User confirms.
+4. User chooses the eat date (defaulting to today) and confirms.
 5. Eat is saved.
+
+Saved eats can also be reassigned to a different calendar date from the edit
+dialog, while retaining their original time of day.
 
 ## Progress
 

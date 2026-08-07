@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import type { MealAnalysis } from "@/lib/nutrition";
 import { Button, Spinner } from "@/components/ui";
+import { moveToLocalDate, todayInTimeZone } from "@/lib/timezone";
 
 export function MealParser({ onSaved }: { onSaved?: () => void }) {
   const [description, setDescription] = useState("");
@@ -11,6 +12,7 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [mealDate, setMealDate] = useState(() => todayInTimeZone());
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +45,7 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
   }
 
   async function saveMeal() {
-    if (!analysis) return;
+    if (!analysis || !mealDate) return;
     setError(undefined);
     setIsSaving(true);
     try {
@@ -53,6 +55,7 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
         body: JSON.stringify({
           mealName: analysis.mealName,
           items: analysis.items,
+          mealTime: moveToLocalDate(new Date(), mealDate),
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
@@ -85,6 +88,8 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
           onClose={closeAnalysis}
           onSave={saveMeal}
           saved={saved}
+          mealDate={mealDate}
+          onMealDateChange={setMealDate}
         />
       ) : (
         <form onSubmit={analyze}>
@@ -136,12 +141,16 @@ function MealPreview({
   onClose,
   onSave,
   saved,
+  mealDate,
+  onMealDateChange,
 }: {
   analysis: MealAnalysis;
   isSaving: boolean;
   onClose: () => void;
   onSave: () => void;
   saved: boolean;
+  mealDate: string;
+  onMealDateChange: (value: string) => void;
 }) {
   return (
     <section
@@ -192,14 +201,31 @@ function MealPreview({
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 p-4">
         <p className="text-xs leading-5 text-slate-500">
           These values are estimates. You can edit the saved eat from your
           history.
         </p>
-        <Button disabled={isSaving || saved} onClick={onSave} type="button">
-          {saved ? "Saved" : isSaving ? "Saving…" : "Save eat"}
-        </Button>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-sm font-medium text-slate-700">
+            Eat date
+            <input
+              className="mt-1 block rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-emerald-500"
+              disabled={isSaving || saved}
+              onChange={(event) => onMealDateChange(event.target.value)}
+              required
+              type="date"
+              value={mealDate}
+            />
+          </label>
+          <Button
+            disabled={isSaving || saved || !mealDate}
+            onClick={onSave}
+            type="button"
+          >
+            {saved ? "Saved" : isSaving ? "Saving…" : "Save eat"}
+          </Button>
+        </div>
       </div>
     </section>
   );
