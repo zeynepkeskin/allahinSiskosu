@@ -60,6 +60,19 @@ export function ExercisePlanner({
   const [showMuscleMap, setShowMuscleMap] = useState(false);
 
   const activePlan = plans.find((plan) => plan.dayOfWeek === activeDay);
+  const editingPlan = plans.find((plan) => plan.dayOfWeek === editingDay);
+  const cloneablePlans = plans.filter(
+    (plan) =>
+      plan.dayOfWeek !== editingDay &&
+      !plan.isRestDay &&
+      plan.exercises.length > 0,
+  );
+  const canClonePlan =
+    editingDay !== undefined &&
+    !editingPlan &&
+    !draft.isRestDay &&
+    !draft.exercises.some((exercise) => exercise.name.trim()) &&
+    cloneablePlans.length > 0;
   const canWorkout = Boolean(
     activePlan && !activePlan.isRestDay && activePlan.exercises.length,
   );
@@ -102,6 +115,24 @@ export function ExercisePlanner({
           : exercise,
       ),
     }));
+  }
+
+  function clonePlan(day: string) {
+    if (day === "") return;
+    const source = plans.find((plan) => plan.dayOfWeek === Number(day));
+    if (!source || source.isRestDay || !source.exercises.length) return;
+    setDraft({
+      isRestDay: false,
+      exercises: source.exercises.map((exercise) => ({
+        name: exercise.name,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        weightLb: exercise.weightLb,
+        restSeconds: exercise.restSeconds,
+        setDurationSeconds: exercise.setDurationSeconds,
+      })),
+    });
+    setMessage(undefined);
   }
 
   async function save() {
@@ -200,6 +231,23 @@ export function ExercisePlanner({
             />
             REST day
           </label>
+          {canClonePlan ? (
+            <label className="mt-4 block text-sm font-medium text-slate-700">
+              Clone from
+              <select
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
+                defaultValue=""
+                onChange={(event) => clonePlan(event.target.value)}
+              >
+                <option value="">Select a day</option>
+                {cloneablePlans.map((plan) => (
+                  <option key={plan.id} value={plan.dayOfWeek}>
+                    {days[plan.dayOfWeek]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {!draft.isRestDay ? (
             <div className="mt-5 space-y-4">
               {draft.exercises.map((exercise, index) => (
