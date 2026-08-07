@@ -162,7 +162,7 @@ export function ExerciseSelector({
                     ← {group}
                   </button>
                   <h3 className="mt-3 text-2xl font-bold">{candidate}</h3>
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <section className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                       <p className="border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         Movement preview
