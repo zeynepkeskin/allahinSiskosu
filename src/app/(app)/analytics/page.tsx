@@ -107,7 +107,7 @@ export default async function AnalyticsPage() {
       .order("started_at", { ascending: true }),
     supabase
       .from("exercise_plans")
-      .select("day_of_week, is_rest_day")
+      .select("day_of_week")
       .eq("profile_id", user!.id),
   ]);
   const meals = (mealData ?? []) as MealRow[];

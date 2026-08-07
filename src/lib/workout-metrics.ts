@@ -86,14 +86,12 @@ export function calculateWorkoutMetrics(
 }
 
 export function countPlannedWorkoutDays(
-  plans: Array<{ day_of_week: number; is_rest_day: boolean }>,
+  plans: Array<{ day_of_week: number }>,
   start: Date,
   length: number,
   timeZone?: string,
 ) {
-  const trainingDays = new Set(
-    plans.filter((plan) => !plan.is_rest_day).map((plan) => plan.day_of_week),
-  );
+  const trainingDays = new Set(plans.map((plan) => plan.day_of_week));
   return Array.from({ length }, (_, index) => {
     const dateKey = addCalendarDays(calendarDateKey(start, timeZone), index);
     return trainingDays.has(dayOfWeek(dateKey));

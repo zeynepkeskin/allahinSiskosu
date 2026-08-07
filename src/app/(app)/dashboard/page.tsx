@@ -77,7 +77,7 @@ export default async function DashboardPage() {
       .order("started_at", { ascending: false }),
     supabase
       .from("exercise_plans")
-      .select("id, day_of_week, is_rest_day")
+      .select("id, day_of_week")
       .eq("profile_id", user!.id),
   ]);
 
@@ -139,9 +139,8 @@ export default async function DashboardPage() {
   const chartMaximum =
     Math.max(goal ?? 0, ...dailyCalories.map((day) => day.calories), 1) * 1.1;
 
-  const workoutLabel = todayPlan?.is_rest_day
-    ? "Rest day"
-    : todaySession?.status === "completed"
+  const workoutLabel =
+    todaySession?.status === "completed"
       ? "Completed"
       : todaySession?.status === "in_progress"
         ? "In progress"
@@ -309,20 +308,16 @@ export default async function DashboardPage() {
             </p>
             <h2 className="mt-1 text-xl font-bold">{workoutLabel}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              {todayPlan?.is_rest_day
-                ? "Recovery is part of your training plan."
-                : todayPlan
-                  ? "Your planned workout is ready when you are."
-                  : "Plan a strength workout for a future training day."}
+              {todayPlan
+                ? "Your planned workout is ready when you are."
+                : "Plan a strength workout for a future training day."}
             </p>
           </div>
           <Link
             className="rounded-xl border border-emerald-200 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
             href="/exercises"
           >
-            {todayPlan && !todayPlan.is_rest_day
-              ? "View workout"
-              : "Plan workout"}
+            {todayPlan ? "View workout" : "Plan workout"}
           </Link>
         </Card>
       </section>

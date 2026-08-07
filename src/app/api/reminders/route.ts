@@ -26,7 +26,7 @@ export async function GET() {
     supabase.from("profiles").select("reminder_enabled, reminder_time").eq("id", user.id).single(),
     supabase.from("meals").select("id", { count: "exact", head: true }).eq("profile_id", user.id).gte("meal_time", start.toISOString()).lt("meal_time", tomorrow.toISOString()),
     supabase.from("workout_sessions").select("id", { count: "exact", head: true }).eq("status", "completed").gte("started_at", start.toISOString()).lt("started_at", tomorrow.toISOString()),
-    supabase.from("exercise_plans").select("is_rest_day").eq("profile_id", user.id).eq("day_of_week", new Date(`${today}T00:00:00.000Z`).getUTCDay()).maybeSingle(),
+    supabase.from("exercise_plans").select("id").eq("profile_id", user.id).eq("day_of_week", new Date(`${today}T00:00:00.000Z`).getUTCDay()).maybeSingle(),
   ]);
 
   if (profileError || mealsError || workoutsError || planError) return NextResponse.json({ error: "Could not load reminder status." }, { status: 500 });
@@ -35,8 +35,8 @@ export async function GET() {
     time: (profile?.reminder_time ?? "20:00").slice(0, 5),
     vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     missingMeal: (mealCount ?? 0) === 0,
-    // Workout reminders only apply on a planned training day, never on REST or unplanned days.
-    missingWorkout: Boolean(plan && !plan.is_rest_day && (workoutCount ?? 0) === 0),
+    // Workout reminders only apply on a planned training day.
+    missingWorkout: Boolean(plan && (workoutCount ?? 0) === 0),
   });
 }
 

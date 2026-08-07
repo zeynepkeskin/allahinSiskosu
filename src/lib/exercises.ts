@@ -9,19 +9,13 @@ export const exerciseSchema = z.object({
   restSeconds: z.number().int().min(0).max(1800),
   setDurationSeconds: z.number().int().min(1).max(7200).nullable(),
 });
-export const planSchema = z
-  .object({
-    isRestDay: z.boolean(),
-    exercises: z.array(exerciseSchema).max(30),
-  })
-  .refine((value) => value.isRestDay || value.exercises.length > 0, {
-    message: "Add an exercise or mark the day as rest.",
-  });
+export const planSchema = z.object({
+  exercises: z.array(exerciseSchema).min(1).max(30),
+});
 export type Exercise = z.infer<typeof exerciseSchema> & { id?: string };
 export type ExercisePlan = {
   id: string;
   dayOfWeek: number;
-  isRestDay: boolean;
   exercises: Exercise[];
 };
 type ExerciseJson = Record<string, unknown>;
@@ -29,13 +23,11 @@ type ExerciseJson = Record<string, unknown>;
 export function exercisePlanFromRow(row: {
   id: string;
   day_of_week: number;
-  is_rest_day: boolean;
   exercises: unknown;
 }): ExercisePlan {
   return {
     id: row.id,
     dayOfWeek: row.day_of_week,
-    isRestDay: row.is_rest_day,
     exercises: ((row.exercises ?? []) as ExerciseJson[])
       .sort((a, b) => Number(a.sort_order) - Number(b.sort_order))
       .map((exercise) => ({

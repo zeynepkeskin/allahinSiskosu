@@ -12,7 +12,7 @@ export default async function ExercisesPage() {
   } = await supabase.auth.getUser();
   const { data } = await supabase
     .from("exercise_plans")
-    .select("id, day_of_week, is_rest_day, exercises")
+    .select("id, day_of_week, exercises")
     .eq("profile_id", user!.id)
     .eq("plan_type", "scheduled");
   const { data: sessionData } = await supabase

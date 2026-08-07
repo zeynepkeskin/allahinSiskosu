@@ -13,7 +13,7 @@ export async function GET() {
     );
   const { data, error } = await supabase
     .from("exercise_plans")
-    .select("id, day_of_week, is_rest_day, exercises")
+    .select("id, day_of_week, exercises")
     .eq("profile_id", user.id)
     .order("day_of_week");
   if (error)
@@ -25,7 +25,6 @@ export async function GET() {
     (data ?? []).map((plan) => ({
       id: plan.id,
       dayOfWeek: plan.day_of_week,
-      isRestDay: plan.is_rest_day,
       exercises: ((plan.exercises ?? []) as Array<Record<string, unknown>>)
         .sort((a, b) => Number(a.sort_order) - Number(b.sort_order))
         .map((exercise) => ({

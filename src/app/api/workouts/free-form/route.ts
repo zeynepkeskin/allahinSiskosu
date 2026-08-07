@@ -38,7 +38,6 @@ async function freeFormPlan(
       profile_id: userId,
       day_of_week: null,
       plan_type: "free_form",
-      is_rest_day: false,
       exercises: [],
     })
     .select("id")

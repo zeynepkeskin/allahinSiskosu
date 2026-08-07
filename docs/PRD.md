@@ -86,8 +86,8 @@ user's IANA timezone.
 Users can opt into an editable, whole-hour evening reminder (default: 8:00 PM
 local time).
 At the selected time, the app sends one Web Push notification when the user has
-not logged an eat that day and/or has not completed a workout scheduled for a
-non-REST day. A planned REST day never triggers a workout reminder.
+not logged an eat that day and/or has not completed a scheduled workout. Unplanned
+days never trigger a workout reminder.
 
 Notifications use the browser Push API and a service worker, so they can be
 delivered when the app tab is inactive or closed, subject to device and browser
@@ -157,7 +157,7 @@ periods. It displays:
 - Calorie and macro trends
 - Calorie-goal adherence based on intake only
 - Completed workouts and workout days
-- Training consistency against planned non-rest days
+- Training consistency against planned workout days
 - Completed sets, reps, loaded volume where weight is logged, and average
   completed-workout duration
 - A weekly workout-completion visualization alongside the calorie trend
@@ -311,7 +311,6 @@ nutrition and an explanation of how it supports the day's remaining balance.
 - id
 - profile_id
 - day_of_week
-- is_rest_day
 - exercises (JSON array: id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)
 - created_at
 - updated_at

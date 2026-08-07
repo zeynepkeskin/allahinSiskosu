@@ -16,12 +16,11 @@ export default async function WorkoutPage({
   } = await supabase.auth.getUser();
   const { data } = await supabase
     .from("exercise_plans")
-    .select("id, day_of_week, is_rest_day, exercises")
+    .select("id, day_of_week, exercises")
     .eq("profile_id", user!.id)
     .eq("day_of_week", day)
     .single();
-  if (!data || data.is_rest_day || !(data.exercises ?? []).length)
-    redirect("/exercises");
+  if (!data || !(data.exercises ?? []).length) redirect("/exercises");
   const plan: ExercisePlan = exercisePlanFromRow(data);
   return <WorkoutRunner plan={plan} />;
 }

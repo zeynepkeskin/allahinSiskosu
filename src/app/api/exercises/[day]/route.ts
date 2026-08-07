@@ -51,7 +51,6 @@ export async function PUT(
       {
         profile_id: user.id,
         day_of_week: day,
-        is_rest_day: parsed.data.isRestDay,
         exercises: parsed.data.exercises.map((exercise, sortOrder) => ({
           id: exercise.id ?? crypto.randomUUID(),
           name: exercise.name,
@@ -65,7 +64,7 @@ export async function PUT(
       },
       { onConflict: "profile_id,day_of_week" },
     )
-    .select("id, day_of_week, is_rest_day, exercises")
+    .select("id, day_of_week, exercises")
     .single();
   if (planError || !plan)
     return NextResponse.json(
@@ -75,7 +74,6 @@ export async function PUT(
   return NextResponse.json({
     id: plan.id,
     dayOfWeek: plan.day_of_week,
-    isRestDay: plan.is_rest_day,
     exercises: ((plan.exercises ?? []) as Array<Record<string, unknown>>).map(
       (exercise) => ({
         id: String(exercise.id),

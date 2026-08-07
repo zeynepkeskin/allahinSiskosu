@@ -148,7 +148,6 @@ Tables
 - id
 - profile_id
 - day_of_week
-- is_rest_day
 - exercises (JSON array: id, name, sets, reps, weight_lb, rest_seconds, set_duration_seconds, sort_order)
 - created_at
 - updated_at
@@ -484,7 +483,7 @@ Pages
 
 Workout runner flow
 
-1. User selects **Start** from a non-REST day.
+1. User selects **Start** from a planned workout day.
 2. Create a workout session snapshot so later plan edits do not alter history.
 3. Announce the exercise and prescription, e.g. “Bicep Curls with 25 pounds.
    Five sets of ten reps.”
@@ -504,7 +503,6 @@ Controls and behavior
   cue. Audio must start only after a user interaction.
 - Timers remain accurate after browser throttling by calculating remaining time
   from timestamps rather than decrementing state alone.
-- Support REST days with a clear rest-state UI and no Start action.
 - Confirm ending an in-progress workout and record it as `ended_early`.
 
 Tasks
@@ -514,8 +512,7 @@ Tasks
 - [x] Add strict Zod schemas, TypeScript types, and validation for plans,
       exercises, and session progress.
 - [x] Implement authenticated plan CRUD API routes/server actions.
-- [x] Build the seven-day weekly plan and exercise editor, including REST days
-      and exercise ordering.
+- [x] Build the seven-day weekly plan and exercise editor.
 - [x] Build the workout-session creation and progress persistence flow.
 - [x] Build the workout runner timer, set/rest state machine, and controls.
 - [x] Add accessible beep and speech-cue utilities with mute support.
@@ -526,8 +523,8 @@ Tasks
 
 Deliverable
 
-Users can plan their week as REST days or strength workouts and complete a
-guided, saved workout with timed rests, cues, and history.
+Users can plan strength workouts throughout the week and complete a guided,
+saved workout with timed rests, cues, and history.
 
 Status: [x] Implemented in the application. Apply the new Supabase migration
 before using the feature in a deployed environment.

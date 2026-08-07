@@ -60,8 +60,7 @@ export function ExercisePlanner({
   const [savingExercise, setSavingExercise] = useState(false);
 
   const activePlan = plans.find((plan) => plan.dayOfWeek === activeDay);
-  const activeExercises =
-    activePlan && !activePlan.isRestDay ? activePlan.exercises : [];
+  const activeExercises = activePlan?.exercises ?? [];
   const canWorkout = activeExercises.length > 0;
   const muscleVisual = buildAggregatedMuscleVisual(activeExercises);
   const dialogOpen = editingExerciseIndex !== undefined;
@@ -101,7 +100,7 @@ export function ExercisePlanner({
     const response = await fetch(`/api/exercises/${activeDay}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isRestDay: false, exercises }),
+      body: JSON.stringify({ exercises }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error ?? "Could not save exercise.");
