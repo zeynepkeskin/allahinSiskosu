@@ -3,7 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type DragEvent } from "react";
-import { GripVertical, HeartPulse, Plus, Trash2, X } from "lucide-react";
+import {
+  ChevronDown,
+  Clipboard,
+  GripVertical,
+  HeartPulse,
+  Play,
+  List,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
@@ -51,7 +61,9 @@ export function ExercisePlanner({
   const [message, setMessage] = useState<string>();
   const [sessions, setSessions] = useState(initialSessions);
   const [deletingSession, setDeletingSession] = useState<string>();
-  const [showMuscleMap, setShowMuscleMap] = useState(false);
+  const [workoutView, setWorkoutView] = useState<
+    "exercises" | "muscles" | "text"
+  >("exercises");
   const [editingExerciseIndex, setEditingExerciseIndex] = useState<
     number | null
   >();
@@ -62,6 +74,7 @@ export function ExercisePlanner({
   const [dragOverExerciseIndex, setDragOverExerciseIndex] = useState<number>();
   const [reorderingExercises, setReorderingExercises] = useState(false);
   const exerciseWasDragged = useRef(false);
+  const workoutMenu = useRef<HTMLDetailsElement>(null);
 
   const activePlan = plans.find((plan) => plan.dayOfWeek === activeDay);
   const activeExercises = activePlan?.exercises ?? [];
@@ -252,6 +265,24 @@ export function ExercisePlanner({
     }
   }
 
+  function closeWorkoutMenu() {
+    workoutMenu.current?.removeAttribute("open");
+  }
+
+  async function copyWorkout() {
+    const text = formatWorkoutText(
+      days[activeDay],
+      activeExercises,
+      workoutDuration,
+    );
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage("Workout copied to clipboard.");
+    } catch {
+      setMessage("Could not copy the workout.");
+    }
+  }
+
   return (
     <div className="mt-8 space-y-6">
       <nav
@@ -266,7 +297,7 @@ export function ExercisePlanner({
             onClick={() => {
               setActiveDay(index);
               setMessage(undefined);
-              setShowMuscleMap(false);
+              setWorkoutView("exercises");
             }}
             type="button"
           >
@@ -285,23 +316,88 @@ export function ExercisePlanner({
               {canWorkout ? "Planned workout" : "No workout planned"}
             </h2>
           </div>
-          {muscleVisual ? (
-            <button
-              aria-label={
-                showMuscleMap ? "Show exercise list" : "Show muscle map"
-              }
-              className="grid h-10 w-10 place-items-center rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => setShowMuscleMap((current) => !current)}
-              title={showMuscleMap ? "Show exercise list" : "Show muscle map"}
-              type="button"
-            >
-              <HeartPulse aria-hidden="true" className="h-4 w-4" />
-            </button>
+          {canWorkout ? (
+            <details className="relative" ref={workoutMenu}>
+              <summary
+                aria-label="Workout commands"
+                className="flex h-10 cursor-pointer list-none items-center gap-1 rounded-xl border border-slate-300 px-3 text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden"
+                title="Workout commands"
+              >
+                <HeartPulse aria-hidden="true" className="h-4 w-4" />
+                <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
+              </summary>
+              <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                <Link
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                  href={`/exercises/${activeDay}`}
+                  onClick={closeWorkoutMenu}
+                >
+                  <Play aria-hidden="true" className="h-4 w-4" />
+                  Start
+                </Link>
+                <button
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                  onClick={() => {
+                    setWorkoutView("exercises");
+                    closeWorkoutMenu();
+                  }}
+                  type="button"
+                >
+                  <List aria-hidden="true" className="h-4 w-4" />
+                  Exercises
+                </button>
+                {muscleVisual ? (
+                  <button
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                    onClick={() => {
+                      setWorkoutView("muscles");
+                      closeWorkoutMenu();
+                    }}
+                    type="button"
+                  >
+                    <HeartPulse aria-hidden="true" className="h-4 w-4" />
+                    Muscles
+                  </button>
+                ) : null}
+                <button
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                  onClick={() => {
+                    setWorkoutView("text");
+                    closeWorkoutMenu();
+                  }}
+                  type="button"
+                >
+                  <Clipboard aria-hidden="true" className="h-4 w-4" />
+                  Text
+                </button>
+              </div>
+            </details>
           ) : null}
         </div>
-        {showMuscleMap && muscleVisual ? (
+        {workoutView === "muscles" && muscleVisual ? (
           <div className="mt-5">
             <ExerciseMuscleMap visual={muscleVisual} />
+          </div>
+        ) : workoutView === "text" ? (
+          <div className="mt-5 rounded-xl bg-slate-50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold text-slate-800">Workout text</h3>
+              <button
+                className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                onClick={() => void copyWorkout()}
+                type="button"
+              >
+                <Clipboard aria-hidden="true" className="h-4 w-4" />
+                Copy
+              </button>
+            </div>
+            <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-slate-700">
+              {formatWorkoutText(
+                days[activeDay],
+                activeExercises,
+                workoutDuration,
+              )}
+            </pre>
           </div>
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -347,17 +443,9 @@ export function ExercisePlanner({
           </p>
         ) : null}
         {canWorkout ? (
-          <div className="mt-6 flex items-center gap-3">
-            <Link
-              className="inline-block rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
-              href={`/exercises/${activeDay}`}
-            >
-              Start
-            </Link>
-            <span className="text-sm font-medium text-slate-500">
-              {workoutDuration}
-            </span>
-          </div>
+          <p className="mt-6 text-sm font-medium text-slate-500">
+            {workoutDuration}
+          </p>
         ) : null}
       </Card>
       {dialogOpen ? (
@@ -640,6 +728,28 @@ function formatWorkoutDuration(exercises: Exercise[]) {
   }, 0);
   const minutes = Math.max(1, Math.round(totalSeconds / 60));
   return `About ${minutes} min`;
+}
+
+function formatWorkoutText(
+  day: string,
+  exercises: Exercise[],
+  duration: string,
+) {
+  const lines = [`${day} Workout`, duration, ""];
+  exercises.forEach((exercise, index) => {
+    lines.push(`${index + 1}. ${exercise.name}`);
+    lines.push(`   Sets: ${exercise.sets}`);
+    lines.push(`   Reps: ${exercise.reps}`);
+    lines.push(
+      `   Weight: ${exercise.weightLb === null ? "Bodyweight" : `${exercise.weightLb} lb`}`,
+    );
+    lines.push(`   Rest: ${exercise.restSeconds} seconds`);
+    if (exercise.setDurationSeconds !== null) {
+      lines.push(`   Set duration: ${exercise.setDurationSeconds} seconds`);
+    }
+    lines.push("");
+  });
+  return `${lines.join("\n").trimEnd()}\n`;
 }
 
 function exerciseCardName(name: string) {
