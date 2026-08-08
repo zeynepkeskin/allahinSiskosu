@@ -491,7 +491,13 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
       return;
     }
     stopCues();
-    await speak(`Completed. Now rest for ${current.restSeconds} seconds.`);
+    const nextExercisePrompt =
+      completed >= current.sets && nextExercise
+        ? ` Get ready for the next exercise: ${nextExercise.name}.`
+        : "";
+    await speak(
+      `Completed. Now rest for ${current.restSeconds} seconds.${nextExercisePrompt}`,
+    );
     setSeconds(current.restSeconds);
     setPhase("rest");
     setPaused(false);
