@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { HeartPulse, Plus, Trash2, X } from "lucide-react";
+import { useRef, useState, type DragEvent } from "react";
+import { GripVertical, HeartPulse, Plus, Trash2, X } from "lucide-react";
 import { ExerciseSelector } from "@/components/exercise-selector";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import { Button, Card, EmptyState } from "@/components/ui";
@@ -58,10 +58,15 @@ export function ExercisePlanner({
   const [exerciseDraft, setExerciseDraft] = useState<Exercise>(blankExercise());
   const [dialogMessage, setDialogMessage] = useState<string>();
   const [savingExercise, setSavingExercise] = useState(false);
+  const [draggingExerciseIndex, setDraggingExerciseIndex] = useState<number>();
+  const [dragOverExerciseIndex, setDragOverExerciseIndex] = useState<number>();
+  const [reorderingExercises, setReorderingExercises] = useState(false);
+  const exerciseWasDragged = useRef(false);
 
   const activePlan = plans.find((plan) => plan.dayOfWeek === activeDay);
   const activeExercises = activePlan?.exercises ?? [];
   const canWorkout = activeExercises.length > 0;
+  const workoutDuration = formatWorkoutDuration(activeExercises);
   const muscleVisual = buildAggregatedMuscleVisual(activeExercises);
   const dialogOpen = editingExerciseIndex !== undefined;
   const isEditingExercise = editingExerciseIndex !== null;
@@ -181,6 +186,48 @@ export function ExercisePlanner({
     }
   }
 
+  async function reorderExercises(
+    event: DragEvent<HTMLButtonElement>,
+    targetIndex: number,
+  ) {
+    event.preventDefault();
+    const sourceIndex = draggingExerciseIndex;
+    setDraggingExerciseIndex(undefined);
+    setDragOverExerciseIndex(undefined);
+    if (sourceIndex === undefined || sourceIndex === targetIndex) return;
+
+    const reordered = [...activeExercises];
+    const [movedExercise] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, movedExercise);
+    const previousPlans = plans;
+
+    setPlans((current) =>
+      current.map((plan) =>
+        plan.dayOfWeek === activeDay ? { ...plan, exercises: reordered } : plan,
+      ),
+    );
+    setReorderingExercises(true);
+    setMessage(undefined);
+    try {
+      await persistExercises(reordered);
+      setMessage("Exercise order updated.");
+    } catch (error) {
+      setPlans(previousPlans);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update exercise order.",
+      );
+    } finally {
+      setReorderingExercises(false);
+    }
+  }
+
+  function finishExerciseDrag() {
+    setDraggingExerciseIndex(undefined);
+    setDragOverExerciseIndex(undefined);
+  }
+
   async function removeSession(session: Session) {
     if (!window.confirm("Delete this workout session? This cannot be undone."))
       return;
@@ -260,9 +307,32 @@ export function ExercisePlanner({
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {activeExercises.map((exercise, index) => (
               <ExercisePreview
+                disabled={reorderingExercises}
+                dragging={draggingExerciseIndex === index}
+                dragOver={dragOverExerciseIndex === index}
                 exercise={exercise}
                 key={exercise.id ?? `${exercise.name}-${index}`}
-                onClick={() => openEditExercise(exercise, index)}
+                onClick={() => {
+                  if (exerciseWasDragged.current) {
+                    exerciseWasDragged.current = false;
+                    return;
+                  }
+                  openEditExercise(exercise, index);
+                }}
+                onDragEnd={finishExerciseDrag}
+                onDragEnter={() => {
+                  if (draggingExerciseIndex !== undefined)
+                    setDragOverExerciseIndex(index);
+                }}
+                onDragOver={(event) => event.preventDefault()}
+                onDragStart={(event) => {
+                  exerciseWasDragged.current = true;
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", String(index));
+                  setDraggingExerciseIndex(index);
+                  setDragOverExerciseIndex(index);
+                }}
+                onDrop={(event) => void reorderExercises(event, index)}
               />
             ))}
             <AddExerciseCard onClick={openAddExercise} />
@@ -277,13 +347,16 @@ export function ExercisePlanner({
           </p>
         ) : null}
         {canWorkout ? (
-          <div className="mt-6">
+          <div className="mt-6 flex items-center gap-3">
             <Link
               className="inline-block rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
               href={`/exercises/${activeDay}`}
             >
               Start
             </Link>
+            <span className="text-sm font-medium text-slate-500">
+              {workoutDuration}
+            </span>
           </div>
         ) : null}
       </Card>
@@ -553,20 +626,60 @@ function buildAggregatedMuscleVisual(
   };
 }
 
+function formatWorkoutDuration(exercises: Exercise[]) {
+  const totalSeconds = exercises.reduce((total, exercise, index) => {
+    const setSeconds =
+      exercise.setDurationSeconds ??
+      Math.min(90, Math.max(20, exercise.reps * 3));
+    const rests = exercise.sets - (index === exercises.length - 1 ? 1 : 0);
+    return (
+      total +
+      exercise.sets * setSeconds +
+      Math.max(0, rests) * exercise.restSeconds
+    );
+  }, 0);
+  const minutes = Math.max(1, Math.round(totalSeconds / 60));
+  return `About ${minutes} min`;
+}
+
 function ExercisePreview({
+  disabled,
+  dragging,
+  dragOver,
   exercise,
   onClick,
+  onDragEnd,
+  onDragEnter,
+  onDragOver,
+  onDragStart,
+  onDrop,
 }: {
+  disabled: boolean;
+  dragging: boolean;
+  dragOver: boolean;
   exercise: Exercise;
   onClick: () => void;
+  onDragEnd: () => void;
+  onDragEnter: () => void;
+  onDragOver: (event: DragEvent<HTMLButtonElement>) => void;
+  onDragStart: (event: DragEvent<HTMLButtonElement>) => void;
+  onDrop: (event: DragEvent<HTMLButtonElement>) => void;
 }) {
   const visual = getExerciseVisual(exercise.name);
   const frame = visual?.demoId ? demoFrames(visual.demoId).start : undefined;
   return (
     <button
-      aria-label={`Edit ${exercise.name}`}
-      className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left transition hover:border-emerald-400 hover:shadow-sm"
+      aria-label={`Edit ${exercise.name}. Drag to reorder.`}
+      className={`min-w-0 overflow-hidden rounded-xl border bg-slate-50 text-left transition hover:border-emerald-400 hover:shadow-sm ${dragOver && !dragging ? "border-emerald-500 ring-2 ring-emerald-200" : "border-slate-200"} ${dragging ? "opacity-40" : ""}`}
+      disabled={disabled}
+      draggable={!disabled}
       onClick={onClick}
+      onDragEnd={onDragEnd}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragStart={onDragStart}
+      onDrop={onDrop}
+      title="Drag to reorder or click to edit"
       type="button"
     >
       {frame ? (
@@ -586,8 +699,12 @@ function ExercisePreview({
           Exercise image unavailable
         </span>
       )}
-      <span className="block truncate px-3 py-2 text-center text-sm font-semibold text-slate-700">
-        {exercise.name}
+      <span className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold text-slate-700">
+        <GripVertical
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 text-slate-400"
+        />
+        <span className="truncate">{exercise.name}</span>
       </span>
     </button>
   );
