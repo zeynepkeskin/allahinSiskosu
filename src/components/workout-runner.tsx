@@ -156,7 +156,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
   const current = exerciseAt(exerciseIndex);
   const nextExercise = plan.exercises[exerciseIndex + 1];
   const showNextExercise =
-    phase === "set" && setNumber === current.sets && nextExercise !== undefined;
+    (phase === "set" || phase === "rest") &&
+    setNumber === current.sets &&
+    nextExercise !== undefined;
 
   function ensureAudioContext() {
     if (muted || !("AudioContext" in window || "webkitAudioContext" in window))
