@@ -642,6 +642,13 @@ function formatWorkoutDuration(exercises: Exercise[]) {
   return `About ${minutes} min`;
 }
 
+function exerciseCardName(name: string) {
+  const shortened = name
+    .replace(/\b(?:barbell|dumbbells?|dumbells?)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return shortened || name;
+}
 function ExercisePreview({
   disabled,
   dragging,
@@ -704,7 +711,7 @@ function ExercisePreview({
           aria-hidden="true"
           className="h-4 w-4 shrink-0 text-slate-400"
         />
-        <span className="truncate">{exercise.name}</span>
+        <span className="truncate">{exerciseCardName(exercise.name)}</span>
       </span>
     </button>
   );
