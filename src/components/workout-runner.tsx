@@ -154,6 +154,9 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
     return override ? { ...exercise, ...override } : exercise;
   }
   const current = exerciseAt(exerciseIndex);
+  const nextExercise = plan.exercises[exerciseIndex + 1];
+  const showNextExercise =
+    phase === "set" && setNumber === current.sets && nextExercise !== undefined;
 
   function ensureAudioContext() {
     if (muted || !("AudioContext" in window || "webkitAudioContext" in window))
@@ -841,7 +844,17 @@ export function WorkoutRunner({ plan }: { plan: ExercisePlan }) {
             Estimated calories burned: {estimatedCalories ?? "—"} kcal
           </p>
         ) : null}
-        <div className="mt-8 flex justify-end">
+        <div className="mt-8 flex items-end justify-between gap-4">
+          {showNextExercise ? (
+            <p className="text-left text-sm text-slate-500">
+              Next exercise
+              <span className="block font-semibold text-slate-900">
+                {nextExercise.name}
+              </span>
+            </p>
+          ) : (
+            <span />
+          )}
           <button
             className="text-sm font-semibold text-slate-900"
             onClick={() => {
