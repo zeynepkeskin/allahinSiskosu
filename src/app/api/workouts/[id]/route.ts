@@ -6,17 +6,37 @@ import {
   type WorkoutExerciseForCalories,
 } from "@/lib/workout-calories";
 
-const updateSchema = z.object({
-  completedSets: z
-    .array(
-      z.object({
-        id: z.string().uuid(),
-        completedSets: z.number().int().min(0).max(30),
-      }),
-    )
-    .optional(),
-  status: z.enum(["completed", "ended_early"]).optional(),
-});
+const updateSchema = z
+  .object({
+    completedSets: z
+      .array(
+        z.object({
+          id: z.string().uuid(),
+          completedSets: z.number().int().min(0).max(30),
+        }),
+      )
+      .optional(),
+    exercises: z
+      .array(
+        z.object({
+          id: z.string().uuid(),
+          sets: z.number().int().min(0).max(30),
+          reps: z.number().int().min(1).max(500),
+        }),
+      )
+      .min(1)
+      .optional(),
+    status: z.enum(["completed", "ended_early"]).optional(),
+  })
+  .refine(
+    (value) =>
+      value.completedSets !== undefined ||
+      value.exercises !== undefined ||
+      value.status !== undefined,
+    {
+      message: "No workout changes supplied.",
+    },
+  );
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -53,11 +73,22 @@ export async function PATCH(
       exercise.completedSets,
     ]),
   );
+  const editedExercises = new Map(
+    (parsed.data.exercises ?? []).map((exercise) => [exercise.id, exercise]),
+  );
   const exercises = (
     (session.exercises ?? []) as Array<
       WorkoutExerciseForCalories & Record<string, unknown>
     >
   ).map((exercise) => {
+    const edit = editedExercises.get(String(exercise.id));
+    if (edit)
+      return {
+        ...exercise,
+        planned_sets: edit.sets,
+        completed_sets: edit.sets,
+        planned_reps: edit.reps,
+      };
     const completed = completedSets.get(String(exercise.id));
     return completed === undefined
       ? exercise

@@ -45,8 +45,10 @@ export default async function ExercisesPage() {
           )
             .sort((a, b) => Number(a.sort_order) - Number(b.sort_order))
             .map((exercise) => ({
+              id: String(exercise.id),
               name: String(exercise.name),
               plannedSets: Number(exercise.planned_sets),
+              plannedReps: Number(exercise.planned_reps),
               completedSets: Number(exercise.completed_sets),
             })),
         }))}

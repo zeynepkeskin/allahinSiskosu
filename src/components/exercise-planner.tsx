@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import {
   Clipboard,
   GripVertical,
   HeartPulse,
+  Pencil,
   Play,
   List,
   Plus,
@@ -41,10 +42,19 @@ type Session = {
   startedAt: string;
   estimatedCalBurned: number | null;
   exercises: Array<{
+    id: string;
     name: string;
     plannedSets: number;
+    plannedReps: number;
     completedSets: number;
   }>;
+};
+
+type SessionExerciseDraft = {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
 };
 
 export function ExercisePlanner({
@@ -64,6 +74,12 @@ export function ExercisePlanner({
   const [workoutView, setWorkoutView] = useState<
     "exercises" | "muscles" | "text"
   >("exercises");
+  const [editingSession, setEditingSession] = useState<Session>();
+  const [sessionExerciseDrafts, setSessionExerciseDrafts] = useState<
+    SessionExerciseDraft[]
+  >([]);
+  const [sessionEditMessage, setSessionEditMessage] = useState<string>();
+  const [savingSession, setSavingSession] = useState(false);
   const [editingExerciseIndex, setEditingExerciseIndex] = useState<
     number | null
   >();
@@ -283,6 +299,93 @@ export function ExercisePlanner({
     }
   }
 
+  function openSessionEditor(session: Session) {
+    setEditingSession(session);
+    setSessionExerciseDrafts(
+      session.exercises.map((exercise) => ({
+        id: exercise.id,
+        name: exercise.name,
+        sets: exercise.completedSets,
+        reps: exercise.plannedReps,
+      })),
+    );
+    setSessionEditMessage(undefined);
+  }
+
+  function updateSessionExercise(
+    id: string,
+    field: "sets" | "reps",
+    value: string,
+  ) {
+    setSessionExerciseDrafts((current) =>
+      current.map((exercise) =>
+        exercise.id === id
+          ? { ...exercise, [field]: value === "" ? 0 : Number(value) }
+          : exercise,
+      ),
+    );
+  }
+
+  async function saveSessionEdits() {
+    if (!editingSession) return;
+    if (
+      sessionExerciseDrafts.some(
+        (exercise) =>
+          !Number.isInteger(exercise.sets) ||
+          exercise.sets < 0 ||
+          exercise.sets > 30 ||
+          !Number.isInteger(exercise.reps) ||
+          exercise.reps < 1 ||
+          exercise.reps > 500,
+      )
+    ) {
+      setSessionEditMessage("Enter 0-30 sets and 1-500 reps.");
+      return;
+    }
+    setSavingSession(true);
+    setSessionEditMessage(undefined);
+    try {
+      const response = await fetch(`/api/workouts/${editingSession.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exercises: sessionExerciseDrafts }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(body.error ?? "Could not update workout.");
+      setSessions((current) =>
+        current.map((session) =>
+          session.id === editingSession.id
+            ? {
+                ...session,
+                estimatedCalBurned: body.estimatedCalBurned,
+                exercises: session.exercises.map((exercise) => {
+                  const edit = sessionExerciseDrafts.find(
+                    (draft) => draft.id === exercise.id,
+                  );
+                  return edit
+                    ? {
+                        ...exercise,
+                        plannedSets: edit.sets,
+                        completedSets: edit.sets,
+                        plannedReps: edit.reps,
+                      }
+                    : exercise;
+                }),
+              }
+            : session,
+        ),
+      );
+      setEditingSession(undefined);
+      setMessage("Workout updated.");
+    } catch (error) {
+      setSessionEditMessage(
+        error instanceof Error ? error.message : "Could not update workout.",
+      );
+    } finally {
+      setSavingSession(false);
+    }
+  }
   return (
     <div className="mt-8 space-y-6">
       <nav
@@ -460,6 +563,16 @@ export function ExercisePlanner({
           onSave={() => void saveExercise()}
         />
       ) : null}
+      {editingSession ? (
+        <SessionEditDialog
+          drafts={sessionExerciseDrafts}
+          message={sessionEditMessage}
+          saving={savingSession}
+          onChange={updateSessionExercise}
+          onClose={() => !savingSession && setEditingSession(undefined)}
+          onSave={() => void saveSessionEdits()}
+        />
+      ) : null}
       <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <p className="text-sm font-semibold text-emerald-600">
@@ -521,6 +634,15 @@ export function ExercisePlanner({
                     })}
                   </div>
                   <button
+                    aria-label="Edit workout sets and reps"
+                    className="grid h-8 w-8 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
+                    onClick={() => openSessionEditor(session)}
+                    title="Edit sets and reps"
+                    type="button"
+                  >
+                    <Pencil aria-hidden="true" className="h-4 w-4" />
+                  </button>
+                  <button
                     aria-label="Delete workout session"
                     className="grid h-8 w-8 place-items-center rounded-lg text-[0px] text-red-600 hover:bg-red-50 disabled:opacity-50"
                     disabled={deletingSession === session.id}
@@ -529,7 +651,7 @@ export function ExercisePlanner({
                     type="button"
                   >
                     <Trash2 aria-hidden="true" className="h-4 w-4" />
-                    {deletingSession === session.id ? "Deleting…" : "Delete"}
+                    {deletingSession === session.id ? "Deletingâ€¦" : "Delete"}
                   </button>
                 </div>
               </div>
@@ -546,6 +668,100 @@ export function ExercisePlanner({
   );
 }
 
+function SessionEditDialog({
+  drafts,
+  message,
+  saving,
+  onChange,
+  onClose,
+  onSave,
+}: {
+  drafts: SessionExerciseDraft[];
+  message?: string;
+  saving: boolean;
+  onChange: (id: string, field: "sets" | "reps", value: string) => void;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <div
+      aria-labelledby="session-edit-title"
+      aria-modal="true"
+      className="fixed inset-0 z-40 flex items-end bg-slate-950/45 p-3 sm:items-center sm:justify-center"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !saving) onClose();
+      }}
+      role="dialog"
+    >
+      <section className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div>
+            <p className="text-sm font-semibold text-emerald-700">
+              WORKOUT HISTORY
+            </p>
+            <h2 className="mt-1 text-xl font-bold" id="session-edit-title">
+              Edit sets and reps
+            </h2>
+          </div>
+          <button
+            aria-label="Close workout editor"
+            className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+            disabled={saving}
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" className="h-5 w-5" />
+          </button>
+        </header>
+        <div className="space-y-4 p-5">
+          {drafts.map((exercise) => (
+            <div
+              className="grid grid-cols-[minmax(0,1fr)_5rem_5rem] items-end gap-3"
+              key={exercise.id}
+            >
+              <p
+                className="truncate pb-2 text-sm font-semibold text-slate-800"
+                title={exercise.name}
+              >
+                {exercise.name}
+              </p>
+              <Field
+                label="Sets"
+                min="0"
+                value={exercise.sets}
+                onChange={(value) => onChange(exercise.id, "sets", value)}
+              />
+              <Field
+                label="Reps"
+                min="1"
+                value={exercise.reps}
+                onChange={(value) => onChange(exercise.id, "reps", value)}
+              />
+            </div>
+          ))}
+          {message ? (
+            <p aria-live="polite" className="text-sm text-red-600">
+              {message}
+            </p>
+          ) : null}
+        </div>
+        <footer className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
+          <button
+            className="text-sm font-semibold text-slate-600"
+            disabled={saving}
+            onClick={onClose}
+            type="button"
+          >
+            Cancel
+          </button>
+          <Button disabled={saving} onClick={onSave} type="button">
+            {saving ? "Saving..." : "Save changes"}
+          </Button>
+        </footer>
+      </section>
+    </div>
+  );
+}
 function AddExerciseCard({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -684,7 +900,11 @@ function ExerciseDialog({
               Cancel
             </button>
             <Button disabled={saving} onClick={onSave} type="button">
-              {saving ? "Saving…" : isEditing ? "Save changes" : "Add exercise"}
+              {saving
+                ? "Savingâ€¦"
+                : isEditing
+                  ? "Save changes"
+                  : "Add exercise"}
             </Button>
           </div>
         </footer>
