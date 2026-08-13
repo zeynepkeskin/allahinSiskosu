@@ -6,6 +6,8 @@ import { useRef, useState, type DragEvent } from "react";
 import {
   ChevronDown,
   Clipboard,
+  ClipboardCopy,
+  ClipboardPaste,
   GripVertical,
   HeartPulse,
   Pencil,
@@ -89,6 +91,8 @@ export function ExercisePlanner({
   const [draggingExerciseIndex, setDraggingExerciseIndex] = useState<number>();
   const [dragOverExerciseIndex, setDragOverExerciseIndex] = useState<number>();
   const [reorderingExercises, setReorderingExercises] = useState(false);
+  const [copiedPlanId, setCopiedPlanId] = useState<string>();
+  const [pastingPlan, setPastingPlan] = useState(false);
   const exerciseWasDragged = useRef(false);
   const workoutMenu = useRef<HTMLDetailsElement>(null);
 
@@ -285,6 +289,73 @@ export function ExercisePlanner({
     workoutMenu.current?.removeAttribute("open");
   }
 
+  function copyPlan() {
+    if (!activePlan) return;
+    setCopiedPlanId(activePlan.id);
+    setMessage(
+      `${days[activeDay]} workout copied. Choose another day to paste it.`,
+    );
+    closeWorkoutMenu();
+  }
+
+  async function pastePlan() {
+    const sourcePlan = plans.find((plan) => plan.id === copiedPlanId);
+    if (!sourcePlan) {
+      setCopiedPlanId(undefined);
+      setMessage("The copied workout is no longer available.");
+      closeWorkoutMenu();
+      return;
+    }
+
+    const exerciseCount = sourcePlan.exercises.length;
+    const exerciseLabel = exerciseCount === 1 ? "exercise" : "exercises";
+    const confirmed = window.confirm(
+      `${exerciseCount} ${exerciseLabel} from ${days[sourcePlan.dayOfWeek]} will be copied to ${days[activeDay]}. Exercises with matching names will be updated. Continue?`,
+    );
+    if (!confirmed) return;
+
+    const sourceByName = new Map(
+      sourcePlan.exercises.map((exercise) => [
+        exercise.name.trim().toLocaleLowerCase(),
+        exercise,
+      ]),
+    );
+    const matchedNames = new Set<string>();
+    const mergedExercises = activeExercises.map((exercise) => {
+      const key = exercise.name.trim().toLocaleLowerCase();
+      const sourceExercise = sourceByName.get(key);
+      if (!sourceExercise) return exercise;
+      matchedNames.add(key);
+      return { ...sourceExercise, id: exercise.id };
+    });
+    for (const exercise of sourcePlan.exercises) {
+      const key = exercise.name.trim().toLocaleLowerCase();
+      if (!matchedNames.has(key)) {
+        const newExercise = { ...exercise };
+        delete newExercise.id;
+        mergedExercises.push(newExercise);
+      }
+    }
+
+    setPastingPlan(true);
+    setMessage(undefined);
+    closeWorkoutMenu();
+    try {
+      await persistExercises(mergedExercises);
+      setCopiedPlanId(undefined);
+      setWorkoutView("exercises");
+      setMessage(
+        `${days[sourcePlan.dayOfWeek]} workout copied to ${days[activeDay]}.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not paste workout.",
+      );
+    } finally {
+      setPastingPlan(false);
+    }
+  }
+
   async function copyWorkout() {
     const text = formatWorkoutText(
       days[activeDay],
@@ -419,7 +490,7 @@ export function ExercisePlanner({
               {canWorkout ? "Planned workout" : "No workout planned"}
             </h2>
           </div>
-          {canWorkout ? (
+          {canWorkout || copiedPlanId ? (
             <details className="relative" ref={workoutMenu}>
               <summary
                 aria-label="Workout commands"
@@ -473,6 +544,27 @@ export function ExercisePlanner({
                   <Clipboard aria-hidden="true" className="h-4 w-4" />
                   Text
                 </button>
+                {canWorkout ? (
+                  <button
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                    onClick={copyPlan}
+                    type="button"
+                  >
+                    <ClipboardCopy aria-hidden="true" className="h-4 w-4" />
+                    Copy
+                  </button>
+                ) : null}
+                {copiedPlanId ? (
+                  <button
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                    disabled={pastingPlan}
+                    onClick={() => void pastePlan()}
+                    type="button"
+                  >
+                    <ClipboardPaste aria-hidden="true" className="h-4 w-4" />
+                    {pastingPlan ? "Pasting…" : "Paste"}
+                  </button>
+                ) : null}
               </div>
             </details>
           ) : null}
