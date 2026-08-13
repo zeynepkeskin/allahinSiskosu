@@ -1,7 +1,11 @@
 import { ProfileForm } from "@/components/profile-form";
 import { createClient } from "@/lib/supabase/server";
 import { centimetersToInches, kilogramsToPounds } from "@/lib/units";
-import { addCalendarDays, startOfDayInTimeZone, todayInTimeZone } from "@/lib/timezone";
+import {
+  addCalendarDays,
+  startOfDayInTimeZone,
+  todayInTimeZone,
+} from "@/lib/timezone";
 import { userTimeZone } from "@/lib/timezone-server";
 
 export default async function ProfilePage() {
@@ -13,7 +17,7 @@ export default async function ProfilePage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "height_cm, weight_kg, target_weight, birthday, gender, activity_level, goal",
+      "height_cm, weight_kg, target_weight, birthday, gender, activity_level, goal, available_equipment",
     )
     .eq("id", user!.id)
     .maybeSingle();
@@ -52,6 +56,7 @@ export default async function ProfilePage() {
           gender: profile?.gender ?? undefined,
           activityLevel: profile?.activity_level ?? undefined,
           goal: profile?.goal ?? undefined,
+          availableEquipment: profile?.available_equipment ?? [],
         }}
       />
     </>

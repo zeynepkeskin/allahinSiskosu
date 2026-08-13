@@ -1,255 +1,203 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
-import { nutritionCoachSchema } from "@/lib/coach";
+import { z } from "zod";
+import {
+  coachInstructions,
+  coachTools,
+  executeCoachTool,
+  responseText,
+} from "@/lib/coach-agent";
 import { createClient } from "@/lib/supabase/server";
-import {
-  addCalendarDays,
-  dateKeyInTimeZone,
-  startOfDayInTimeZone,
-  todayInTimeZone,
-} from "@/lib/timezone";
-import { userTimeZone } from "@/lib/timezone-server";
-import {
-  calculateWorkoutMetrics,
-  completedWorkoutSessions,
-  type WorkoutSessionRow,
-} from "@/lib/workout-metrics";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
-type MealRow = {
-  meal_time: string;
-  total_calories: number | string;
-  protein: number | string;
-  carbs: number | string;
-  fat: number | string;
-  fiber: number | string;
-};
-type DailyNutrition = {
-  date: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-};
-type DailyTraining = {
-  date: string;
-  completedWorkouts: number;
-  completedSets: number;
-  completedReps: number;
-  loadedVolumeLb: number;
-  averageDurationMinutes: number | null;
-};
+const requestSchema = z.object({
+  message: z.string().trim().min(1).max(4000),
+  conversationId: z.string().uuid().optional(),
+});
+type JsonObject = Record<string, unknown>;
 
-const responseFormat = {
-  type: "json_schema",
-  json_schema: {
-    name: "nutrition_coaching",
-    strict: true,
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      required: [
-        "dailySummary",
-        "weeklySummary",
-        "trainingSummary",
-        "strengths",
-        "improvements",
-        "macroAnalysis",
-      ],
-      properties: {
-        dailySummary: { type: "string" },
-        weeklySummary: { type: "string" },
-        trainingSummary: { type: "string" },
-        strengths: {
-          type: "array",
-          minItems: 1,
-          maxItems: 3,
-          items: { type: "string" },
-        },
-        improvements: {
-          type: "array",
-          minItems: 1,
-          maxItems: 3,
-          items: { type: "string" },
-        },
-        macroAnalysis: { type: "string" },
-      },
-    },
-  },
-} as const;
-const systemPrompt =
-  "You are a supportive nutrition and strength-training coach. Use only the provided logged nutrition and completed-workout data; do not invent foods, activity, calorie expenditure, medical conditions, diagnoses, or causal weight claims. Give practical, non-judgmental coaching in plain language. Identify observable strengths and small, specific improvements. Do not prescribe treatment, guarantee outcomes, shame the user, or give advice for an eating disorder. State when eat or workout logging is limited. Do not suggest that a completed workout changes the user's calorie budget. Keep every field concise.";
-const number = (value: number | string) => Number(value) || 0;
-function buildDailyData(meals: MealRow[], timeZone: string): DailyNutrition[] {
-  const today = todayInTimeZone(timeZone);
-  return Array.from({ length: 7 }, (_, index) => {
-    const key = addCalendarDays(today, index - 6);
-    const totals = meals
-      .filter((meal) => dateKeyInTimeZone(meal.meal_time, timeZone) === key)
-      .reduce(
-        (total, meal) => ({
-          calories: total.calories + number(meal.total_calories),
-          protein: total.protein + number(meal.protein),
-          carbs: total.carbs + number(meal.carbs),
-          fat: total.fat + number(meal.fat),
-          fiber: total.fiber + number(meal.fiber),
-        }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
-      );
-    return {
-      date: key,
-      calories: Math.round(totals.calories),
-      protein: Math.round(totals.protein * 10) / 10,
-      carbs: Math.round(totals.carbs * 10) / 10,
-      fat: Math.round(totals.fat * 10) / 10,
-      fiber: Math.round(totals.fiber * 10) / 10,
-    };
-  });
+function jsonError(error: string, status: number) {
+  return NextResponse.json({ error }, { status });
 }
 
-function buildDailyTraining(
-  sessions: WorkoutSessionRow[],
-  timeZone: string,
-): DailyTraining[] {
-  const today = todayInTimeZone(timeZone);
-  const completed = completedWorkoutSessions(sessions);
-  return Array.from({ length: 7 }, (_, index) => {
-    const key = addCalendarDays(today, index - 6);
-    const metrics = calculateWorkoutMetrics(
-      completed.filter(
-        (session) => dateKeyInTimeZone(session.started_at, timeZone) === key,
-      ),
-      timeZone,
-    );
-    return {
-      date: key,
-      completedWorkouts: metrics.completedWorkouts,
-      completedSets: metrics.completedSets,
-      completedReps: metrics.completedReps,
-      loadedVolumeLb: metrics.loadedVolume,
-      averageDurationMinutes: metrics.averageDurationMinutes,
-    };
-  });
-}
-
-export async function POST() {
-  const timeZone = await userTimeZone();
+async function signedIn() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user)
-    return NextResponse.json(
-      { error: "Sign in to use your coach." },
-      { status: 401 },
-    );
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey)
-    return NextResponse.json(
-      {
-        error:
-          "Coaching is not configured. Add OPENAI_API_KEY to the server environment.",
-      },
-      { status: 503 },
-    );
-  try {
-    const sevenDaysAgo = startOfDayInTimeZone(
-      addCalendarDays(todayInTimeZone(timeZone), -6),
-      timeZone,
-    );
-    const [{ data: profile }, { data: mealData }, { data: sessionData }] =
-      await Promise.all([
-        supabase
-          .from("profiles")
-          .select("daily_calorie_goal, goal")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("meals")
-          .select("meal_time, total_calories, protein, carbs, fat, fiber")
-          .eq("profile_id", user.id)
-          .gte("meal_time", sevenDaysAgo.toISOString())
-          .order("meal_time", { ascending: true }),
-        supabase
-          .from("workout_sessions")
-          .select("id, status, started_at, completed_at, exercises")
-          .gte("started_at", sevenDaysAgo.toISOString())
-          .order("started_at", { ascending: true }),
-      ]);
-    const daily = buildDailyData((mealData ?? []) as MealRow[], timeZone);
-    const training = buildDailyTraining(
-      (sessionData ?? []) as WorkoutSessionRow[],
-      timeZone,
-    );
-    const loggedDays = daily.filter((day) => day.calories > 0).length;
-    const workoutDays = training.filter(
-      (day) => day.completedWorkouts > 0,
-    ).length;
-    if (!loggedDays && !workoutDays)
-      return NextResponse.json(
-        {
-          error:
-            "Log at least one eat or complete a workout before asking your coach for insights.",
-        },
-        { status: 400 },
-      );
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_COACH_MODEL ?? "gpt-5.6-sol",
-        reasoning_effort: "medium",
-        max_completion_tokens: 1800,
-        response_format: responseFormat,
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: JSON.stringify({
-              dailyCalorieGoal: profile?.daily_calorie_goal ?? null,
-              goal: profile?.goal ?? null,
-              nutrition: { loggedDays, daily },
-              training: { workoutDays, daily: training },
-            }),
-          },
-        ],
-      }),
-    });
-    if (!response.ok) {
-      console.error(
-        "Nutrition coach provider error",
-        response.status,
-        await response.text(),
-      );
-      return NextResponse.json(
-        { error: "Your coach is unavailable right now. Please try again." },
-        { status: 502 },
-      );
+  const { data: { user } } = await supabase.auth.getUser();
+  return { supabase, user };
+}
+
+export async function GET(request: Request) {
+  const conversationId = new URL(request.url).searchParams.get("conversationId");
+  if (!z.string().uuid().safeParse(conversationId).success)
+    return jsonError("Invalid conversation.", 400);
+  const { supabase, user } = await signedIn();
+  if (!user) return jsonError("Sign in to use your coach.", 401);
+  const { data: conversation } = await supabase
+    .from("coach_conversations")
+    .select("id, title, created_at, updated_at")
+    .eq("id", conversationId!)
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (!conversation) return jsonError("Conversation not found.", 404);
+  const { data: messages, error } = await supabase
+    .from("coach_messages")
+    .select("id, role, content, created_at")
+    .eq("conversation_id", conversation.id)
+    .order("created_at", { ascending: true });
+  if (error) return jsonError("Could not load this conversation.", 500);
+  return NextResponse.json({ conversation, messages: messages ?? [] });
+}
+
+export async function POST(request: Request) {
+  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return jsonError("Enter a message up to 4,000 characters.", 400);
+  const { supabase, user } = await signedIn();
+  if (!user) return jsonError("Sign in to use your coach.", 401);
+  if (!process.env.OPENAI_API_KEY)
+    return jsonError("Coaching is not configured. Add OPENAI_API_KEY to the server environment.", 503);
+
+  let conversation: { id: string; title: string } | null = null;
+  if (parsed.data.conversationId) {
+    const { data } = await supabase
+      .from("coach_conversations")
+      .select("id, title")
+      .eq("id", parsed.data.conversationId)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    conversation = data;
+    if (!conversation) {
+      const title = parsed.data.message.replace(/\s+/g, " ").slice(0, 72);
+      const { data: created, error } = await supabase
+        .from("coach_conversations")
+        .insert({ id: parsed.data.conversationId, profile_id: user.id, title })
+        .select("id, title")
+        .single();
+      if (error || !created) return jsonError("Could not start a conversation.", 500);
+      conversation = created;
     }
-    const completion = (await response.json()) as {
-      choices?: Array<{
-        finish_reason?: string;
-        message?: { content?: string };
-      }>;
-    };
-    const choice = completion.choices?.[0];
-    if (!choice?.message?.content || choice.finish_reason === "length")
-      throw new Error("Coach response was incomplete");
-    return NextResponse.json(
-      nutritionCoachSchema.parse(JSON.parse(choice.message.content)),
-    );
-  } catch (error) {
-    if (error instanceof ZodError || error instanceof SyntaxError)
-      console.error("Nutrition coach returned an invalid response", error);
-    else console.error("Nutrition coach failed", error);
-    return NextResponse.json(
-      { error: "Your coach could not create insights. Please try again." },
-      { status: 500 },
-    );
+  } else {
+    const title = parsed.data.message.replace(/\s+/g, " ").slice(0, 72);
+    const { data, error } = await supabase
+      .from("coach_conversations")
+      .insert({ profile_id: user.id, title })
+      .select("id, title")
+      .single();
+    if (error || !data) return jsonError("Could not start a conversation.", 500);
+    conversation = data;
   }
+
+  const { data: previousMessages, error: historyError } = await supabase
+    .from("coach_messages")
+    .select("role, content")
+    .eq("conversation_id", conversation.id)
+    .order("created_at", { ascending: true })
+    .limit(30);
+  if (historyError) return jsonError("Could not load conversation history.", 500);
+  const { error: messageError } = await supabase
+    .from("coach_messages")
+    .insert({ conversation_id: conversation.id, role: "user", content: parsed.data.message });
+  if (messageError) return jsonError("Could not save your message.", 500);
+
+  const encoder = new TextEncoder();
+  const send = (controller: ReadableStreamDefaultController, event: string, data: unknown) =>
+    controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        send(controller, "status", { status: "thinking", conversationId: conversation.id });
+        let response = await callOpenAI({
+          input: [
+            ...(previousMessages ?? []).filter((item) => item.role === "user" || item.role === "assistant").map((item) => ({ role: item.role, content: item.content })),
+            { role: "user", content: parsed.data.message },
+          ],
+        }, request.signal);
+        for (let round = 0; round < 6; round++) {
+          const calls = (Array.isArray(response.output) ? response.output : []).filter((item): item is JsonObject => (item as JsonObject).type === "function_call");
+          if (!calls.length) break;
+          const outputs = [];
+          for (const call of calls) {
+            const name = String(call.name ?? "");
+            let args: JsonObject = {};
+            try { args = JSON.parse(String(call.arguments ?? "{}")) as JsonObject; } catch { /* strict tools should prevent this */ }
+            send(controller, "tool", { status: "started", name });
+            const { data: toolRun } = await supabase
+              .from("coach_tool_runs")
+              .insert({
+                conversation_id: conversation.id,
+                tool_name: name.slice(0, 100),
+                arguments: args,
+                status: "running",
+              })
+              .select("id")
+              .maybeSingle();
+            try {
+              const result = await executeCoachTool(name, args, supabase, user.id);
+              outputs.push({ type: "function_call_output", call_id: String(call.call_id), output: JSON.stringify(result) });
+              if (toolRun)
+                await supabase.from("coach_tool_runs").update({ status: "completed", result_summary: { ok: true } }).eq("id", toolRun.id);
+              send(controller, "tool", { status: "completed", name });
+            } catch (error) {
+              console.error("Coach tool failed", name, error);
+              outputs.push({ type: "function_call_output", call_id: String(call.call_id), output: JSON.stringify({ error: "This data could not be loaded." }) });
+              if (toolRun)
+                await supabase.from("coach_tool_runs").update({ status: "failed", error_message: "Tool data could not be loaded." }).eq("id", toolRun.id);
+              send(controller, "tool", { status: "failed", name });
+            }
+          }
+          response = await callOpenAI({
+            input: [
+              ...(Array.isArray(response.output) ? response.output : []),
+              ...outputs,
+            ],
+          }, request.signal);
+        }
+        const answer = responseText(response).trim();
+        if (!answer) throw new Error("Coach response was empty");
+        const { error: saveError } = await supabase
+          .from("coach_messages")
+          .insert({ conversation_id: conversation.id, role: "assistant", content: answer });
+        if (saveError) throw saveError;
+        await supabase.from("coach_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversation.id).eq("profile_id", user.id);
+        send(controller, "message", { content: answer });
+        send(controller, "done", { conversationId: conversation.id });
+      } catch (error) {
+        console.error("Coach agent failed", error);
+        send(controller, "error", { error: "Your coach is unavailable right now. Please try again." });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
+
+async function callOpenAI(extra: JsonObject, signal: AbortSignal) {
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    signal,
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: process.env.OPENAI_COACH_MODEL ?? "gpt-5.6-sol",
+      instructions: coachInstructions,
+      tools: coachTools,
+      tool_choice: "auto",
+      reasoning: { effort: "medium" },
+      max_output_tokens: 1800,
+      store: false,
+      ...extra,
+    }),
+  });
+  if (!response.ok) {
+    console.error("Coach provider error", response.status, (await response.text()).slice(0, 1000));
+    throw new Error("Provider request failed");
+  }
+  return await response.json() as JsonObject;
 }

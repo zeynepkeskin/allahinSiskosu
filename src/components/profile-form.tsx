@@ -29,9 +29,23 @@ const schema = z.object({
     "extra_active",
   ]),
   goal: z.enum(["lose", "maintain", "gain"]),
+  availableEquipment: z.array(z.string()).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 type Profile = Partial<FormValues>;
+const equipmentChoices = [
+  ["bodyweight", "Bodyweight"],
+  ["dumbbells", "Dumbbells"],
+  ["barbell", "Barbell"],
+  ["weight_plates", "Weight plates"],
+  ["bench", "Bench"],
+  ["squat_rack", "Squat rack / cage"],
+  ["pull_up_bar", "Pull-up bar"],
+  ["cable_machine", "Cable machine"],
+  ["resistance_bands", "Resistance bands"],
+  ["kettlebells", "Kettlebells"],
+  ["cardio_equipment", "Cardio equipment"],
+] as const;
 const choices = {
   gender: [
     ["female", "Female"],
@@ -89,6 +103,7 @@ export function ProfileForm({
         gender: data.gender,
         activity_level: data.activityLevel,
         goal: data.goal,
+        available_equipment: data.availableEquipment ?? [],
         daily_calorie_goal: goals.dailyCalorieGoal,
       })
       .eq("id", auth.user.id);
@@ -138,6 +153,35 @@ export function ProfileForm({
               options={choices.goal}
             />
           </div>
+          <fieldset className="sm:col-span-2">
+            <legend className="text-sm font-medium text-slate-700">
+              Available exercise equipment
+            </legend>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Your AI coach will only recommend exercises you can actually do.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {equipmentChoices.map(([value, label]) => {
+                const selected = (values.availableEquipment ?? []).includes(
+                  value,
+                );
+                return (
+                  <label
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${selected ? "border-emerald-500 bg-emerald-50 font-medium text-emerald-800" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+                    key={value}
+                  >
+                    <input
+                      className="h-4 w-4 accent-emerald-600"
+                      type="checkbox"
+                      value={value}
+                      {...form.register("availableEquipment")}
+                    />
+                    {label}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
         </div>
         {message ? (
           <p aria-live="polite" className="mt-5 text-sm text-slate-600">
