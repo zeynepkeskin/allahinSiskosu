@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type ToolActivity = {
   id: string;
@@ -429,9 +431,81 @@ function Message({
           </div>
         ) : null}
         <div
-          className={`whitespace-pre-wrap text-[15px] leading-7 ${message.error ? "text-red-700" : "text-slate-700"}`}
+          className={`text-[15px] leading-7 ${message.error ? "text-red-700" : "text-slate-700"}`}
         >
-          {message.content}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => (
+                <h1 className="mb-3 mt-5 text-xl font-bold first:mt-0">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="mb-2 mt-5 text-lg font-bold first:mt-0">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="mb-2 mt-4 font-bold first:mt-0">{children}</h3>
+              ),
+              p: ({ children }) => (
+                <p className="my-3 first:mt-0 last:mb-0">{children}</p>
+              ),
+              ul: ({ children }) => (
+                <ul className="my-3 list-disc space-y-1 pl-5">{children}</ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="my-3 list-decimal space-y-1 pl-5">{children}</ol>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className="my-3 border-l-4 border-emerald-200 pl-4 text-slate-600">
+                  {children}
+                </blockquote>
+              ),
+              a: ({ children, href }) => (
+                <a
+                  className="font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-800"
+                  href={href}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {children}
+                </a>
+              ),
+              code: ({ children, className }) =>
+                className ? (
+                  <code className={className}>{children}</code>
+                ) : (
+                  <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em]">
+                    {children}
+                  </code>
+                ),
+              pre: ({ children }) => (
+                <pre className="my-3 overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm leading-6 text-slate-100">
+                  {children}
+                </pre>
+              ),
+              table: ({ children }) => (
+                <table className="my-3 w-full border-collapse text-left text-sm">
+                  {children}
+                </table>
+              ),
+              th: ({ children }) => (
+                <th className="border border-slate-200 bg-slate-50 px-3 py-2 font-semibold">
+                  {children}
+                </th>
+              ),
+              td: ({ children }) => (
+                <td className="border border-slate-200 px-3 py-2 align-top">
+                  {children}
+                </td>
+              ),
+              hr: () => <hr className="my-5 border-slate-200" />,
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
         </div>
         {message.error ? (
           <button
