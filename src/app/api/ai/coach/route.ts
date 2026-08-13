@@ -4,7 +4,9 @@ import {
   coachInstructions,
   coachTools,
   executeCoachTool,
+  parsePreparedMeal,
   responseText,
+  type CoachToolContext,
 } from "@/lib/coach-agent";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,12 +25,16 @@ function jsonError(error: string, status: number) {
 
 async function signedIn() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return { supabase, user };
 }
 
 export async function GET(request: Request) {
-  const conversationId = new URL(request.url).searchParams.get("conversationId");
+  const conversationId = new URL(request.url).searchParams.get(
+    "conversationId",
+  );
   if (!z.string().uuid().safeParse(conversationId).success)
     return jsonError("Invalid conversation.", 400);
   const { supabase, user } = await signedIn();
@@ -50,12 +56,19 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return jsonError("Enter a message up to 4,000 characters.", 400);
+  const requestStartedAt = new Date().toISOString();
+  const parsed = requestSchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success)
+    return jsonError("Enter a message up to 4,000 characters.", 400);
   const { supabase, user } = await signedIn();
   if (!user) return jsonError("Sign in to use your coach.", 401);
   if (!process.env.OPENAI_API_KEY)
-    return jsonError("Coaching is not configured. Add OPENAI_API_KEY to the server environment.", 503);
+    return jsonError(
+      "Coaching is not configured. Add OPENAI_API_KEY to the server environment.",
+      503,
+    );
 
   let conversation: { id: string; title: string } | null = null;
   if (parsed.data.conversationId) {
@@ -73,7 +86,8 @@ export async function POST(request: Request) {
         .insert({ id: parsed.data.conversationId, profile_id: user.id, title })
         .select("id, title")
         .single();
-      if (error || !created) return jsonError("Could not start a conversation.", 500);
+      if (error || !created)
+        return jsonError("Could not start a conversation.", 500);
       conversation = created;
     }
   } else {
@@ -83,7 +97,8 @@ export async function POST(request: Request) {
       .insert({ profile_id: user.id, title })
       .select("id, title")
       .single();
-    if (error || !data) return jsonError("Could not start a conversation.", 500);
+    if (error || !data)
+      return jsonError("Could not start a conversation.", 500);
     conversation = data;
   }
 
@@ -93,34 +108,99 @@ export async function POST(request: Request) {
     .eq("conversation_id", conversation.id)
     .order("created_at", { ascending: true })
     .limit(30);
-  if (historyError) return jsonError("Could not load conversation history.", 500);
-  const { error: messageError } = await supabase
-    .from("coach_messages")
-    .insert({ conversation_id: conversation.id, role: "user", content: parsed.data.message });
+  if (historyError)
+    return jsonError("Could not load conversation history.", 500);
+  const { error: messageError } = await supabase.from("coach_messages").insert({
+    conversation_id: conversation.id,
+    role: "user",
+    content: parsed.data.message,
+  });
   if (messageError) return jsonError("Could not save your message.", 500);
 
+  const toolContext: CoachToolContext = {};
+  if (isExplicitMealConfirmation(parsed.data.message)) {
+    const { data: proposals, error: proposalError } = await supabase
+      .from("coach_tool_runs")
+      .select("id, arguments, result_summary")
+      .eq("conversation_id", conversation.id)
+      .eq("tool_name", "prepare_meal_log")
+      .eq("status", "completed")
+      .lt("created_at", requestStartedAt)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (proposalError)
+      return jsonError("Could not verify the meal confirmation.", 500);
+    const pending = (proposals ?? []).find((proposal) => {
+      const summary = proposal.result_summary;
+      return !(
+        summary &&
+        typeof summary === "object" &&
+        "consumedAt" in summary
+      );
+    });
+    if (pending) {
+      try {
+        toolContext.confirmedMeal = {
+          proposal: parsePreparedMeal(pending.arguments as JsonObject),
+          proposalToolRunId: pending.id,
+        };
+      } catch {
+        // The model will explain that a fresh proposal is needed.
+      }
+    }
+  }
+
   const encoder = new TextEncoder();
-  const send = (controller: ReadableStreamDefaultController, event: string, data: unknown) =>
-    controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+  const send = (
+    controller: ReadableStreamDefaultController,
+    event: string,
+    data: unknown,
+  ) =>
+    controller.enqueue(
+      encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
+    );
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        send(controller, "status", { status: "thinking", conversationId: conversation.id });
-        let response = await callOpenAI({
-          input: [
-            ...(previousMessages ?? []).filter((item) => item.role === "user" || item.role === "assistant").map((item) => ({ role: item.role, content: item.content })),
-            { role: "user", content: parsed.data.message },
-          ],
-        }, request.signal);
+        send(controller, "status", {
+          status: "thinking",
+          conversationId: conversation.id,
+        });
+        let response = await callOpenAI(
+          {
+            input: [
+              ...(previousMessages ?? [])
+                .filter(
+                  (item) => item.role === "user" || item.role === "assistant",
+                )
+                .map((item) => ({ role: item.role, content: item.content })),
+              { role: "user", content: parsed.data.message },
+            ],
+          },
+          request.signal,
+        );
         for (let round = 0; round < 6; round++) {
-          const calls = (Array.isArray(response.output) ? response.output : []).filter((item): item is JsonObject => (item as JsonObject).type === "function_call");
+          const calls = (
+            Array.isArray(response.output) ? response.output : []
+          ).filter(
+            (item): item is JsonObject =>
+              (item as JsonObject).type === "function_call",
+          );
           if (!calls.length) break;
           const outputs = [];
           for (const call of calls) {
             const name = String(call.name ?? "");
             let args: JsonObject = {};
-            try { args = JSON.parse(String(call.arguments ?? "{}")) as JsonObject; } catch { /* strict tools should prevent this */ }
-            send(controller, "tool", { status: "started", name });
+            try {
+              args = JSON.parse(String(call.arguments ?? "{}")) as JsonObject;
+            } catch {
+              /* strict tools should prevent this */
+            }
+            send(controller, "tool", {
+              status: "started",
+              name,
+              label: coachToolLabel(name),
+            });
             const { data: toolRun } = await supabase
               .from("coach_tool_runs")
               .insert({
@@ -132,38 +212,90 @@ export async function POST(request: Request) {
               .select("id")
               .maybeSingle();
             try {
-              const result = await executeCoachTool(name, args, supabase, user.id);
-              outputs.push({ type: "function_call_output", call_id: String(call.call_id), output: JSON.stringify(result) });
+              const result = await executeCoachTool(
+                name,
+                args,
+                supabase,
+                user.id,
+                toolContext,
+              );
+              outputs.push({
+                type: "function_call_output",
+                call_id: String(call.call_id),
+                output: JSON.stringify(result),
+              });
               if (toolRun)
-                await supabase.from("coach_tool_runs").update({ status: "completed", result_summary: { ok: true } }).eq("id", toolRun.id);
-              send(controller, "tool", { status: "completed", name });
+                await supabase
+                  .from("coach_tool_runs")
+                  .update({
+                    status: "completed",
+                    result_summary:
+                      result && typeof result === "object"
+                        ? result
+                        : { result },
+                  })
+                  .eq("id", toolRun.id);
+              send(controller, "tool", {
+                status: "completed",
+                name,
+                label: coachToolLabel(name),
+              });
             } catch (error) {
               console.error("Coach tool failed", name, error);
-              outputs.push({ type: "function_call_output", call_id: String(call.call_id), output: JSON.stringify({ error: "This data could not be loaded." }) });
+              outputs.push({
+                type: "function_call_output",
+                call_id: String(call.call_id),
+                output: JSON.stringify({
+                  error: "This data could not be loaded.",
+                }),
+              });
               if (toolRun)
-                await supabase.from("coach_tool_runs").update({ status: "failed", error_message: "Tool data could not be loaded." }).eq("id", toolRun.id);
-              send(controller, "tool", { status: "failed", name });
+                await supabase
+                  .from("coach_tool_runs")
+                  .update({
+                    status: "failed",
+                    error_message: "Tool data could not be loaded.",
+                  })
+                  .eq("id", toolRun.id);
+              send(controller, "tool", {
+                status: "failed",
+                name,
+                label: coachToolLabel(name),
+              });
             }
           }
-          response = await callOpenAI({
-            input: [
-              ...(Array.isArray(response.output) ? response.output : []),
-              ...outputs,
-            ],
-          }, request.signal);
+          response = await callOpenAI(
+            {
+              input: [
+                ...(Array.isArray(response.output) ? response.output : []),
+                ...outputs,
+              ],
+            },
+            request.signal,
+          );
         }
         const answer = responseText(response).trim();
         if (!answer) throw new Error("Coach response was empty");
         const { error: saveError } = await supabase
           .from("coach_messages")
-          .insert({ conversation_id: conversation.id, role: "assistant", content: answer });
+          .insert({
+            conversation_id: conversation.id,
+            role: "assistant",
+            content: answer,
+          });
         if (saveError) throw saveError;
-        await supabase.from("coach_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversation.id).eq("profile_id", user.id);
+        await supabase
+          .from("coach_conversations")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", conversation.id)
+          .eq("profile_id", user.id);
         send(controller, "message", { content: answer });
         send(controller, "done", { conversationId: conversation.id });
       } catch (error) {
         console.error("Coach agent failed", error);
-        send(controller, "error", { error: "Your coach is unavailable right now. Please try again." });
+        send(controller, "error", {
+          error: "Your coach is unavailable right now. Please try again.",
+        });
       } finally {
         controller.close();
       }
@@ -179,11 +311,26 @@ export async function POST(request: Request) {
   });
 }
 
+function isExplicitMealConfirmation(message: string) {
+  return /^(?:yes(?:,? please)?(?:,? (?:add|log|save) it)?|sure(?:,? (?:add|log|save) it)?|add it|log it|save it|confirm(?:ed)?|do it|go ahead|looks good|evet(?:,? ekle)?|ekle)[.!]?$/i.test(
+    message.trim(),
+  );
+}
+
+function coachToolLabel(name: string) {
+  if (name === "prepare_meal_log") return "Checking nutrition values";
+  if (name === "add_prepared_meal") return "Adding to today's eats";
+  return name.replaceAll("_", " ");
+}
+
 async function callOpenAI(extra: JsonObject, signal: AbortSignal) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     signal,
-    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       model: process.env.OPENAI_COACH_MODEL ?? "gpt-5.6-sol",
       instructions: coachInstructions,
@@ -196,8 +343,12 @@ async function callOpenAI(extra: JsonObject, signal: AbortSignal) {
     }),
   });
   if (!response.ok) {
-    console.error("Coach provider error", response.status, (await response.text()).slice(0, 1000));
+    console.error(
+      "Coach provider error",
+      response.status,
+      (await response.text()).slice(0, 1000),
+    );
     throw new Error("Provider request failed");
   }
-  return await response.json() as JsonObject;
+  return (await response.json()) as JsonObject;
 }
