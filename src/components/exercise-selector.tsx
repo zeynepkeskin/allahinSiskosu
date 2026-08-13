@@ -128,8 +128,8 @@ export function ExerciseSelector({
           }}
           role="dialog"
         >
-          <section className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <header className="relative flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <section className="flex h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:h-[92dvh] xl:h-[min(46rem,88vh)]">
+            <header className="relative z-10 flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4">
               <div>
                 <p className="text-sm font-semibold text-emerald-700">
                   EXERCISE LIBRARY
@@ -228,7 +228,7 @@ export function ExerciseSelector({
                 </div>
               ) : null}
             </header>
-            <div className="p-5">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
               <FilterSummary
                 equipment={equipment}
                 muscle={muscle}
@@ -342,7 +342,7 @@ export function ExerciseSelector({
                 </>
               )}
             </div>
-            <footer className="sticky bottom-0 flex justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
+            <footer className="flex shrink-0 justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
               <button
                 className="text-sm font-semibold text-slate-600"
                 onClick={() => setOpen(false)}
