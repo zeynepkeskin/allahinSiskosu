@@ -98,16 +98,23 @@ export function CoachChat({ displayName }: { displayName?: string }) {
     }
   }, []);
   useEffect(() => {
-    if (conversations.length)
+    if (!conversations.length) return;
+    try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(conversations.slice(0, 30)),
       );
+    } catch (error) {
+      // Chat remains usable when storage is unavailable, full, or blocked by
+      // the browser. Supabase is still the canonical conversation store.
+      console.warn("Could not persist coach history locally", error);
+    }
   }, [conversations]);
-  useEffect(
-    () => endRef.current?.scrollIntoView({ behavior: "smooth" }),
-    [messages, streaming],
-  );
+  useEffect(() => {
+    const end = endRef.current;
+    if (end && typeof end.scrollIntoView === "function")
+      end.scrollIntoView({ behavior: "smooth" });
+  }, [messages, streaming]);
 
   function updateActive(
     transform: (conversation: Conversation) => Conversation,
