@@ -2,14 +2,19 @@
 
 import Image from "next/image";
 import { useEffect, useId, useMemo, useState } from "react";
-import { X } from "lucide-react";
-import { ExerciseMuscleMap } from "@/components/exercise-visuals";
+import { ListFilter, X } from "lucide-react";
+import {
+  ExerciseMuscleFilter,
+  ExerciseMuscleMap,
+} from "@/components/exercise-visuals";
 import {
   demoFrames,
   equipmentChoices,
   type EquipmentId,
   exerciseGroups,
   getExerciseVisual,
+  muscleLabels,
+  type MuscleId,
   popularityChoices,
   type ExercisePopularity,
 } from "@/lib/exercise-catalog";
@@ -28,10 +33,12 @@ export function ExerciseSelector({
   const [group, setGroup] = useState<string>();
   const [candidate, setCandidate] = useState<string>();
   const [frame, setFrame] = useState<"start" | "finish">("start");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [popularity, setPopularity] = useState<ExercisePopularity | "all">(
     "all",
   );
   const [equipment, setEquipment] = useState<EquipmentId | "all">("all");
+  const [muscle, setMuscle] = useState<MuscleId>();
   const visual = candidate ? getExerciseVisual(candidate) : undefined;
   const filteredGroups = useMemo(
     () =>
@@ -42,12 +49,15 @@ export function ExerciseSelector({
             const exercise = getExerciseVisual(name);
             return (
               (popularity === "all" || exercise.popularity === popularity) &&
-              (equipment === "all" || exercise.equipment.includes(equipment))
+              (equipment === "all" || exercise.equipment.includes(equipment)) &&
+              (!muscle ||
+                exercise.primary.includes(muscle) ||
+                exercise.secondary.includes(muscle))
             );
           }),
         }))
         .filter((item) => item.exercises.length > 0),
-    [equipment, popularity],
+    [equipment, muscle, popularity],
   );
 
   useEffect(() => {
@@ -63,6 +73,7 @@ export function ExerciseSelector({
     setGroup(undefined);
     setCandidate(undefined);
     setFrame("start");
+    setFiltersOpen(false);
     setOpen(true);
   }
   function chooseGroup(nextGroup: string) {
@@ -118,61 +129,146 @@ export function ExerciseSelector({
           role="dialog"
         >
           <section className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+            <header className="relative flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
               <div>
                 <p className="text-sm font-semibold text-emerald-700">
                   EXERCISE LIBRARY
                 </p>
                 <h2 className="mt-1 text-xl font-bold">Choose an exercise</h2>
               </div>
-              <button
-                aria-label="Close exercise selector"
-                className="grid h-9 w-9 place-items-center rounded-lg text-[0px] text-slate-500 hover:bg-slate-100"
-                onClick={() => setOpen(false)}
-                type="button"
-              >
-                <X aria-hidden="true" className="h-5 w-5" />×
-              </button>
-            </header>
-            <div className="grid gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 sm:grid-cols-2">
-              <FilterSelect
-                label="Popularity"
-                onChange={(next) => {
-                  setPopularity(next as ExercisePopularity | "all");
-                  setGroup(undefined);
-                  setCandidate(undefined);
-                }}
-                options={popularityChoices}
-                value={popularity}
-              />
-              <FilterSelect
-                label="Equipment"
-                onChange={(next) => {
-                  setEquipment(next as EquipmentId | "all");
-                  setGroup(undefined);
-                  setCandidate(undefined);
-                }}
-                options={equipmentChoices}
-                value={equipment}
-              />
-            </div>
-            <div className="p-5">
-              {!group ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {filteredGroups.map((item) => (
+              <div className="flex items-center gap-1">
+                <button
+                  aria-expanded={filtersOpen}
+                  aria-label="Filter exercise library"
+                  className={`relative grid h-9 w-9 place-items-center rounded-lg ${filtersOpen ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-slate-100"}`}
+                  onClick={() => setFiltersOpen((current) => !current)}
+                  type="button"
+                >
+                  <ListFilter aria-hidden="true" className="h-5 w-5" />
+                  {[
+                    popularity !== "all",
+                    equipment !== "all",
+                    Boolean(muscle),
+                  ].filter(Boolean).length ? (
+                    <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white">
+                      {
+                        [
+                          popularity !== "all",
+                          equipment !== "all",
+                          Boolean(muscle),
+                        ].filter(Boolean).length
+                      }
+                    </span>
+                  ) : null}
+                </button>
+                <button
+                  aria-label="Close exercise selector"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
+                  onClick={() => setOpen(false)}
+                  type="button"
+                >
+                  <X aria-hidden="true" className="h-5 w-5" />
+                </button>
+              </div>
+              {filtersOpen ? (
+                <div className="absolute right-3 top-[calc(100%+0.5rem)] z-20 w-[calc(100vw-2.5rem)] max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-semibold text-slate-900">
+                      Filter exercises
+                    </h3>
                     <button
-                      className="rounded-xl border border-slate-200 p-4 text-left font-semibold text-slate-800 transition hover:border-emerald-400 hover:bg-emerald-50"
-                      key={item.label}
-                      onClick={() => chooseGroup(item.label)}
+                      className="text-xs font-semibold text-emerald-700 disabled:text-slate-400"
+                      disabled={
+                        popularity === "all" && equipment === "all" && !muscle
+                      }
+                      onClick={() => {
+                        setPopularity("all");
+                        setEquipment("all");
+                        setMuscle(undefined);
+                        setGroup(undefined);
+                        setCandidate(undefined);
+                      }}
                       type="button"
                     >
-                      {item.label}
-                      <span className="mt-1 block text-sm font-normal text-slate-500">
-                        {item.exercises.length} exercises
-                      </span>
+                      Clear all
                     </button>
-                  ))}
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <FilterSelect
+                      label="Popularity"
+                      onChange={(next) => {
+                        setPopularity(next as ExercisePopularity | "all");
+                        setGroup(undefined);
+                        setCandidate(undefined);
+                      }}
+                      options={popularityChoices}
+                      value={popularity}
+                    />
+                    <FilterSelect
+                      label="Equipment"
+                      onChange={(next) => {
+                        setEquipment(next as EquipmentId | "all");
+                        setGroup(undefined);
+                        setCandidate(undefined);
+                      }}
+                      options={equipmentChoices}
+                      value={equipment}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <ExerciseMuscleFilter
+                      onChange={(next) => {
+                        setMuscle(next);
+                        setGroup(undefined);
+                        setCandidate(undefined);
+                      }}
+                      value={muscle}
+                    />
+                  </div>
                 </div>
+              ) : null}
+            </header>
+            <div className="p-5">
+              <FilterSummary
+                equipment={equipment}
+                muscle={muscle}
+                popularity={popularity}
+              />
+              {!group ? (
+                filteredGroups.length ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {filteredGroups.map((item) => (
+                      <button
+                        className="rounded-xl border border-slate-200 p-4 text-left font-semibold text-slate-800 transition hover:border-emerald-400 hover:bg-emerald-50"
+                        key={item.label}
+                        onClick={() => chooseGroup(item.label)}
+                        type="button"
+                      >
+                        {item.label}
+                        <span className="mt-1 block text-sm font-normal text-slate-500">
+                          {item.exercises.length} exercises
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-8 text-center">
+                    <p className="font-semibold text-slate-700">
+                      No exercises match these filters.
+                    </p>
+                    <button
+                      className="mt-2 text-sm font-semibold text-emerald-700"
+                      onClick={() => {
+                        setPopularity("all");
+                        setEquipment("all");
+                        setMuscle(undefined);
+                      }}
+                      type="button"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                )
               ) : !candidate ? (
                 <>
                   <button
@@ -267,6 +363,36 @@ export function ExerciseSelector({
         </div>
       ) : null}
     </>
+  );
+}
+
+function FilterSummary({
+  popularity,
+  equipment,
+  muscle,
+}: {
+  popularity: ExercisePopularity | "all";
+  equipment: EquipmentId | "all";
+  muscle?: MuscleId;
+}) {
+  const popularityLabel = popularityChoices
+    .find(([value]) => value === popularity)?.[1]
+    .toLowerCase();
+  const equipmentLabel = equipmentChoices
+    .find(([value]) => value === equipment)?.[1]
+    .toLowerCase();
+  const parts = [
+    popularityLabel,
+    equipmentLabel ? `using ${equipmentLabel}` : undefined,
+    muscle ? `for the ${muscleLabels[muscle].toLowerCase()}` : undefined,
+  ].filter(Boolean);
+
+  return (
+    <p aria-live="polite" className="text-sm text-slate-600">
+      {parts.length
+        ? `Listing ${parts.join(" ")} exercises.`
+        : "Listing all exercises."}
+    </p>
   );
 }
 

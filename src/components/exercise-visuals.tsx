@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { MALE_BACK, MALE_FRONT } from "@musclemap/assets";
 import type { MuscleGroup } from "@musclemap/core";
 import {
@@ -96,6 +96,104 @@ function MuscleBody({
         {view}
       </figcaption>
     </figure>
+  );
+}
+
+export function ExerciseMuscleFilter({
+  value,
+  onChange,
+}: {
+  value?: MuscleId;
+  onChange: (muscle?: MuscleId) => void;
+}) {
+  const [view, setView] = useState<BodyView>("front");
+  const diagram = view === "front" ? MALE_FRONT : MALE_BACK;
+  const mirror = `translate(${diagram.centerX * 2} 0) scale(-1 1)`;
+  const muscleFor = (group: MuscleGroup) =>
+    (Object.keys(muscleGroups) as MuscleId[]).find(
+      (key) => muscleGroups[key] === group,
+    );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-slate-600">Target muscle</p>
+        <button
+          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+          onClick={() =>
+            setView((current) => (current === "front" ? "back" : "front"))
+          }
+          type="button"
+        >
+          Show {view === "front" ? "back" : "front"}
+        </button>
+      </div>
+      <div className="mt-2 flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <svg
+          aria-label={`Select a muscle on the ${view} body view`}
+          className="h-44 w-28 shrink-0"
+          role="group"
+          viewBox={diagram.viewBox}
+        >
+          <title>Clickable {view} muscle filter</title>
+          {diagram.outline.map((path) => (
+            <g key={path.id}>
+              <path d={path.d} fill="#e2e8f0" />
+              {path.side === "LEFT" ? (
+                <path d={path.d} fill="#e2e8f0" transform={mirror} />
+              ) : null}
+            </g>
+          ))}
+          {diagram.muscles.map((path) => {
+            const muscle = muscleFor(path.group);
+            const selected = muscle === value;
+            const props = muscle
+              ? {
+                  "aria-label": `Filter by ${muscleLabels[muscle]}`,
+                  className:
+                    "cursor-pointer outline-none hover:opacity-75 focus:stroke-emerald-900 focus:stroke-[3]",
+                  fill: selected ? primaryColor : "#94a3b8",
+                  onClick: () => onChange(selected ? undefined : muscle),
+                  onKeyDown: (event: KeyboardEvent<SVGPathElement>) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onChange(selected ? undefined : muscle);
+                    }
+                  },
+                  role: "button",
+                  tabIndex: 0,
+                }
+              : { fill: "#cbd5e1" };
+            return (
+              <g key={path.id ?? `${path.group}-${path.side}`}>
+                <path d={path.d} {...props} />
+                {path.side === "LEFT" ? (
+                  <path d={path.d} transform={mirror} {...props} />
+                ) : null}
+              </g>
+            );
+          })}
+        </svg>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-800">
+            {value ? muscleLabels[value] : "All muscles"}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Click a highlighted body region to filter. Flip the body to reach
+            muscles on the other side.
+          </p>
+          {value ? (
+            <button
+              className="mt-2 text-xs font-semibold text-emerald-700"
+              onClick={() => onChange(undefined)}
+              type="button"
+            >
+              Clear muscle
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
 
