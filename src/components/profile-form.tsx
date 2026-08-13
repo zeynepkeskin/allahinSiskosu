@@ -8,6 +8,7 @@ import { calculateProfileGoals } from "@/lib/calculations";
 import { createClient } from "@/lib/supabase/client";
 import { inchesToCentimeters, poundsToKilograms } from "@/lib/units";
 import { Button, Card } from "@/components/ui";
+import { equipmentChoices } from "@/lib/exercise-catalog";
 
 const schema = z.object({
   heightIn: z.number().min(32, "Enter a valid height.").max(110),
@@ -33,19 +34,6 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 type Profile = Partial<FormValues>;
-const equipmentChoices = [
-  ["bodyweight", "Bodyweight"],
-  ["dumbbells", "Dumbbells"],
-  ["barbell", "Barbell"],
-  ["weight_plates", "Weight plates"],
-  ["bench", "Bench"],
-  ["squat_rack", "Squat rack / cage"],
-  ["pull_up_bar", "Pull-up bar"],
-  ["cable_machine", "Cable machine"],
-  ["resistance_bands", "Resistance bands"],
-  ["kettlebells", "Kettlebells"],
-  ["cardio_equipment", "Cardio equipment"],
-] as const;
 const choices = {
   gender: [
     ["female", "Female"],

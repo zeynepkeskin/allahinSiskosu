@@ -1,13 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { ExerciseMuscleMap } from "@/components/exercise-visuals";
 import {
   demoFrames,
+  equipmentChoices,
+  type EquipmentId,
   exerciseGroups,
   getExerciseVisual,
+  popularityChoices,
+  type ExercisePopularity,
 } from "@/lib/exercise-catalog";
 
 export function ExerciseSelector({
@@ -24,7 +28,27 @@ export function ExerciseSelector({
   const [group, setGroup] = useState<string>();
   const [candidate, setCandidate] = useState<string>();
   const [frame, setFrame] = useState<"start" | "finish">("start");
+  const [popularity, setPopularity] = useState<ExercisePopularity | "all">(
+    "all",
+  );
+  const [equipment, setEquipment] = useState<EquipmentId | "all">("all");
   const visual = candidate ? getExerciseVisual(candidate) : undefined;
+  const filteredGroups = useMemo(
+    () =>
+      exerciseGroups
+        .map((item) => ({
+          ...item,
+          exercises: item.exercises.filter((name) => {
+            const exercise = getExerciseVisual(name);
+            return (
+              (popularity === "all" || exercise.popularity === popularity) &&
+              (equipment === "all" || exercise.equipment.includes(equipment))
+            );
+          }),
+        }))
+        .filter((item) => item.exercises.length > 0),
+    [equipment, popularity],
+  );
 
   useEffect(() => {
     if (!open || !visual?.demoId) return;
@@ -110,10 +134,32 @@ export function ExerciseSelector({
                 <X aria-hidden="true" className="h-5 w-5" />×
               </button>
             </header>
+            <div className="grid gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 sm:grid-cols-2">
+              <FilterSelect
+                label="Popularity"
+                onChange={(next) => {
+                  setPopularity(next as ExercisePopularity | "all");
+                  setGroup(undefined);
+                  setCandidate(undefined);
+                }}
+                options={popularityChoices}
+                value={popularity}
+              />
+              <FilterSelect
+                label="Equipment"
+                onChange={(next) => {
+                  setEquipment(next as EquipmentId | "all");
+                  setGroup(undefined);
+                  setCandidate(undefined);
+                }}
+                options={equipmentChoices}
+                value={equipment}
+              />
+            </div>
             <div className="p-5">
               {!group ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {exerciseGroups.map((item) => (
+                  {filteredGroups.map((item) => (
                     <button
                       className="rounded-xl border border-slate-200 p-4 text-left font-semibold text-slate-800 transition hover:border-emerald-400 hover:bg-emerald-50"
                       key={item.label}
@@ -138,7 +184,7 @@ export function ExerciseSelector({
                   </button>
                   <h3 className="mt-3 font-semibold">{group}</h3>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {exerciseGroups
+                    {filteredGroups
                       .find((item) => item.label === group)
                       ?.exercises.map((name) => (
                         <button
@@ -147,7 +193,8 @@ export function ExerciseSelector({
                           onClick={() => chooseExercise(name)}
                           type="button"
                         >
-                          {name}
+                          <span className="block">{name}</span>
+                          <ExerciseDetails name={name} />
                         </button>
                       ))}
                   </div>
@@ -162,6 +209,7 @@ export function ExerciseSelector({
                     ← {group}
                   </button>
                   <h3 className="mt-3 text-2xl font-bold">{candidate}</h3>
+                  <ExerciseDetails name={candidate} />
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <section className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                       <p className="border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -219,5 +267,50 @@ export function ExerciseSelector({
         </div>
       ) : null}
     </>
+  );
+}
+
+function ExerciseDetails({ name }: { name: string }) {
+  const exercise = getExerciseVisual(name);
+  const popularity = popularityChoices.find(
+    ([value]) => value === exercise.popularity,
+  )?.[1];
+  const equipment = exercise.equipment
+    .map((id) => equipmentChoices.find(([value]) => value === id)?.[1])
+    .join(", ");
+  return (
+    <span className="mt-1 block text-xs font-normal text-slate-500">
+      {popularity} · {equipment}
+    </span>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly (readonly [string, string])[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-xs font-semibold text-slate-600">
+      {label}
+      <select
+        className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-emerald-500"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        <option value="all">All {label.toLowerCase()}</option>
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

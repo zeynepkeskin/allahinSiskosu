@@ -1014,6 +1014,10 @@ function buildAggregatedMuscleVisual(
   if (!visuals.length) return undefined;
   return {
     category: "Planned workout",
+    popularity: "common",
+    equipment: Array.from(
+      new Set(visuals.flatMap((visual) => visual.equipment)),
+    ),
     primary: Array.from(
       new Set(visuals.flatMap((visual) => visual.primary)),
     ) as MuscleId[],

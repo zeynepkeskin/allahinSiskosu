@@ -108,6 +108,8 @@ export function ExerciseMuscleMap({
 }) {
   const displayVisual: ExerciseVisual = visual ?? {
     category: "Exercise",
+    popularity: "common",
+    equipment: [],
     primary: [],
     secondary: [],
     views: ["front", "back"],
