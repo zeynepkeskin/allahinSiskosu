@@ -462,7 +462,7 @@ function Composer({
   autoFocus?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-300 bg-white p-2 shadow-lg shadow-slate-200/40 focus-within:border-emerald-500">
+    <div className="rounded-2xl border border-slate-300 bg-white p-2 shadow-lg shadow-slate-200/40">
       <textarea
         aria-label="Message your AI coach"
         autoFocus={autoFocus}
