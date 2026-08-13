@@ -127,18 +127,17 @@ export async function POST(request: Request) {
       .eq("status", "completed")
       .lt("created_at", requestStartedAt)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(1);
     if (proposalError)
       return jsonError("Could not verify the meal confirmation.", 500);
-    const pending = (proposals ?? []).find((proposal) => {
-      const summary = proposal.result_summary;
-      return !(
-        summary &&
-        typeof summary === "object" &&
-        "consumedAt" in summary
-      );
-    });
-    if (pending) {
+    const pending = proposals?.[0];
+    const pendingSummary = pending?.result_summary;
+    const alreadyConsumed = Boolean(
+      pendingSummary &&
+      typeof pendingSummary === "object" &&
+      "consumedAt" in pendingSummary,
+    );
+    if (pending && !alreadyConsumed) {
       try {
         toolContext.confirmedMeal = {
           proposal: parsePreparedMeal(pending.arguments as JsonObject),
@@ -166,6 +165,76 @@ export async function POST(request: Request) {
           status: "thinking",
           conversationId: conversation.id,
         });
+        if (toolContext.confirmedMeal) {
+          const proposal = toolContext.confirmedMeal.proposal;
+          const toolName = "add_prepared_meal";
+          send(controller, "tool", {
+            status: "started",
+            name: toolName,
+            label: coachToolLabel(toolName),
+          });
+          const { data: toolRun } = await supabase
+            .from("coach_tool_runs")
+            .insert({
+              conversation_id: conversation.id,
+              tool_name: toolName,
+              arguments: {},
+              status: "running",
+            })
+            .select("id")
+            .maybeSingle();
+          try {
+            const result = await executeCoachTool(
+              toolName,
+              {},
+              supabase,
+              user.id,
+              toolContext,
+            );
+            if (toolRun)
+              await supabase
+                .from("coach_tool_runs")
+                .update({ status: "completed", result_summary: result })
+                .eq("id", toolRun.id);
+            send(controller, "tool", {
+              status: "completed",
+              name: toolName,
+              label: coachToolLabel(toolName),
+            });
+            const answer = `Added **${proposal.mealName}** to today's eats: **${proposal.totals.calories} kcal**, ${proposal.totals.protein} g protein, ${proposal.totals.carbs} g carbs, ${proposal.totals.fat} g fat, and ${proposal.totals.fiber} g fiber.`;
+            const { error: saveError } = await supabase
+              .from("coach_messages")
+              .insert({
+                conversation_id: conversation.id,
+                role: "assistant",
+                content: answer,
+              });
+            if (saveError) throw saveError;
+            await supabase
+              .from("coach_conversations")
+              .update({ updated_at: new Date().toISOString() })
+              .eq("id", conversation.id)
+              .eq("profile_id", user.id);
+            send(controller, "message", { content: answer });
+            send(controller, "done", { conversationId: conversation.id });
+            return;
+          } catch (error) {
+            if (toolRun)
+              await supabase
+                .from("coach_tool_runs")
+                .update({
+                  status: "failed",
+                  error_message: "The confirmed meal could not be added.",
+                })
+                .eq("id", toolRun.id);
+            send(controller, "tool", {
+              status: "failed",
+              name: toolName,
+              label: coachToolLabel(toolName),
+            });
+            throw error;
+          }
+        }
         let response = await callOpenAI(
           {
             input: [
