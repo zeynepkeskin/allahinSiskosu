@@ -2,13 +2,15 @@
 
 import {
   ArrowUp,
+  Check,
   Dumbbell,
   History,
-  Menu,
   MessageSquarePlus,
+  Pencil,
   RefreshCw,
   Sparkles,
   Square,
+  Trash2,
   Utensils,
   X,
 } from "lucide-react";
@@ -78,6 +80,8 @@ export function CoachChat({ displayName }: { displayName?: string }) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const active = conversations.find(
@@ -135,6 +139,51 @@ export function CoachChat({ displayName }: { displayName?: string }) {
     setActiveId(conversation.id);
     setInput("");
     setHistoryOpen(false);
+    setEditingId(null);
+  }
+
+  function openHistory() {
+    setHistoryOpen(true);
+    setEditingId(null);
+  }
+
+  function selectConversation(id: string) {
+    setActiveId(id);
+    setHistoryOpen(false);
+    setEditingId(null);
+  }
+
+  function beginEditing(conversation: Conversation) {
+    setEditingId(conversation.id);
+    setEditingTitle(conversation.title);
+  }
+
+  function saveTitle(id: string) {
+    const title = editingTitle.trim();
+    if (title) {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === id ? { ...conversation, title } : conversation,
+        ),
+      );
+    }
+    setEditingId(null);
+  }
+
+  function deleteConversation(id: string) {
+    setConversations((current) => {
+      const remaining = current.filter(
+        (conversation) => conversation.id !== id,
+      );
+      if (!remaining.length) {
+        const conversation = newConversation();
+        setActiveId(conversation.id);
+        return [conversation];
+      }
+      if (id === activeId) setActiveId(remaining[0].id);
+      return remaining;
+    });
+    if (editingId === id) setEditingId(null);
   }
 
   async function send(value = input) {
@@ -242,67 +291,9 @@ export function CoachChat({ displayName }: { displayName?: string }) {
   }
 
   return (
-    <div className="-mx-4 -my-6 flex min-h-[calc(100dvh-5rem)] overflow-hidden sm:-mx-6 lg:-mx-8">
-      <aside
-        className={`${historyOpen ? "fixed inset-0 z-40 flex" : "hidden"} w-full bg-black/30 md:static md:flex md:w-64 md:bg-transparent`}
-        onClick={() => setHistoryOpen(false)}
-      >
-        <div
-          className="flex h-full w-72 flex-col border-r border-slate-200 bg-white p-3 md:w-full"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <button
-              className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold hover:bg-slate-50"
-              onClick={startNew}
-            >
-              <MessageSquarePlus size={17} /> New chat
-            </button>
-            <button
-              aria-label="Close history"
-              className="rounded-lg p-2 md:hidden"
-              onClick={() => setHistoryOpen(false)}
-            >
-              <X size={19} />
-            </button>
-          </div>
-          <p className="mb-2 mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Recent
-          </p>
-          <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-            {conversations
-              .filter((conversation) => conversation.messages.length)
-              .map((conversation) => (
-                <button
-                  key={conversation.id}
-                  className={`block w-full truncate rounded-lg px-3 py-2 text-left text-sm ${conversation.id === activeId ? "bg-emerald-50 font-medium text-emerald-800" : "text-slate-600 hover:bg-slate-50"}`}
-                  onClick={() => {
-                    setActiveId(conversation.id);
-                    setHistoryOpen(false);
-                  }}
-                >
-                  {conversation.title}
-                </button>
-              ))}
-          </div>
-        </div>
-      </aside>
-
-      <main className="relative flex min-w-0 flex-1 flex-col">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4 md:px-6">
-          <button
-            aria-label="Open conversation history"
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"
-            onClick={() => setHistoryOpen(true)}
-          >
-            <Menu size={20} />
-          </button>
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-white">
-              <Sparkles size={14} />
-            </span>{" "}
-            AI Coach
-          </div>
+    <div className="-mx-4 -my-6 min-h-[calc(100dvh-5rem)] overflow-hidden sm:-mx-6 lg:-mx-8">
+      <main className="relative flex min-h-[calc(100dvh-5rem)] min-w-0 flex-col">
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 shadow-sm backdrop-blur sm:right-6">
           <button
             aria-label="New chat"
             className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
@@ -310,65 +301,86 @@ export function CoachChat({ displayName }: { displayName?: string }) {
           >
             <MessageSquarePlus size={20} />
           </button>
+          <button
+            aria-label="Chat history"
+            className={`rounded-lg p-2 hover:bg-slate-100 ${historyOpen ? "bg-emerald-50 text-emerald-700" : "text-slate-600"}`}
+            onClick={openHistory}
+          >
+            <History size={20} />
+          </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {!messages.length ? (
-            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-10 sm:px-8">
-              <div className="mb-8 text-center">
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
-                  <Sparkles size={24} />
-                </span>
-                <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-                  {displayName
-                    ? `What can I help with, ${displayName}?`
-                    : "What can I help you with?"}
-                </h1>
-                <p className="mt-2 text-sm text-slate-500">
-                  Ask about your nutrition, training, progress, or next plan.
+        {historyOpen ? (
+          <ChatHistory
+            conversations={conversations}
+            editingId={editingId}
+            editingTitle={editingTitle}
+            setEditingTitle={setEditingTitle}
+            beginEditing={beginEditing}
+            saveTitle={saveTitle}
+            cancelEditing={() => setEditingId(null)}
+            deleteConversation={deleteConversation}
+            selectConversation={selectConversation}
+          />
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {!messages.length ? (
+              <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-10 sm:px-8">
+                <div className="mb-8 text-center">
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
+                    <Sparkles size={24} />
+                  </span>
+                  <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
+                    {displayName
+                      ? `What can I help with, ${displayName}?`
+                      : "What can I help you with?"}
+                  </h1>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Ask about your nutrition, training, progress, or next plan.
+                  </p>
+                </div>
+                <Composer
+                  input={input}
+                  setInput={setInput}
+                  send={send}
+                  streaming={streaming}
+                  stop={() => abortRef.current?.abort()}
+                  autoFocus
+                />
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  {starters.map(({ icon: Icon, label, prompt }) => (
+                    <button
+                      key={label}
+                      className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow"
+                      onClick={() => void send(prompt)}
+                    >
+                      <Icon className="shrink-0 text-emerald-600" size={17} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-5 text-center text-xs text-slate-400">
+                  Your coach uses your logged meals, workouts, goals, and
+                  available equipment. Advice is not medical care.
                 </p>
               </div>
-              <Composer
-                input={input}
-                setInput={setInput}
-                send={send}
-                streaming={streaming}
-                stop={() => abortRef.current?.abort()}
-                autoFocus
-              />
-              <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                {starters.map(({ icon: Icon, label, prompt }) => (
-                  <button
-                    key={label}
-                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow"
-                    onClick={() => void send(prompt)}
-                  >
-                    <Icon className="shrink-0 text-emerald-600" size={17} />
-                    {label}
-                  </button>
+            ) : (
+              <div className="mx-auto w-full max-w-3xl px-4 pb-36 pt-20 sm:px-8">
+                {messages.map((message) => (
+                  <Message key={message.id} message={message} retry={retry} />
                 ))}
+                {streaming && !messages.at(-1)?.content ? (
+                  <div className="mb-7 flex items-center gap-2 text-sm text-slate-500">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />{" "}
+                    Thinking with your data…
+                  </div>
+                ) : null}
+                <div ref={endRef} />
               </div>
-              <p className="mt-5 text-center text-xs text-slate-400">
-                Your coach uses your logged meals, workouts, goals, and
-                available equipment. Advice is not medical care.
-              </p>
-            </div>
-          ) : (
-            <div className="mx-auto w-full max-w-3xl px-4 pb-36 pt-7 sm:px-8">
-              {messages.map((message) => (
-                <Message key={message.id} message={message} retry={retry} />
-              ))}
-              {streaming && !messages.at(-1)?.content ? (
-                <div className="mb-7 flex items-center gap-2 text-sm text-slate-500">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />{" "}
-                  Thinking with your data…
-                </div>
-              ) : null}
-              <div ref={endRef} />
-            </div>
-          )}
-        </div>
-        {messages.length ? (
+            )}
+          </div>
+        )}
+        {!historyOpen && messages.length ? (
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent px-4 pb-4 pt-10 sm:px-8">
             <div className="mx-auto max-w-3xl">
               <Composer
@@ -386,6 +398,115 @@ export function CoachChat({ displayName }: { displayName?: string }) {
           </div>
         ) : null}
       </main>
+    </div>
+  );
+}
+
+function ChatHistory({
+  conversations,
+  editingId,
+  editingTitle,
+  setEditingTitle,
+  beginEditing,
+  saveTitle,
+  cancelEditing,
+  deleteConversation,
+  selectConversation,
+}: {
+  conversations: Conversation[];
+  editingId: string | null;
+  editingTitle: string;
+  setEditingTitle: (title: string) => void;
+  beginEditing: (conversation: Conversation) => void;
+  saveTitle: (id: string) => void;
+  cancelEditing: () => void;
+  deleteConversation: (id: string) => void;
+  selectConversation: (id: string) => void;
+}) {
+  const chats = conversations.filter(
+    (conversation) => conversation.messages.length,
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-3xl flex-1 px-4 pb-10 pt-20 sm:px-8">
+      <h1 className="text-2xl font-bold tracking-tight">Chat history</h1>
+      <p className="mt-1 text-sm text-slate-500">
+        Open a previous conversation or update its title.
+      </p>
+      {chats.length ? (
+        <div className="mt-6 space-y-2">
+          {chats.map((conversation) => (
+            <div
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm"
+              key={conversation.id}
+            >
+              {editingId === conversation.id ? (
+                <input
+                  aria-label="Chat title"
+                  autoFocus
+                  className="min-w-0 flex-1 rounded-lg border border-emerald-300 px-3 py-2 text-sm outline-none ring-2 ring-emerald-100"
+                  maxLength={80}
+                  onChange={(event) => setEditingTitle(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") saveTitle(conversation.id);
+                    if (event.key === "Escape") cancelEditing();
+                  }}
+                  value={editingTitle}
+                />
+              ) : (
+                <button
+                  className="min-w-0 flex-1 px-3 py-2 text-left"
+                  onClick={() => selectConversation(conversation.id)}
+                >
+                  <span className="block truncate text-sm font-semibold text-slate-800">
+                    {conversation.title}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-400">
+                    {new Date(conversation.updatedAt).toLocaleString()}
+                  </span>
+                </button>
+              )}
+              {editingId === conversation.id ? (
+                <>
+                  <button
+                    aria-label="Save title"
+                    className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-50"
+                    onClick={() => saveTitle(conversation.id)}
+                  >
+                    <Check size={18} />
+                  </button>
+                  <button
+                    aria-label="Cancel editing"
+                    className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                    onClick={cancelEditing}
+                  >
+                    <X size={18} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  aria-label={`Edit ${conversation.title}`}
+                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                  onClick={() => beginEditing(conversation)}
+                >
+                  <Pencil size={17} />
+                </button>
+              )}
+              <button
+                aria-label={`Delete ${conversation.title}`}
+                className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600"
+                onClick={() => deleteConversation(conversation.id)}
+              >
+                <Trash2 size={17} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-10 rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center text-sm text-slate-500">
+          No previous chats yet.
+        </div>
+      )}
     </div>
   );
 }
