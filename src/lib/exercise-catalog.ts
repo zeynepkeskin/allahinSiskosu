@@ -18,17 +18,6 @@ export type MuscleId =
   | "calves";
 
 export type BodyView = "front" | "back";
-
-export type ExerciseVisual = {
-  category: string;
-  primary: MuscleId[];
-  secondary: MuscleId[];
-  views: BodyView[];
-  demoId?: string;
-  popularity: ExercisePopularity;
-  equipment: EquipmentId[];
-};
-
 export type ExercisePopularity = "most-popular" | "common" | "less-common";
 export type EquipmentId =
   | "bodyweight"
@@ -42,6 +31,16 @@ export type EquipmentId =
   | "resistance_bands"
   | "kettlebells"
   | "cardio_equipment";
+
+export type ExerciseVisual = {
+  category: string;
+  popularity: ExercisePopularity;
+  equipment: EquipmentId[];
+  primary: MuscleId[];
+  secondary: MuscleId[];
+  views: BodyView[];
+  demoId?: string;
+};
 
 export const popularityChoices = [
   ["most-popular", "Most Popular"],
@@ -83,720 +82,765 @@ export const muscleLabels: Record<MuscleId, string> = {
   calves: "Calves",
 };
 
-const visual = (
+const defineExercise = (
   category: string,
+  popularity: ExercisePopularity,
+  equipment: EquipmentId[],
   primary: MuscleId[],
   secondary: MuscleId[],
   views: BodyView[],
   demoId?: string,
-): Omit<ExerciseVisual, "popularity" | "equipment"> => ({
+): ExerciseVisual => ({
   category,
+  popularity,
+  equipment,
   primary,
   secondary,
   views,
   demoId,
 });
 
-const baseExerciseCatalog = {
-  "Barbell Curl": visual(
+const popular = "most-popular" as const;
+const common = "common" as const;
+const lessCommon = "less-common" as const;
+
+// Each entry owns all of its display, filtering, anatomy, and asset metadata.
+export const exerciseCatalog: Record<string, ExerciseVisual> = {
+  "Barbell Curl": defineExercise(
     "Arms",
+    popular,
+    ["barbell"],
     ["biceps"],
     ["forearms"],
     ["front"],
     "Barbell_Curl",
   ),
-  "Dumbbell Bicep Curl": visual(
+  "Dumbbell Bicep Curl": defineExercise(
     "Arms",
+    popular,
+    ["dumbbells"],
     ["biceps"],
     ["forearms"],
     ["front"],
     "Dumbbell_Bicep_Curl",
   ),
-  "Hammer Curl": visual(
+  "Hammer Curl": defineExercise(
     "Arms",
+    popular,
+    ["dumbbells"],
     ["biceps", "forearms"],
     [],
     ["front"],
     "Hammer_Curls",
   ),
-  "Preacher Curl": visual(
+  "Preacher Curl": defineExercise(
     "Arms",
+    popular,
+    ["dumbbells", "bench"],
     ["biceps"],
     ["forearms"],
     ["front"],
     "Preacher_Curl",
   ),
-  "Cable Tricep Pushdown": visual(
+  "Cable Tricep Pushdown": defineExercise(
     "Arms",
+    popular,
+    ["cable_machine"],
     ["triceps"],
     [],
     ["back"],
     "Triceps_Pushdown",
   ),
-  "Skull Crusher": visual(
+  "Skull Crusher": defineExercise(
     "Arms",
+    popular,
+    ["barbell", "bench"],
     ["triceps"],
     [],
     ["back"],
     "Lying_Triceps_Press",
   ),
-  "Overhead Tricep Extension": visual(
+  "Overhead Tricep Extension": defineExercise(
     "Arms",
+    popular,
+    ["dumbbells"],
     ["triceps"],
     [],
     ["back"],
     "Standing_Dumbbell_Triceps_Extension",
   ),
-  "Tricep Dip": visual(
+  "Tricep Dip": defineExercise(
     "Arms",
+    popular,
+    ["bodyweight", "bench"],
     ["triceps"],
     ["chest", "front-delts"],
     ["front", "back"],
     "Dips_-_Triceps_Version",
   ),
-  "Barbell Bench Press": visual(
+  "Concentration Curl": defineExercise(
+    "Arms",
+    common,
+    ["dumbbells", "bench"],
+    ["biceps"],
+    ["forearms"],
+    ["front"],
+    "Concentration_Curls",
+  ),
+  "Incline Dumbbell Curl": defineExercise(
+    "Arms",
+    common,
+    ["dumbbells", "bench"],
+    ["biceps"],
+    ["forearms"],
+    ["front"],
+    "Incline_Dumbbell_Curl",
+  ),
+  "Body Tricep Press": defineExercise(
+    "Arms",
+    lessCommon,
+    ["bodyweight"],
+    ["triceps"],
+    ["chest", "front-delts"],
+    ["front", "back"],
+    "Body_Tricep_Press",
+  ),
+  "Close-Grip Push-Up": defineExercise(
+    "Arms",
+    common,
+    ["bodyweight"],
+    ["triceps"],
+    ["chest", "front-delts"],
+    ["front", "back"],
+    "Push-Ups_-_Close_Triceps_Position",
+  ),
+  "Tricep Kickback": defineExercise(
+    "Arms",
+    common,
+    ["dumbbells"],
+    ["triceps"],
+    [],
+    ["back"],
+    "Tricep_Dumbbell_Kickback",
+  ),
+  "Close-Grip Bench Press": defineExercise(
+    "Arms",
+    lessCommon,
+    ["barbell", "bench", "squat_rack"],
+    ["triceps"],
+    ["chest", "front-delts"],
+    ["front", "back"],
+    "Close-Grip_Barbell_Bench_Press",
+  ),
+
+  "Barbell Bench Press": defineExercise(
     "Chest",
+    popular,
+    ["barbell", "bench", "squat_rack"],
     ["chest"],
     ["triceps", "front-delts"],
     ["front", "back"],
     "Barbell_Bench_Press_-_Medium_Grip",
   ),
-  "Dumbbell Bench Press": visual(
+  "Dumbbell Bench Press": defineExercise(
     "Chest",
+    popular,
+    ["dumbbells", "bench"],
     ["chest"],
     ["triceps", "front-delts"],
     ["front", "back"],
     "Dumbbell_Bench_Press",
   ),
-  "Incline Dumbbell Press": visual(
+  "Incline Dumbbell Press": defineExercise(
     "Chest",
+    popular,
+    ["dumbbells", "bench"],
     ["chest"],
     ["triceps", "front-delts"],
     ["front", "back"],
     "Incline_Dumbbell_Press",
   ),
-  "Chest Fly": visual(
+  "Chest Fly": defineExercise(
     "Chest",
+    popular,
+    ["dumbbells", "bench"],
     ["chest"],
     ["front-delts"],
     ["front"],
     "Dumbbell_Flyes",
   ),
-  "Cable Crossover": visual(
+  "Cable Crossover": defineExercise(
     "Chest",
+    popular,
+    ["cable_machine"],
     ["chest"],
     ["front-delts"],
     ["front"],
     "Cable_Crossover",
   ),
-  "Push-Up": visual(
+  "Push-Up": defineExercise(
     "Chest",
+    popular,
+    ["bodyweight"],
     ["chest"],
     ["triceps", "front-delts", "abs"],
     ["front", "back"],
     "Pushups",
   ),
-  "Pull-Up": visual(
+  "Incline Barbell Bench Press": defineExercise(
+    "Chest",
+    common,
+    ["barbell", "bench", "squat_rack"],
+    ["chest"],
+    ["triceps", "front-delts"],
+    ["front", "back"],
+    "Barbell_Incline_Bench_Press_-_Medium_Grip",
+  ),
+  "Decline Push-Up": defineExercise(
+    "Chest",
+    common,
+    ["bodyweight", "bench"],
+    ["chest"],
+    ["triceps", "front-delts"],
+    ["front", "back"],
+    "Decline_Push-Up",
+  ),
+  "Band Chest Fly": defineExercise(
+    "Chest",
+    lessCommon,
+    ["resistance_bands"],
+    ["chest"],
+    ["front-delts"],
+    ["front"],
+    "Cross_Over_-_With_Bands",
+  ),
+  "Dumbbell Pullover": defineExercise(
+    "Chest",
+    lessCommon,
+    ["dumbbells", "bench"],
+    ["chest"],
+    ["lats", "triceps"],
+    ["front", "back"],
+    "Straight-Arm_Dumbbell_Pullover",
+  ),
+
+  "Pull-Up": defineExercise(
     "Back",
+    popular,
+    ["bodyweight", "pull_up_bar"],
     ["lats"],
     ["biceps", "upper-back"],
     ["front", "back"],
     "Pullups",
   ),
-  "Lat Pulldown": visual(
+  "Lat Pulldown": defineExercise(
     "Back",
+    popular,
+    ["cable_machine"],
     ["lats"],
     ["biceps", "upper-back"],
     ["front", "back"],
     "Wide-Grip_Lat_Pulldown",
   ),
-  "Barbell Row": visual(
+  "Barbell Row": defineExercise(
     "Back",
+    popular,
+    ["barbell"],
     ["lats", "upper-back"],
     ["biceps", "lower-back"],
     ["front", "back"],
     "Bent_Over_Barbell_Row",
   ),
-  "Dumbbell Row": visual(
+  "Dumbbell Row": defineExercise(
     "Back",
+    popular,
+    ["dumbbells", "bench"],
     ["lats"],
     ["biceps", "upper-back"],
     ["front", "back"],
     "One-Arm_Dumbbell_Row",
   ),
-  "Seated Cable Row": visual(
+  "Seated Cable Row": defineExercise(
     "Back",
+    popular,
+    ["cable_machine"],
     ["lats", "upper-back"],
     ["biceps"],
     ["front", "back"],
     "Seated_Cable_Rows",
   ),
-  "Face Pull": visual(
+  "Face Pull": defineExercise(
     "Back",
+    popular,
+    ["cable_machine"],
     ["rear-delts", "upper-back"],
     ["biceps"],
     ["back"],
     "Face_Pull",
   ),
-  "Back Extension": visual(
+  "Back Extension": defineExercise(
     "Back",
+    popular,
+    ["bodyweight", "bench"],
     ["lower-back"],
     ["glutes", "hamstrings"],
     ["back"],
     "Hyperextensions_Back_Extensions",
   ),
-  "Overhead Press": visual(
+  "Chin-Up": defineExercise(
+    "Back",
+    common,
+    ["bodyweight", "pull_up_bar"],
+    ["lats", "biceps"],
+    ["upper-back"],
+    ["front", "back"],
+    "Chin-Up",
+  ),
+  "Inverted Row": defineExercise(
+    "Back",
+    common,
+    ["bodyweight", "squat_rack"],
+    ["upper-back", "lats"],
+    ["biceps"],
+    ["front", "back"],
+    "Inverted_Row",
+  ),
+  "Straight-Arm Pulldown": defineExercise(
+    "Back",
+    lessCommon,
+    ["cable_machine"],
+    ["lats"],
+    ["triceps"],
+    ["front", "back"],
+    "Straight-Arm_Pulldown",
+  ),
+  "Band Back Fly": defineExercise(
+    "Back",
+    common,
+    ["resistance_bands"],
+    ["upper-back", "rear-delts"],
+    ["traps"],
+    ["back"],
+    "Back_Flyes_-_With_Bands",
+  ),
+  "Dumbbell Shrug": defineExercise(
+    "Back",
+    lessCommon,
+    ["dumbbells"],
+    ["traps"],
+    ["forearms"],
+    ["front", "back"],
+    "Dumbbell_Shrug",
+  ),
+
+  "Overhead Press": defineExercise(
     "Shoulders",
+    popular,
+    ["barbell", "squat_rack"],
     ["front-delts", "side-delts"],
     ["triceps"],
     ["front", "back"],
     "Barbell_Shoulder_Press",
   ),
-  "Dumbbell Shoulder Press": visual(
+  "Dumbbell Shoulder Press": defineExercise(
     "Shoulders",
+    popular,
+    ["dumbbells"],
     ["front-delts", "side-delts"],
     ["triceps"],
     ["front", "back"],
     "Dumbbell_Shoulder_Press",
   ),
-  "Lateral Raise": visual(
+  "Lateral Raise": defineExercise(
     "Shoulders",
+    popular,
+    ["dumbbells"],
     ["side-delts"],
     ["traps"],
     ["front", "back"],
     "Side_Lateral_Raise",
   ),
-  "Front Raise": visual(
+  "Front Raise": defineExercise(
     "Shoulders",
+    popular,
+    ["dumbbells"],
     ["front-delts"],
     ["chest"],
     ["front"],
     "Front_Dumbbell_Raise",
   ),
-  "Rear Delt Fly": visual(
+  "Rear Delt Fly": defineExercise(
     "Shoulders",
+    popular,
+    ["dumbbells", "bench"],
     ["rear-delts"],
     ["upper-back"],
     ["back"],
     "Dumbbell_Lying_Rear_Lateral_Raise",
   ),
-  "Upright Row": visual(
+  "Upright Row": defineExercise(
     "Shoulders",
+    popular,
+    ["resistance_bands"],
     ["side-delts", "traps"],
     ["biceps"],
     ["front", "back"],
     "Upright_Row_-_With_Bands",
   ),
-  "Barbell Back Squat": visual(
+  "Arnold Press": defineExercise(
+    "Shoulders",
+    common,
+    ["dumbbells"],
+    ["front-delts", "side-delts"],
+    ["triceps"],
+    ["front", "back"],
+    "Arnold_Dumbbell_Press",
+  ),
+  "Seated Cable Lateral Raise": defineExercise(
+    "Shoulders",
+    common,
+    ["cable_machine"],
+    ["side-delts"],
+    ["traps"],
+    ["front", "back"],
+    "Cable_Seated_Lateral_Raise",
+  ),
+  "Handstand Push-Up": defineExercise(
+    "Shoulders",
+    common,
+    ["bodyweight"],
+    ["front-delts", "side-delts"],
+    ["triceps"],
+    ["front", "back"],
+    "Handstand_Push-Ups",
+  ),
+  "Band Pull-Apart": defineExercise(
+    "Shoulders",
+    lessCommon,
+    ["resistance_bands"],
+    ["rear-delts", "upper-back"],
+    ["traps"],
+    ["back"],
+    "Band_Pull_Apart",
+  ),
+
+  "Barbell Back Squat": defineExercise(
     "Legs",
+    popular,
+    ["barbell", "squat_rack"],
     ["quads", "glutes"],
     ["hamstrings", "lower-back"],
     ["front", "back"],
     "Barbell_Full_Squat",
   ),
-  "Front Squat": visual(
+  "Front Squat": defineExercise(
     "Legs",
+    popular,
+    ["barbell", "squat_rack"],
     ["quads", "glutes"],
     ["abs"],
     ["front", "back"],
     "Front_Squat_Clean_Grip",
   ),
-  "Leg Press": visual(
+  "Leg Press": defineExercise(
     "Legs",
+    popular,
+    ["cardio_equipment"],
     ["quads", "glutes"],
     ["hamstrings"],
     ["front", "back"],
     "Leg_Press",
   ),
-  "Romanian Deadlift": visual(
+  "Romanian Deadlift": defineExercise(
     "Legs",
+    popular,
+    ["barbell"],
     ["hamstrings", "glutes"],
     ["lower-back"],
     ["back"],
     "Romanian_Deadlift",
   ),
-  "Leg Curl": visual(
+  "Leg Curl": defineExercise(
     "Legs",
+    popular,
+    ["cardio_equipment"],
     ["hamstrings"],
     ["calves"],
     ["back"],
     "Lying_Leg_Curls",
   ),
-  "Leg Extension": visual("Legs", ["quads"], [], ["front"], "Leg_Extensions"),
-  "Walking Lunge": visual(
+  "Leg Extension": defineExercise(
     "Legs",
+    popular,
+    ["cardio_equipment"],
+    ["quads"],
+    [],
+    ["front"],
+    "Leg_Extensions",
+  ),
+  "Walking Lunge": defineExercise(
+    "Legs",
+    popular,
+    ["bodyweight"],
     ["quads", "glutes"],
     ["hamstrings", "calves"],
     ["front", "back"],
     "Bodyweight_Walking_Lunge",
   ),
-  "Calf Raise": visual(
+  "Calf Raise": defineExercise(
     "Legs",
+    popular,
+    ["bodyweight"],
     ["calves"],
     [],
     ["front", "back"],
     "Standing_Calf_Raises",
   ),
-  Plank: visual(
+  "Dumbbell Split Squat": defineExercise(
+    "Legs",
+    common,
+    ["dumbbells"],
+    ["quads", "glutes"],
+    ["hamstrings"],
+    ["front", "back"],
+    "Split_Squat_with_Dumbbells",
+  ),
+  "Goblet Squat": defineExercise(
+    "Legs",
+    common,
+    ["kettlebells"],
+    ["quads", "glutes"],
+    ["hamstrings", "abs"],
+    ["front", "back"],
+    "Goblet_Squat",
+  ),
+  "Barbell Hip Thrust": defineExercise(
+    "Legs",
+    common,
+    ["barbell", "bench"],
+    ["glutes"],
+    ["hamstrings"],
+    ["back"],
+    "Barbell_Hip_Thrust",
+  ),
+  "Step-Up with Knee Raise": defineExercise(
+    "Legs",
+    common,
+    ["bodyweight", "bench"],
+    ["quads", "glutes"],
+    ["hamstrings", "calves"],
+    ["front", "back"],
+    "Step-up_with_Knee_Raise",
+  ),
+  "Kettlebell Single-Leg Deadlift": defineExercise(
+    "Legs",
+    lessCommon,
+    ["kettlebells"],
+    ["hamstrings", "glutes"],
+    ["lower-back"],
+    ["back"],
+    "Kettlebell_One-Legged_Deadlift",
+  ),
+
+  Plank: defineExercise(
     "Core",
+    popular,
+    ["bodyweight"],
     ["abs"],
     ["obliques", "front-delts"],
     ["front"],
     "Plank",
   ),
-  Crunch: visual("Core", ["abs"], ["obliques"], ["front"], "Crunches"),
-  "Hanging Leg Raise": visual(
+  Crunch: defineExercise(
     "Core",
+    popular,
+    ["bodyweight"],
+    ["abs"],
+    ["obliques"],
+    ["front"],
+    "Crunches",
+  ),
+  "Hanging Leg Raise": defineExercise(
+    "Core",
+    popular,
+    ["bodyweight", "pull_up_bar"],
     ["abs"],
     ["quads"],
     ["front"],
     "Hanging_Leg_Raise",
   ),
-  "Cable Crunch": visual(
+  "Cable Crunch": defineExercise(
     "Core",
+    popular,
+    ["cable_machine"],
     ["abs"],
     ["obliques"],
     ["front"],
     "Cable_Crunch",
   ),
-  "Russian Twist": visual(
+  "Russian Twist": defineExercise(
     "Core",
+    popular,
+    ["bodyweight"],
     ["obliques"],
     ["abs"],
     ["front"],
     "Russian_Twist",
   ),
-  "Ab Wheel Rollout": visual(
+  "Ab Wheel Rollout": defineExercise(
     "Core",
+    popular,
+    ["weight_plates"],
     ["abs"],
     ["front-delts", "lats"],
     ["front", "back"],
     "Ab_Roller",
   ),
-  Deadlift: visual(
+  "Side Bridge": defineExercise(
+    "Core",
+    common,
+    ["bodyweight"],
+    ["obliques"],
+    ["abs", "side-delts"],
+    ["front"],
+    "Side_Bridge",
+  ),
+  "Dead Bug": defineExercise(
+    "Core",
+    common,
+    ["bodyweight"],
+    ["abs"],
+    ["obliques"],
+    ["front"],
+    "Dead_Bug",
+  ),
+  "Air Bike": defineExercise(
+    "Core",
+    common,
+    ["bodyweight"],
+    ["abs", "obliques"],
+    [],
+    ["front"],
+    "Air_Bike",
+  ),
+  "Pallof Press": defineExercise(
+    "Core",
+    lessCommon,
+    ["cable_machine"],
+    ["obliques", "abs"],
+    ["front-delts"],
+    ["front"],
+    "Pallof_Press",
+  ),
+  "Mountain Climber": defineExercise(
+    "Core",
+    common,
+    ["bodyweight"],
+    ["abs"],
+    ["quads", "front-delts"],
+    ["front"],
+    "Mountain_Climbers",
+  ),
+
+  Deadlift: defineExercise(
     "Full Body & Conditioning",
+    popular,
+    ["barbell", "weight_plates"],
     ["glutes", "hamstrings"],
     ["lower-back", "quads", "traps"],
     ["front", "back"],
     "Barbell_Deadlift",
   ),
-  "Kettlebell Swing": visual(
+  "Kettlebell Swing": defineExercise(
     "Full Body & Conditioning",
+    popular,
+    ["kettlebells"],
     ["glutes", "hamstrings"],
     ["abs", "front-delts"],
     ["front", "back"],
     "One-Arm_Kettlebell_Swings",
   ),
-  "Clean and Press": visual(
+  "Clean and Press": defineExercise(
     "Full Body & Conditioning",
+    popular,
+    ["barbell", "weight_plates"],
     ["quads", "front-delts"],
     ["glutes", "traps", "triceps"],
     ["front", "back"],
     "Clean_and_Press",
   ),
-  Burpee: visual(
+  Burpee: defineExercise(
     "Full Body & Conditioning",
+    popular,
+    ["bodyweight"],
     ["quads", "chest"],
     ["abs", "front-delts", "triceps"],
     ["front", "back"],
   ),
-  "Farmer Carry": visual(
+  "Farmer Carry": defineExercise(
     "Full Body & Conditioning",
+    popular,
+    ["dumbbells"],
     ["forearms", "traps"],
     ["abs", "quads"],
     ["front", "back"],
     "Farmers_Walk",
   ),
-  "Sled Push": visual(
+  "Sled Push": defineExercise(
     "Full Body & Conditioning",
+    popular,
+    ["cardio_equipment"],
     ["quads", "glutes"],
     ["chest", "front-delts", "calves"],
     ["front", "back"],
     "Sled_Push",
   ),
-  "Concentration Curl": visual("Arms", ["biceps"], ["forearms"], ["front"]),
-  "Incline Dumbbell Curl": visual("Arms", ["biceps"], ["forearms"], ["front"]),
-  "Resistance Band Curl": visual("Arms", ["biceps"], ["forearms"], ["front"]),
-  "Diamond Push-Up": visual(
-    "Arms",
-    ["triceps"],
-    ["chest", "front-delts"],
-    ["front", "back"],
-  ),
-  "Tricep Kickback": visual("Arms", ["triceps"], [], ["back"]),
-  "Close-Grip Bench Press": visual(
-    "Arms",
-    ["triceps"],
-    ["chest", "front-delts"],
-    ["front", "back"],
-  ),
-  "Incline Barbell Bench Press": visual(
-    "Chest",
-    ["chest"],
-    ["triceps", "front-delts"],
-    ["front", "back"],
-  ),
-  "Decline Push-Up": visual(
-    "Chest",
-    ["chest"],
-    ["triceps", "front-delts"],
-    ["front", "back"],
-  ),
-  "Resistance Band Chest Press": visual(
-    "Chest",
-    ["chest"],
-    ["triceps", "front-delts"],
-    ["front"],
-  ),
-  "Dumbbell Pullover": visual(
-    "Chest",
-    ["chest"],
-    ["lats", "triceps"],
-    ["front", "back"],
-  ),
-  "Chin-Up": visual(
-    "Back",
-    ["lats", "biceps"],
-    ["upper-back"],
-    ["front", "back"],
-  ),
-  "Inverted Row": visual(
-    "Back",
-    ["upper-back", "lats"],
-    ["biceps"],
-    ["front", "back"],
-  ),
-  "Straight-Arm Pulldown": visual(
-    "Back",
-    ["lats"],
-    ["triceps"],
-    ["front", "back"],
-  ),
-  "Resistance Band Row": visual(
-    "Back",
-    ["lats", "upper-back"],
-    ["biceps"],
-    ["front", "back"],
-  ),
-  Shrug: visual("Back", ["traps"], ["forearms"], ["front", "back"]),
-  "Arnold Press": visual(
-    "Shoulders",
-    ["front-delts", "side-delts"],
-    ["triceps"],
-    ["front", "back"],
-  ),
-  "Cable Lateral Raise": visual(
-    "Shoulders",
-    ["side-delts"],
-    ["traps"],
-    ["front", "back"],
-  ),
-  "Pike Push-Up": visual(
-    "Shoulders",
-    ["front-delts", "side-delts"],
-    ["triceps"],
-    ["front", "back"],
-  ),
-  "Band Pull-Apart": visual(
-    "Shoulders",
-    ["rear-delts", "upper-back"],
-    ["traps"],
-    ["back"],
-  ),
-  "Bulgarian Split Squat": visual(
-    "Legs",
-    ["quads", "glutes"],
-    ["hamstrings"],
-    ["front", "back"],
-  ),
-  "Goblet Squat": visual(
-    "Legs",
-    ["quads", "glutes"],
-    ["hamstrings", "abs"],
-    ["front", "back"],
-  ),
-  "Hip Thrust": visual("Legs", ["glutes"], ["hamstrings"], ["back"]),
-  "Step-Up": visual(
-    "Legs",
-    ["quads", "glutes"],
-    ["hamstrings", "calves"],
-    ["front", "back"],
-  ),
-  "Single-Leg Romanian Deadlift": visual(
-    "Legs",
-    ["hamstrings", "glutes"],
-    ["lower-back"],
-    ["back"],
-  ),
-  "Side Plank": visual("Core", ["obliques"], ["abs", "side-delts"], ["front"]),
-  "Dead Bug": visual("Core", ["abs"], ["obliques"], ["front"]),
-  "Bicycle Crunch": visual("Core", ["abs", "obliques"], [], ["front"]),
-  "Pallof Press": visual(
-    "Core",
-    ["obliques", "abs"],
-    ["front-delts"],
-    ["front"],
-  ),
-  "Mountain Climber": visual(
-    "Core",
-    ["abs"],
-    ["quads", "front-delts"],
-    ["front"],
-  ),
-  "Turkish Get-Up": visual(
+  "Kettlebell Turkish Get-Up": defineExercise(
     "Full Body & Conditioning",
+    lessCommon,
+    ["kettlebells"],
     ["glutes", "front-delts"],
     ["abs", "quads", "triceps"],
     ["front", "back"],
+    "Kettlebell_Turkish_Get-Up_Squat_style",
   ),
-  "Battle Ropes": visual(
+  "Battle Ropes": defineExercise(
     "Full Body & Conditioning",
+    lessCommon,
+    ["cardio_equipment"],
     ["front-delts", "abs"],
     ["biceps", "triceps"],
     ["front", "back"],
+    "Battling_Ropes",
   ),
-  "Jump Rope": visual(
+  "Jump Rope": defineExercise(
     "Full Body & Conditioning",
+    common,
+    ["cardio_equipment"],
     ["calves"],
     ["quads", "front-delts"],
     ["front", "back"],
+    "Rope_Jumping",
   ),
-  "Dumbbell Thruster": visual(
+  "Kettlebell Thruster": defineExercise(
     "Full Body & Conditioning",
+    common,
+    ["kettlebells"],
     ["quads", "front-delts"],
     ["glutes", "triceps", "abs"],
     ["front", "back"],
+    "Kettlebell_Thruster",
   ),
-  "Bear Crawl": visual(
+  "Bear Crawl Sled Drag": defineExercise(
     "Full Body & Conditioning",
+    lessCommon,
+    ["cardio_equipment"],
     ["abs", "front-delts"],
     ["quads", "triceps"],
     ["front", "back"],
+    "Bear_Crawl_Sled_Drags",
   ),
 };
-
-type ExerciseMetadata = {
-  popularity: ExercisePopularity;
-  equipment: EquipmentId[];
-};
-
-const metadata: Record<string, ExerciseMetadata> = {
-  "Barbell Curl": { popularity: "most-popular", equipment: ["barbell"] },
-  "Dumbbell Bicep Curl": {
-    popularity: "most-popular",
-    equipment: ["dumbbells"],
-  },
-  "Hammer Curl": { popularity: "most-popular", equipment: ["dumbbells"] },
-  "Preacher Curl": {
-    popularity: "most-popular",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Cable Tricep Pushdown": {
-    popularity: "most-popular",
-    equipment: ["cable_machine"],
-  },
-  "Skull Crusher": {
-    popularity: "most-popular",
-    equipment: ["barbell", "bench"],
-  },
-  "Overhead Tricep Extension": {
-    popularity: "most-popular",
-    equipment: ["dumbbells"],
-  },
-  "Tricep Dip": {
-    popularity: "most-popular",
-    equipment: ["bodyweight", "bench"],
-  },
-  "Barbell Bench Press": {
-    popularity: "most-popular",
-    equipment: ["barbell", "bench", "squat_rack"],
-  },
-  "Dumbbell Bench Press": {
-    popularity: "most-popular",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Incline Dumbbell Press": {
-    popularity: "most-popular",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Chest Fly": {
-    popularity: "most-popular",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Cable Crossover": {
-    popularity: "most-popular",
-    equipment: ["cable_machine"],
-  },
-  "Push-Up": { popularity: "most-popular", equipment: ["bodyweight"] },
-  "Pull-Up": {
-    popularity: "most-popular",
-    equipment: ["bodyweight", "pull_up_bar"],
-  },
-  "Lat Pulldown": { popularity: "most-popular", equipment: ["cable_machine"] },
-  "Barbell Row": { popularity: "most-popular", equipment: ["barbell"] },
-  "Dumbbell Row": {
-    popularity: "most-popular",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Seated Cable Row": {
-    popularity: "most-popular",
-    equipment: ["cable_machine"],
-  },
-  "Face Pull": { popularity: "most-popular", equipment: ["cable_machine"] },
-  "Back Extension": {
-    popularity: "most-popular",
-    equipment: ["bodyweight", "bench"],
-  },
-  "Overhead Press": {
-    popularity: "most-popular",
-    equipment: ["barbell", "squat_rack"],
-  },
-  "Dumbbell Shoulder Press": {
-    popularity: "most-popular",
-    equipment: ["dumbbells"],
-  },
-  "Lateral Raise": { popularity: "most-popular", equipment: ["dumbbells"] },
-  "Front Raise": { popularity: "most-popular", equipment: ["dumbbells"] },
-  "Rear Delt Fly": {
-    popularity: "most-popular",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Upright Row": {
-    popularity: "most-popular",
-    equipment: ["resistance_bands"],
-  },
-  "Barbell Back Squat": {
-    popularity: "most-popular",
-    equipment: ["barbell", "squat_rack"],
-  },
-  "Front Squat": {
-    popularity: "most-popular",
-    equipment: ["barbell", "squat_rack"],
-  },
-  "Leg Press": { popularity: "most-popular", equipment: ["cardio_equipment"] },
-  "Romanian Deadlift": { popularity: "most-popular", equipment: ["barbell"] },
-  "Leg Curl": { popularity: "most-popular", equipment: ["cardio_equipment"] },
-  "Leg Extension": {
-    popularity: "most-popular",
-    equipment: ["cardio_equipment"],
-  },
-  "Walking Lunge": { popularity: "most-popular", equipment: ["bodyweight"] },
-  "Calf Raise": { popularity: "most-popular", equipment: ["bodyweight"] },
-  Plank: { popularity: "most-popular", equipment: ["bodyweight"] },
-  Crunch: { popularity: "most-popular", equipment: ["bodyweight"] },
-  "Hanging Leg Raise": {
-    popularity: "most-popular",
-    equipment: ["bodyweight", "pull_up_bar"],
-  },
-  "Cable Crunch": { popularity: "most-popular", equipment: ["cable_machine"] },
-  "Russian Twist": { popularity: "most-popular", equipment: ["bodyweight"] },
-  "Ab Wheel Rollout": {
-    popularity: "most-popular",
-    equipment: ["weight_plates"],
-  },
-  Deadlift: {
-    popularity: "most-popular",
-    equipment: ["barbell", "weight_plates"],
-  },
-  "Kettlebell Swing": {
-    popularity: "most-popular",
-    equipment: ["kettlebells"],
-  },
-  "Clean and Press": {
-    popularity: "most-popular",
-    equipment: ["barbell", "weight_plates"],
-  },
-  Burpee: { popularity: "most-popular", equipment: ["bodyweight"] },
-  "Farmer Carry": { popularity: "most-popular", equipment: ["dumbbells"] },
-  "Sled Push": { popularity: "most-popular", equipment: ["cardio_equipment"] },
-  "Concentration Curl": {
-    popularity: "common",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Incline Dumbbell Curl": {
-    popularity: "common",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Resistance Band Curl": {
-    popularity: "less-common",
-    equipment: ["resistance_bands"],
-  },
-  "Diamond Push-Up": { popularity: "common", equipment: ["bodyweight"] },
-  "Tricep Kickback": { popularity: "common", equipment: ["dumbbells"] },
-  "Close-Grip Bench Press": {
-    popularity: "less-common",
-    equipment: ["barbell", "bench", "squat_rack"],
-  },
-  "Incline Barbell Bench Press": {
-    popularity: "common",
-    equipment: ["barbell", "bench", "squat_rack"],
-  },
-  "Decline Push-Up": {
-    popularity: "common",
-    equipment: ["bodyweight", "bench"],
-  },
-  "Resistance Band Chest Press": {
-    popularity: "less-common",
-    equipment: ["resistance_bands"],
-  },
-  "Dumbbell Pullover": {
-    popularity: "less-common",
-    equipment: ["dumbbells", "bench"],
-  },
-  "Chin-Up": { popularity: "common", equipment: ["bodyweight", "pull_up_bar"] },
-  "Inverted Row": {
-    popularity: "common",
-    equipment: ["bodyweight", "squat_rack"],
-  },
-  "Straight-Arm Pulldown": {
-    popularity: "less-common",
-    equipment: ["cable_machine"],
-  },
-  "Resistance Band Row": {
-    popularity: "common",
-    equipment: ["resistance_bands"],
-  },
-  Shrug: { popularity: "less-common", equipment: ["dumbbells"] },
-  "Arnold Press": { popularity: "common", equipment: ["dumbbells"] },
-  "Cable Lateral Raise": { popularity: "common", equipment: ["cable_machine"] },
-  "Pike Push-Up": { popularity: "common", equipment: ["bodyweight"] },
-  "Band Pull-Apart": {
-    popularity: "less-common",
-    equipment: ["resistance_bands"],
-  },
-  "Bulgarian Split Squat": {
-    popularity: "common",
-    equipment: ["bodyweight", "bench"],
-  },
-  "Goblet Squat": { popularity: "common", equipment: ["dumbbells"] },
-  "Hip Thrust": { popularity: "common", equipment: ["barbell", "bench"] },
-  "Step-Up": { popularity: "common", equipment: ["bodyweight", "bench"] },
-  "Single-Leg Romanian Deadlift": {
-    popularity: "less-common",
-    equipment: ["dumbbells"],
-  },
-  "Side Plank": { popularity: "common", equipment: ["bodyweight"] },
-  "Dead Bug": { popularity: "common", equipment: ["bodyweight"] },
-  "Bicycle Crunch": { popularity: "common", equipment: ["bodyweight"] },
-  "Pallof Press": { popularity: "less-common", equipment: ["cable_machine"] },
-  "Mountain Climber": { popularity: "common", equipment: ["bodyweight"] },
-  "Turkish Get-Up": { popularity: "less-common", equipment: ["kettlebells"] },
-  "Battle Ropes": {
-    popularity: "less-common",
-    equipment: ["cardio_equipment"],
-  },
-  "Jump Rope": { popularity: "common", equipment: ["cardio_equipment"] },
-  "Dumbbell Thruster": { popularity: "common", equipment: ["dumbbells"] },
-  "Bear Crawl": { popularity: "less-common", equipment: ["bodyweight"] },
-};
-
-export const exerciseCatalog: Record<string, ExerciseVisual> =
-  Object.fromEntries(
-    Object.entries(baseExerciseCatalog).map(([name, item]) => [
-      name,
-      { ...item, ...metadata[name] },
-    ]),
-  );
 
 export const exerciseGroups = Object.entries(exerciseCatalog).reduce<
   { label: string; exercises: string[] }[]
@@ -808,7 +852,7 @@ export const exerciseGroups = Object.entries(exerciseCatalog).reduce<
 }, []);
 
 export function getExerciseVisual(name: string) {
-  return exerciseCatalog[name];
+  return (exerciseCatalog as Record<string, ExerciseVisual>)[name];
 }
 
 export function demoFrames(demoId: string) {
