@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import {
   mealAnalysisRequestSchema,
   mealAnalysisSchema,
@@ -9,7 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const systemPrompt = `You estimate nutrition for food descriptions. Break every food the user lists into a distinct item; do not omit foods, combine unrelated foods, or stop partway through a list. Use realistic estimates for the stated serving sizes. Return the complete JSON object required by the schema, including every numeric field for every item. All numeric values must be non-negative. Confidence is 0 to 1 and reflects how certain the estimate is.`;
+const systemPrompt = `You validate food descriptions and estimate nutrition. First decide whether the input names at least one identifiable food, drink, ingredient, or common dish. Accept ordinary wording, minor typos, broad but recognizable foods such as "pizza" or "a sandwich", and descriptions without a serving size. Reject text that only expresses a preference or placeholder, such as "something good", "something healthy", "food", "a meal", or "a snack", because it does not identify what was consumed. Never invent an "unknown food" or nutrition for unclear input.
+
+Set isClear to false for unclear input, briefly ask the user to name the food or drink in clarification, and return null mealName with an empty items array. Set isClear to true for clear input, set clarification to null, and provide the complete meal estimate. Break every listed food into a distinct item; do not omit foods, combine unrelated foods, or stop partway through a list. Use realistic estimates for stated serving sizes and a reasonable standard serving when none is given. Include every numeric field for every item. All numeric values must be non-negative. Confidence is 0 to 1 and reflects how certain the estimate is.`;
 
 const mealResponseFormat = {
   type: "json_schema",
@@ -19,12 +21,14 @@ const mealResponseFormat = {
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["mealName", "items"],
+      required: ["isClear", "clarification", "mealName", "items"],
       properties: {
-        mealName: { type: "string" },
+        isClear: { type: "boolean" },
+        clarification: { type: ["string", "null"] },
+        mealName: { type: ["string", "null"] },
         items: {
           type: "array",
-          minItems: 1,
+          minItems: 0,
           maxItems: 20,
           items: {
             type: "object",
@@ -132,7 +136,27 @@ export async function POST(request: Request) {
     const content = choice?.message?.content;
     if (!content || choice.finish_reason === "length")
       throw new Error("AI response was cut off before the estimate finished");
-    const parsed = parsedMealSchema.parse(JSON.parse(content));
+    const result = z
+      .object({
+        isClear: z.boolean(),
+        clarification: z.string().trim().min(1).max(240).nullable(),
+        mealName: z.string().trim().min(1).max(120).nullable(),
+        items: z.array(parsedMealSchema.shape.items.element).max(20),
+      })
+      .parse(JSON.parse(content));
+    if (!result.isClear)
+      return NextResponse.json(
+        {
+          error:
+            result.clarification ??
+            "Please name a specific food or drink before analyzing.",
+        },
+        { status: 422 },
+      );
+    const parsed = parsedMealSchema.parse({
+      mealName: result.mealName,
+      items: result.items,
+    });
     return NextResponse.json(mealAnalysisSchema.parse(parsed));
   } catch (error) {
     if (error instanceof ZodError || error instanceof SyntaxError) {
