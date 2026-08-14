@@ -688,26 +688,31 @@ export function ExercisePlanner({
           <div className="mt-3 divide-y divide-slate-100">
             {sessions.map((session) => (
               <div
-                className="flex justify-between gap-3 py-3 text-sm"
+                className="grid gap-2 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4"
                 key={session.id}
               >
-                <span>
-                  {formatInTimeZone(session.startedAt, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </span>
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-baseline justify-between gap-3 sm:justify-start sm:gap-6">
+                  <time
+                    className="whitespace-nowrap font-medium text-slate-700"
+                    dateTime={session.startedAt}
+                  >
+                    {formatInTimeZone(session.startedAt, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </time>
                   {session.estimatedCalBurned !== null ? (
-                    <span className="font-semibold text-emerald-700">
+                    <span className="shrink-0 whitespace-nowrap font-semibold text-emerald-700">
                       {session.estimatedCalBurned} kcal
                     </span>
                   ) : null}
+                </div>
+                <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-end">
                   <div
                     aria-label="Exercise completion progress"
-                    className="flex items-center gap-1"
+                    className="flex min-w-0 flex-wrap items-center gap-1"
                   >
                     {session.exercises.map((exercise, index) => {
                       const isComplete =
@@ -725,26 +730,30 @@ export function ExercisePlanner({
                       );
                     })}
                   </div>
-                  <button
-                    aria-label="Edit workout sets and reps"
-                    className="grid h-8 w-8 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
-                    onClick={() => openSessionEditor(session)}
-                    title="Edit sets and reps"
-                    type="button"
-                  >
-                    <Pencil aria-hidden="true" className="h-4 w-4" />
-                  </button>
-                  <button
-                    aria-label="Delete workout session"
-                    className="grid h-8 w-8 place-items-center rounded-lg text-[0px] text-red-600 hover:bg-red-50 disabled:opacity-50"
-                    disabled={deletingSession === session.id}
-                    onClick={() => void removeSession(session)}
-                    title="Delete workout session"
-                    type="button"
-                  >
-                    <Trash2 aria-hidden="true" className="h-4 w-4" />
-                    {deletingSession === session.id ? "Deletingâ€¦" : "Delete"}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      aria-label="Edit workout sets and reps"
+                      className="grid size-10 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
+                      onClick={() => openSessionEditor(session)}
+                      title="Edit sets and reps"
+                      type="button"
+                    >
+                      <Pencil aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                    <button
+                      aria-label="Delete workout session"
+                      className="grid size-10 place-items-center rounded-lg text-[0px] text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      disabled={deletingSession === session.id}
+                      onClick={() => void removeSession(session)}
+                      title="Delete workout session"
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" className="h-4 w-4" />
+                      {deletingSession === session.id
+                        ? "Deletingâ€¦"
+                        : "Delete"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
