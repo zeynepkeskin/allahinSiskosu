@@ -143,7 +143,25 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
               minLength={3}
               maxLength={2000}
             />
-            <div className="mt-2 flex justify-end">
+            {error ? (
+              <p aria-live="polite" className="mt-3 text-sm text-rose-600">
+                {error}
+              </p>
+            ) : null}
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <Button
+                className="inline-flex items-center gap-2"
+                disabled={isLoading || isReadingPhoto}
+                type="submit"
+              >
+                {isLoading ? (
+                  <>
+                    <Spinner /> Analyzing…
+                  </>
+                ) : (
+                  "Analyze eat"
+                )}
+              </Button>
               <input
                 accept="image/jpeg,image/png,image/webp"
                 capture="environment"
@@ -153,34 +171,17 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
                 type="file"
               />
               <button
-                aria-label="Take a photo of your food"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={
+                  isReadingPhoto ? "Reading food photo" : "Take a food photo"
+                }
+                className="grid h-10 w-10 place-items-center text-slate-600 transition hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isLoading || isReadingPhoto}
                 onClick={() => photoInputRef.current?.click()}
                 type="button"
               >
-                {isReadingPhoto ? <Spinner /> : <Camera aria-hidden size={18} />}
-                {isReadingPhoto ? "Reading photo…" : "Take food photo"}
+                {isReadingPhoto ? <Spinner /> : <Camera aria-hidden size={24} />}
               </button>
             </div>
-            {error ? (
-              <p aria-live="polite" className="mt-3 text-sm text-rose-600">
-                {error}
-              </p>
-            ) : null}
-            <Button
-              className="mt-4 inline-flex items-center gap-2"
-              disabled={isLoading || isReadingPhoto}
-              type="submit"
-            >
-              {isLoading ? (
-                <>
-                  <Spinner /> Analyzing…
-                </>
-              ) : (
-                "Analyze eat"
-              )}
-            </Button>
           </section>
         </form>
       )}
