@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { Camera } from "lucide-react";
 import type { MealAnalysis } from "@/lib/nutrition";
 import { Button, Spinner } from "@/components/ui";
 import { moveToLocalDate, todayInTimeZone } from "@/lib/timezone";
@@ -10,9 +11,41 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
   const [analysis, setAnalysis] = useState<MealAnalysis>();
   const [error, setError] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
+  const [isReadingPhoto, setIsReadingPhoto] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [mealDate, setMealDate] = useState(() => todayInTimeZone());
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  async function readPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setError(undefined);
+    setIsReadingPhoto(true);
+    try {
+      const image = await resizeFoodPhoto(file);
+      const response = await fetch("/api/ai/meal-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        description?: string;
+        error?: string;
+      };
+      if (!response.ok || !payload.description)
+        throw new Error(payload.error ?? "Could not read this photo.");
+      setDescription(payload.description);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not read this photo.",
+      );
+    } finally {
+      setIsReadingPhoto(false);
+    }
+  }
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -110,6 +143,26 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
               minLength={3}
               maxLength={2000}
             />
+            <div className="mt-2 flex justify-end">
+              <input
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                className="sr-only"
+                onChange={readPhoto}
+                ref={photoInputRef}
+                type="file"
+              />
+              <button
+                aria-label="Take a photo of your food"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isLoading || isReadingPhoto}
+                onClick={() => photoInputRef.current?.click()}
+                type="button"
+              >
+                {isReadingPhoto ? <Spinner /> : <Camera aria-hidden size={18} />}
+                {isReadingPhoto ? "Reading photo…" : "Take food photo"}
+              </button>
+            </div>
             {error ? (
               <p aria-live="polite" className="mt-3 text-sm text-rose-600">
                 {error}
@@ -117,7 +170,7 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
             ) : null}
             <Button
               className="mt-4 inline-flex items-center gap-2"
-              disabled={isLoading}
+              disabled={isLoading || isReadingPhoto}
               type="submit"
             >
               {isLoading ? (
@@ -133,6 +186,27 @@ export function MealParser({ onSaved }: { onSaved?: () => void }) {
       )}
     </div>
   );
+}
+
+async function resizeFoodPhoto(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Choose an image file.");
+  if (file.size > 20 * 1024 * 1024)
+    throw new Error("Choose a photo smaller than 20 MB.");
+
+  const bitmap = await createImageBitmap(file);
+  try {
+    const maxSide = 1024;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("This browser could not prepare the photo.");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.65);
+  } finally {
+    bitmap.close();
+  }
 }
 
 function MealPreview({
