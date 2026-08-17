@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Copy, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Copy, Pencil, Search, Trash2 } from "lucide-react";
 import type { SavedMeal } from "@/lib/nutrition";
 import { Button, EmptyState, Spinner } from "@/components/ui";
 import {
@@ -23,6 +23,7 @@ type NutritionField = (typeof nutritionFields)[number]["key"];
 
 export function MealHistory({ refreshKey }: { refreshKey: number }) {
   const [meals, setMeals] = useState<SavedMeal[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [deleting, setDeleting] = useState<string>();
@@ -31,6 +32,19 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
   const [name, setName] = useState("");
   const [items, setItems] = useState<SavedMeal["items"]>([]);
   const [mealDate, setMealDate] = useState("");
+  const visibleMeals = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const matches = query
+      ? meals.filter((meal) =>
+          [
+            meal.mealName,
+            ...meal.items.flatMap((item) => [item.foodName, item.serving]),
+          ].some((value) => value.toLocaleLowerCase().includes(query)),
+        )
+      : meals;
+
+    return matches.slice(0, 10);
+  }, [meals, searchQuery]);
   useEffect(() => {
     let active = true;
     async function load() {
@@ -167,6 +181,25 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
           {error}
         </p>
       ) : null}
+      {!loading && meals.length > 0 ? (
+        <div className="relative mt-5">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+          />
+          <label className="sr-only" htmlFor="saved-eats-search">
+            Search saved eats
+          </label>
+          <input
+            className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            id="saved-eats-search"
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search saved eats"
+            type="search"
+            value={searchQuery}
+          />
+        </div>
+      ) : null}
       {!loading && meals.length === 0 ? (
         <div className="mt-5">
           <EmptyState
@@ -175,8 +208,16 @@ export function MealHistory({ refreshKey }: { refreshKey: number }) {
           />
         </div>
       ) : null}
+      {!loading && meals.length > 0 && visibleMeals.length === 0 ? (
+        <div className="mt-5">
+          <EmptyState
+            title="No matching eats"
+            description={`No saved eats match “${searchQuery.trim()}”.`}
+          />
+        </div>
+      ) : null}
       <div className="mt-5 space-y-3">
-        {meals.map((meal) => (
+        {visibleMeals.map((meal) => (
           <article
             className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
             key={meal.id}
