@@ -817,7 +817,7 @@ function Composer({
             void send();
           }
         }}
-        placeholder="Ask your coach anything…"
+        placeholder="Ask about eating or workouts…"
         rows={1}
         value={input}
       />
