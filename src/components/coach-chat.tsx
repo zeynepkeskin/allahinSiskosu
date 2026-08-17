@@ -35,9 +35,10 @@ type Conversation = {
   title: string;
   messages: ChatMessage[];
   updatedAt: string;
+  persisted: boolean;
+  loaded: boolean;
 };
 
-const STORAGE_KEY = "coach-chat-history-v1";
 const starters = [
   {
     icon: Sparkles,
@@ -71,6 +72,8 @@ function newConversation(): Conversation {
     title: "New conversation",
     messages: [],
     updatedAt: new Date().toISOString(),
+    persisted: false,
+    loaded: true,
   };
 }
 
@@ -82,6 +85,8 @@ export function CoachChat({ displayName }: { displayName?: string }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [loadingConversation, setLoadingConversation] = useState(true);
+  const [historyError, setHistoryError] = useState<string>();
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const active = conversations.find(
@@ -90,32 +95,57 @@ export function CoachChat({ displayName }: { displayName?: string }) {
   const messages = useMemo(() => active?.messages ?? [], [active?.messages]);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) ?? "[]",
-      ) as Conversation[];
-      const initial = stored.length ? stored : [newConversation()];
-      setConversations(initial);
-      setActiveId(initial[0].id);
-    } catch {
-      const initial = newConversation();
-      setConversations([initial]);
-      setActiveId(initial.id);
+    let active = true;
+    async function loadHistory() {
+      try {
+        const response = await fetch("/api/ai/coach/conversations");
+        const payload = (await response.json()) as {
+          conversations?: Array<{
+            id: string;
+            title: string;
+            updated_at: string;
+          }>;
+          error?: string;
+        };
+        if (!response.ok || !payload.conversations)
+          throw new Error(payload.error ?? "Could not load conversations.");
+        if (!active) return;
+        const initial = payload.conversations.map((conversation) => ({
+          id: conversation.id,
+          title: conversation.title,
+          messages: [],
+          updatedAt: conversation.updated_at,
+          persisted: true,
+          loaded: false,
+        }));
+        if (!initial.length) {
+          const conversation = newConversation();
+          setConversations([conversation]);
+          setActiveId(conversation.id);
+          setLoadingConversation(false);
+          return;
+        }
+        setConversations(initial);
+        setActiveId(initial[0].id);
+        await loadConversation(initial[0].id);
+      } catch (error) {
+        if (!active) return;
+        const conversation = newConversation();
+        setConversations([conversation]);
+        setActiveId(conversation.id);
+        setHistoryError(
+          error instanceof Error
+            ? error.message
+            : "Could not load conversations.",
+        );
+        setLoadingConversation(false);
+      }
     }
+    void loadHistory();
+    return () => {
+      active = false;
+    };
   }, []);
-  useEffect(() => {
-    if (!conversations.length) return;
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(conversations.slice(0, 30)),
-      );
-    } catch (error) {
-      // Chat remains usable when storage is unavailable, full, or blocked by
-      // the browser. Supabase is still the canonical conversation store.
-      console.warn("Could not persist coach history locally", error);
-    }
-  }, [conversations]);
   useEffect(() => {
     const end = endRef.current;
     if (end && typeof end.scrollIntoView === "function")
@@ -130,6 +160,61 @@ export function CoachChat({ displayName }: { displayName?: string }) {
         conversation.id === activeId ? transform(conversation) : conversation,
       ),
     );
+  }
+
+  async function loadConversation(id: string) {
+    setLoadingConversation(true);
+    setHistoryError(undefined);
+    try {
+      const response = await fetch(
+        `/api/ai/coach?conversationId=${encodeURIComponent(id)}`,
+      );
+      const payload = (await response.json()) as {
+        conversation?: { title: string; updated_at: string };
+        messages?: Array<{
+          id: string;
+          role: string;
+          content: string;
+        }>;
+        error?: string;
+      };
+      if (!response.ok || !payload.conversation || !payload.messages)
+        throw new Error(payload.error ?? "Could not load this conversation.");
+      const messages = payload.messages
+        .filter(
+          (
+            message,
+          ): message is typeof message & {
+            role: "user" | "assistant";
+          } => message.role === "user" || message.role === "assistant",
+        )
+        .map(({ id: messageId, role, content }) => ({
+          id: messageId,
+          role,
+          content,
+        }));
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === id
+            ? {
+                ...conversation,
+                title: payload.conversation!.title,
+                updatedAt: payload.conversation!.updated_at,
+                messages,
+                loaded: true,
+              }
+            : conversation,
+        ),
+      );
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Could not load this conversation.",
+      );
+    } finally {
+      setLoadingConversation(false);
+    }
   }
 
   function startNew() {
@@ -148,9 +233,13 @@ export function CoachChat({ displayName }: { displayName?: string }) {
   }
 
   function selectConversation(id: string) {
+    const selected = conversations.find(
+      (conversation) => conversation.id === id,
+    );
     setActiveId(id);
     setHistoryOpen(false);
     setEditingId(null);
+    if (selected?.persisted && !selected.loaded) void loadConversation(id);
   }
 
   function beginEditing(conversation: Conversation) {
@@ -158,31 +247,79 @@ export function CoachChat({ displayName }: { displayName?: string }) {
     setEditingTitle(conversation.title);
   }
 
-  function saveTitle(id: string) {
+  async function saveTitle(id: string) {
     const title = editingTitle.trim();
     if (title) {
-      setConversations((current) =>
-        current.map((conversation) =>
-          conversation.id === id ? { ...conversation, title } : conversation,
-        ),
-      );
+      try {
+        const response = await fetch("/api/ai/coach/conversations", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, title }),
+        });
+        const payload = (await response.json()) as {
+          conversation?: { title: string; updated_at: string };
+          error?: string;
+        };
+        if (!response.ok || !payload.conversation)
+          throw new Error(
+            payload.error ?? "Could not update the conversation.",
+          );
+        setConversations((current) =>
+          current.map((conversation) =>
+            conversation.id === id
+              ? {
+                  ...conversation,
+                  title: payload.conversation!.title,
+                  updatedAt: payload.conversation!.updated_at,
+                }
+              : conversation,
+          ),
+        );
+      } catch (error) {
+        setHistoryError(
+          error instanceof Error
+            ? error.message
+            : "Could not update the conversation.",
+        );
+        return;
+      }
     }
     setEditingId(null);
   }
 
-  function deleteConversation(id: string) {
-    setConversations((current) => {
-      const remaining = current.filter(
-        (conversation) => conversation.id !== id,
+  async function deleteConversation(id: string) {
+    try {
+      const response = await fetch("/api/ai/coach/conversations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok)
+        throw new Error(payload.error ?? "Could not delete the conversation.");
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Could not delete the conversation.",
       );
-      if (!remaining.length) {
-        const conversation = newConversation();
-        setActiveId(conversation.id);
-        return [conversation];
+      return;
+    }
+    const remaining = conversations.filter(
+      (conversation) => conversation.id !== id,
+    );
+    if (!remaining.length) {
+      const conversation = newConversation();
+      setConversations([conversation]);
+      setActiveId(conversation.id);
+    } else {
+      setConversations(remaining);
+      if (id === activeId) {
+        setActiveId(remaining[0].id);
+        if (remaining[0].persisted && !remaining[0].loaded)
+          void loadConversation(remaining[0].id);
       }
-      if (id === activeId) setActiveId(remaining[0].id);
-      return remaining;
-    });
+    }
     if (editingId === id) setEditingId(null);
   }
 
@@ -200,7 +337,7 @@ export function CoachChat({ displayName }: { displayName?: string }) {
       ...conversation,
       title: conversation.messages.length
         ? conversation.title
-        : text.slice(0, 54),
+        : text.slice(0, 72),
       updatedAt: new Date().toISOString(),
       messages: [
         ...conversation.messages,
@@ -231,6 +368,7 @@ export function CoachChat({ displayName }: { displayName?: string }) {
         );
       if (!response.body)
         throw new Error("The coach returned an empty response.");
+      updateActive((conversation) => ({ ...conversation, persisted: true }));
       await consumeStream(response, (event) => {
         updateActive((conversation) => ({
           ...conversation,
@@ -309,6 +447,14 @@ export function CoachChat({ displayName }: { displayName?: string }) {
             <History size={20} />
           </button>
         </div>
+        {historyError ? (
+          <p
+            aria-live="polite"
+            className="absolute left-4 right-32 top-5 z-20 truncate text-sm text-red-600 sm:left-8"
+          >
+            {historyError}
+          </p>
+        ) : null}
 
         {historyOpen ? (
           <ChatHistory
@@ -324,7 +470,11 @@ export function CoachChat({ displayName }: { displayName?: string }) {
           />
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {!messages.length ? (
+            {loadingConversation ? (
+              <div className="grid min-h-full place-items-center text-sm text-slate-500">
+                Loading conversation…
+              </div>
+            ) : !messages.length ? (
               <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-10 sm:px-8">
                 <div className="mb-8 text-center">
                   <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
@@ -418,14 +568,12 @@ function ChatHistory({
   editingTitle: string;
   setEditingTitle: (title: string) => void;
   beginEditing: (conversation: Conversation) => void;
-  saveTitle: (id: string) => void;
+  saveTitle: (id: string) => void | Promise<void>;
   cancelEditing: () => void;
-  deleteConversation: (id: string) => void;
+  deleteConversation: (id: string) => void | Promise<void>;
   selectConversation: (id: string) => void;
 }) {
-  const chats = conversations.filter(
-    (conversation) => conversation.messages.length,
-  );
+  const chats = conversations.filter((conversation) => conversation.persisted);
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-4 pb-10 pt-20 sm:px-8">
@@ -448,7 +596,7 @@ function ChatHistory({
                   maxLength={80}
                   onChange={(event) => setEditingTitle(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter") saveTitle(conversation.id);
+                    if (event.key === "Enter") void saveTitle(conversation.id);
                     if (event.key === "Escape") cancelEditing();
                   }}
                   value={editingTitle}
@@ -471,7 +619,7 @@ function ChatHistory({
                   <button
                     aria-label="Save title"
                     className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-50"
-                    onClick={() => saveTitle(conversation.id)}
+                    onClick={() => void saveTitle(conversation.id)}
                   >
                     <Check size={18} />
                   </button>
@@ -495,7 +643,7 @@ function ChatHistory({
               <button
                 aria-label={`Delete ${conversation.title}`}
                 className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600"
-                onClick={() => deleteConversation(conversation.id)}
+                onClick={() => void deleteConversation(conversation.id)}
               >
                 <Trash2 size={17} />
               </button>
